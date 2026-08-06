@@ -1,0 +1,20 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "dreameros",
+  "version": "0.1.0",
+  "description": "DreamerOS governed AI memory and verification. Cross-session memory, verified answers, and multi-engine routing through one governed gateway.",
+  "author": {
+    "name": "DreamerOS",
+    "url": "https://dreameros.app"
+  },
+  "homepage": "https://dreameros.app",
+  "repository": "https://github.com/gbude-sudo/dreameros-agent-plugin",
+  "license": "UNLICENSED",
+  "keywords": [
+    "memory",
+    "verification",
+    "governance",
+    "mcp",
+    "continuity"
+  ]
+}
