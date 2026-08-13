@@ -243,7 +243,7 @@ function Merge-StringList {
             if ($seen.Add($k)) { [void] $result.Add($i); $added++ }
         }
     }
-    return [pscustomobject]@{ List = , $result; Added = $added }
+    return [pscustomobject]@{ List = $result; Added = $added }
 }
 
 function Merge-HookEvent {
@@ -306,13 +306,13 @@ function Merge-HookEvent {
                 }
             }
         }
-        $targetH['hooks'] = , $mergedHooks
+        $targetH['hooks'] = $mergedHooks
         # Replace the group object in place.
         $idx = $result.IndexOf($target)
         $result[$idx] = $targetH
     }
 
-    return [pscustomobject]@{ List = , $result; Added = $added }
+    return [pscustomobject]@{ List = $result; Added = $added }
 }
 
 function Merge-Settings {
@@ -367,7 +367,7 @@ function Merge-Settings {
     # mcpServers, enabledPlugins, env, model, and anything a future Claude
     # Code release adds. The installer never enumerates what it may keep.
 
-    return [pscustomobject]@{ Settings = $out; Changes = , $changes }
+    return [pscustomobject]@{ Settings = $out; Changes = $changes }
 }
 
 # ---------------------------------------------------------------------------
@@ -463,6 +463,26 @@ if (Test-Path -LiteralPath $hookSrc) {
 }
 else {
     Add-Failed 'hooks' "payload folder missing at $hookSrc"
+}
+
+# ---------------------------------------------------------------------------
+# Skills
+# ---------------------------------------------------------------------------
+
+Write-Head 'Skills'
+$skillSrc = Join-Path $PayloadPath 'skills'
+if (Test-Path -LiteralPath $skillSrc) {
+    foreach ($d in (Get-ChildItem -LiteralPath $skillSrc -Directory)) {
+        $sf = Join-Path $d.FullName 'SKILL.md'
+        if (-not (Test-Path -LiteralPath $sf)) { continue }
+        Install-TemplatedFile -Source $sf `
+            -Destination (Join-Path (Join-Path (Join-Path $ClaudeHome 'skills') $d.Name) 'SKILL.md') `
+            -Label ('skill ' + $d.Name) `
+            -OverwriteWhenDifferent:$Force
+    }
+}
+else {
+    Add-Skipped 'skills' 'no skills folder in payload'
 }
 
 # ---------------------------------------------------------------------------
