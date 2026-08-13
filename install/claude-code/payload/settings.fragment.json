@@ -132,6 +132,15 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bash \"__DREAMEROS_CLAUDE_HOME__/hooks/gate-claim-verification.sh\"",
+            "timeout": 45
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
             "command": "bash \"__DREAMEROS_CLAUDE_HOME__/hooks/dreameros-agent-stack-stop.sh\""
           }
         ]
