@@ -1,0 +1,149 @@
+{
+  "permissions": {
+    "defaultMode": "auto",
+    "deny": [
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git push origin +*)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean -fd*)",
+      "Bash(git stash drop*)",
+      "Bash(git stash clear*)",
+      "Bash(git branch -D*)",
+      "Bash(rm -rf /*)",
+      "Bash(rm -rf ~*)",
+      "PowerShell(Remove-Item -Recurse -Force*)",
+      "mcp__ccd_session_mgmt__archive_session",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)",
+      "Read(**/.credentials.json)"
+    ],
+    "allow": [
+      "mcp__dreameros__*",
+      "Bash(git status*)",
+      "Bash(git log*)",
+      "Bash(git diff*)",
+      "Bash(git show*)",
+      "Bash(git branch*)",
+      "Bash(git remote*)",
+      "Bash(git rev-parse*)",
+      "Bash(git fetch*)",
+      "Bash(git worktree*)",
+      "Bash(git config --get*)",
+      "Bash(gh pr view*)",
+      "Bash(gh pr list*)",
+      "Bash(gh pr checks*)",
+      "Read",
+      "Glob",
+      "Grep",
+      "Agent",
+      "Task",
+      "Skill",
+      "ToolSearch"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"__DREAMEROS_CLAUDE_HOME__/hooks/gate-local-merge-first.sh\"",
+            "timeout": 20
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__dreameros__dreameros_remember|mcp__247c12ae-5fb4-49e0-aec6-73f0d11c0013__dreameros_remember",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"__DREAMEROS_CLAUDE_HOME__/hooks/gate-anchor-size.sh\"",
+            "timeout": 20
+          },
+          {
+            "type": "agent",
+            "prompt": "You are the claim-verification check on an anchor about to be written to permanent cross-session memory. Anchors become 'verified facts' that future sessions treat as ground truth, so a false claim here poisons every session that follows.\n\nThe anchor content is in $ARGUMENTS.\n\nPick at most the FIVE most load-bearing factual claims. Prefer claims that are cheap to check and expensive to get wrong: commit SHAs, PR numbers and their merge state, branch names said to be pushed, file paths said to exist, test counts, HTTP status codes, and any statement that something is 'live', 'merged', 'pushed', 'verified' or 'fixed'.\n\nCheck each one against reality using Bash, Read and Grep:\n- a SHA: git cat-file -t <sha> in the named repo\n- a PR: gh pr view <n> --json state,mergedAt\n- a branch claimed pushed: git ls-remote --heads <url> <branch>, and compare the SHA\n- a file path: test -e\n- a live URL or endpoint: curl -s -o /dev/null -w '%{http_code}'\n- a test count: only trust it if the anchor also names the command; do not re-run long suites\n\nThree specific failure shapes have already happened on this machine. Look for them:\n1. A branch said to be 'rescued' that holds ZERO commits main does not have. A branch label is not a rescue.\n2. A branch said to be pushed whose ref is absent from the remote, or present at a different SHA.\n3. An artifact said to be 'live' or 'registered' where only a FILE exists. A file is not a registration.\n\nBe fast and bounded: under 15 tool calls, no writes, no commits, no pushes, no network beyond read-only checks.\n\nReturn ONLY this JSON, nothing else.\n\nWhen every checked claim held, or nothing could be checked cheaply:\n{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"allow\"}}\n\nWhen a claim is contradicted by evidence:\n{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"<name each false claim, quote it, and give the command output that contradicts it>\"}}\n\nWhen claims held but something is worth flagging without blocking, allow and add:\n\"additionalContext\":\"<the note>\"\n\nDeny ONLY on a claim you actively DISPROVED. Do not deny on a claim you merely could not verify - an anchor that cannot be checked is not the same as an anchor that is wrong, and denying on uncertainty would stop all memory writes."
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"__DREAMEROS_CLAUDE_HOME__/hooks/gate-destructive-write.sh\"",
+            "timeout": 20
+          }
+        ]
+      },
+      {
+        "matcher": ".*(archive|delete|end|close|terminate).*session.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"__DREAMEROS_CLAUDE_HOME__/hooks/gate-no-archive-without-asking.sh\"",
+            "timeout": 20
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"__DREAMEROS_CLAUDE_HOME__/hooks/operator-standing-orders.sh\""
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"__DREAMEROS_CLAUDE_HOME__/hooks/dreameros-agent-stack-session-start.sh\""
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"__DREAMEROS_CLAUDE_HOME__/hooks/open-loop-surface.sh\"",
+            "timeout": 45
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"__DREAMEROS_CLAUDE_HOME__/hooks/gate-stop-no-half-states.sh\"",
+            "timeout": 45
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"__DREAMEROS_CLAUDE_HOME__/hooks/dreameros-agent-stack-stop.sh\""
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"__DREAMEROS_CLAUDE_HOME__/hooks/model-phase-boundary.sh\""
+          }
+        ]
+      }
+    ]
+  }
+}
