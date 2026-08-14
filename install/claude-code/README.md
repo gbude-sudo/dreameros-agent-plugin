@@ -15,9 +15,9 @@ install/claude-code/
   dreameros-global-setup.ps1     the installer
   README.md                      this file
   payload/
-    agents/       9 subagent definitions
-    hooks/        12 hook scripts, 10 bash and 2 python
-    skills/       6 skill definitions
+    agents/       15 subagent definitions
+    hooks/        12 hook scripts, 11 bash and 1 python
+    skills/       12 skill definitions
     CLAUDE.md     the canon file
     settings.fragment.json  permissions and hook registrations to merge
 ```
@@ -33,11 +33,17 @@ specific path, no token, and no API key.
 | --- | --- |
 | canon-citer | verify a claim against canon before asserting it |
 | citation-verifier | resolve every file:line before acting on it |
+| contract-differ | diff a payload against a schema across two repos |
+| count-verifier | run the exact count command given and report the output |
 | dreameros-operator | substrate tools pre-loaded, for persistence work |
+| file-locator | find files by name or pattern and report paths |
 | governance-node | adversarial review against the principle contract |
+| grep-scout | run given searches and return hits with file:line |
 | mind-eye-auditor | pre-push audit: dashes, destructive payloads, secrets |
 | open-loop-auditor | find what was promised and not delivered |
 | plain-language-auditor | check prose against ASD-STE100 |
+| probe-runner | run given HTTP probes and report results verbatim |
+| queue-checker | report git and PR state, with BEHIND detection |
 | web-operator | governed live-web action with receipt |
 | wolverine | self-healing: watch failure, patch, verify, PR |
 
