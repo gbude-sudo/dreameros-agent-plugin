@@ -17,7 +17,7 @@ install/claude-code/
   payload/
     agents/       15 subagent definitions
     hooks/        12 hook scripts, 11 bash and 1 python
-    skills/       12 skill definitions
+    skills/       18 skill definitions
     CLAUDE.md     the canon file
     settings.fragment.json  permissions and hook registrations to merge
 ```
@@ -63,6 +63,29 @@ specific path, no token, and no API key.
 | dreameros-agent-stack-stop.sh | Stop | pre-close checklist when repositories are dirty |
 | model-phase-boundary.sh | Stop | wrapper for the python hook |
 | model-phase-boundary.py | Stop | names the model to use at a phase boundary |
+
+### Skills
+
+| Skill | Job |
+| --- | --- |
+| braid-coordination | run parallel work strands safely with beacon, pulse, and seal messages |
+| dreamer-sync | the check-populate-sync loop for substrate and git across all repos |
+| estate-branch-triage | classify every local branch and stash before any merge or cleanup |
+| estate-pulse | the seven-source morning sweep of the estate |
+| external-mcp-client-onboard | wire a third-party MCP client into the DreamerOS registration door |
+| image-critique | score an image against its prompt with the 3-engine vision quorum |
+| learning-prompts | turn a learn-this request into a ready-to-paste teaching prompt |
+| live-error-triage | triage a production error down to a minimal cited fix |
+| model-tiered-offload | pick the subagent model tier by who checks the output |
+| oauth-setup | cited steps for the operator to register an OAuth app for a connector |
+| p37-truth-audit | check every marketing claim against the shipped runtime |
+| plain-language | rewrite text into Simplified Technical English without losing evidence |
+| pr-unstick-behind | detect and clear auto-merge PRs stuck at BEHIND |
+| reachability-audit | find value that exists but reaches nobody |
+| render-pass | measured mobile and desktop render audit of a web surface |
+| runtime-first-verify | probe the live runtime before reporting any blocker |
+| self-catch | find what our own gates caught in the trailing week |
+| verified-sprint | the full verify-then-ship loop with the verification trap table |
 
 ## The nine requirements
 
