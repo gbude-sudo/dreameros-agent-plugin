@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "dreameros",
-  "version": "0.1.0",
-  "description": "DreamerOS governed AI memory and verification. Cross-session memory, verified answers, and multi-engine routing through one governed gateway.",
+  "version": "0.2.0",
+  "description": "DreamerOS universal boot, governed memory, verification, and multi-engine routing through one shared gateway and vendor-native adapters.",
   "author": {
     "name": "DreamerOS",
     "url": "https://dreameros.app"
