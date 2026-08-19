@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dreameros-desktop-agent"
+version = "0.1.0"
+description = "DreamerOS per-user desktop bootstrap, repair, and heartbeat agent."
+requires-python = ">=3.11"
+dependencies = [
+  "cryptography>=45",
+  "pywin32>=306; platform_system == 'Windows'",
+]
+
+[project.scripts]
+dreameros-agent = "dreameros_agent.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

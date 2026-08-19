@@ -6,4 +6,4 @@ generated outputs:
   6ce9d81d1a709de156728b4001c85209c0bdcd88f69867da78add5fde8f66915  cursor\dreameros-boot-canon.mdc
   3121cd9c32937c1074bd1608295614e385656530d7384023889ba5ccf4fb1e1e  skill\dreameros-boot\SKILL.md
   209081bd7486ad4672f2332e16af9fab70f6eaa59c66fb6bf83c9dfdcc2e19ff  paste\PASTE-INTO-ANY-LLM.txt
-  4f7b780bc123c4414f659381748980dc3bdedbc17c4344e31e6e55cf1c045558  manifest\dreameros-boot-canon.json
+  118efc90d4ab2e7761abafc64971d6cd923ab4770423569f6342b25b95088f93  manifest\dreameros-boot-canon.json

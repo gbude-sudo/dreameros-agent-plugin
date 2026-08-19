@@ -34,6 +34,8 @@ $Marker  = 'DREAMEROS-BOOT-CANON'
 function New-Dir([string]$p) { if (-not (Test-Path $p)) { New-Item -ItemType Directory -Path $p -Force | Out-Null } }
 function Write-Utf8([string]$Path, [string]$Text) {
     New-Dir (Split-Path -Parent $Path)
+    $Text = $Text -replace "`r`n", "`n"
+    $Text = $Text -replace "`r", "`n"
     $encoding = New-Object System.Text.UTF8Encoding($false)
     [System.IO.File]::WriteAllText($Path, $Text, $encoding)
 }

@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dreameros.app/schemas/desktop-release-manifest-1.0.json",
+  "title": "DreamerOS Desktop Agent Release Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "release_id",
+    "channel",
+    "published_at",
+    "expires_at",
+    "signing_key_id",
+    "minimum_agent_version",
+    "agent",
+    "bootpack"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "release_id": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "channel": { "enum": ["stable", "beta"] },
+    "published_at": { "type": "string", "format": "date-time" },
+    "expires_at": { "type": "string", "format": "date-time" },
+    "signing_key_id": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "minimum_agent_version": { "type": "string", "minLength": 1 },
+    "agent": {
+      "type": "object",
+      "required": ["version", "windows_x64_url", "windows_x64_sha256", "authenticode_subject"],
+      "properties": {
+        "version": { "type": "string" },
+        "windows_x64_url": { "type": "string", "format": "uri" },
+        "windows_x64_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "authenticode_subject": { "type": "string" }
+      }
+    },
+    "bootpack": {
+      "type": "object",
+      "required": ["version", "source_sha256", "archive_url", "archive_sha256"],
+      "properties": {
+        "version": { "type": "string" },
+        "source_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "archive_url": { "type": "string", "format": "uri" },
+        "archive_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    }
+  }
+}
