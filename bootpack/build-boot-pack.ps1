@@ -39,7 +39,22 @@ function Write-Utf8([string]$Path, [string]$Text) {
     $encoding = New-Object System.Text.UTF8Encoding($false)
     [System.IO.File]::WriteAllText($Path, $Text, $encoding)
 }
-function Get-Sha([string]$Path) { (Get-FileHash -Path $Path -Algorithm SHA256).Hash.ToLower() }
+function Get-Sha([string]$Path) {
+    # Git may materialize the same text blob as LF or CRLF. Drift detection
+    # compares semantic text bytes so a Windows checkout does not disagree
+    # with CI about an otherwise identical generated artifact.
+    $text = [System.IO.File]::ReadAllText($Path)
+    $text = $text.Replace(([string][char]13 + [char]10), [string][char]10)
+    $text = $text.Replace([string][char]13, [string][char]10)
+    $encoding = New-Object System.Text.UTF8Encoding($false)
+    $bytes = $encoding.GetBytes($text)
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        return ([System.BitConverter]::ToString($sha.ComputeHash($bytes))).Replace("-", "").ToLower()
+    } finally {
+        $sha.Dispose()
+    }
+}
 
 # --- ASCII and dash guard on the source itself -------------------------------
 $bad = @()
