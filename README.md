@@ -18,10 +18,27 @@ dreameros/
   plugin.json    identity + spec version
   mcp.json       DreamerOS MCP server (Streamable HTTP)
   skills/
+    dreameros-boot/              vendor-neutral boot canon
     dreameros-continuity/        recall before work, remember after
     dreameros-verified-answers/  verify before high-stakes claims
     dreameros-governed-routing/  multi-engine consultation
 ```
+
+## Shared vendor boot pool
+
+`bootpack/SOURCE-dreameros-boot-canon.md` is the single Git-backed source.
+`bootpack/build-boot-pack.ps1` generates the native format each vendor reads:
+
+- Claude `CLAUDE.md` block and discoverable skill
+- Codex `AGENTS.md` block and discoverable skill
+- Cursor global `alwaysApply` rule
+- Agent Plugin skill
+- plain-text bootstrap for any LLM
+- JSON manifest for automated clients
+
+Run `bootpack/build-boot-pack.ps1 -Install` to generate, install, and verify
+the machine-wide Claude, Codex, Cursor, and shared-agent destinations. The
+live DreamerOS MCP session package remains the runtime context source.
 
 ## Install
 

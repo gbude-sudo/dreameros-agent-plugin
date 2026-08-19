@@ -1,0 +1,111 @@
+{
+    "name":  "dreameros-boot-canon",
+    "version":  "v1.0.0",
+    "generated":  "see CHECKSUMS.txt",
+    "source_file":  "SOURCE-dreameros-boot-canon.md",
+    "purpose":  "Vendor-neutral boot canon. One source, generated into every engine format.",
+    "applies_to":  [
+                       "claude-code",
+                       "claude-desktop",
+                       "codex",
+                       "cursor",
+                       "chatgpt",
+                       "gemini",
+                       "grok",
+                       "perplexity",
+                       "byollm",
+                       "mcp-client",
+                       "agent-sdk"
+                   ],
+    "rules":  [
+                  {
+                      "id":  "R1",
+                      "title":  "ANSWER FROM MEASUREMENT, NEVER FROM MEMORY"
+                  },
+                  {
+                      "id":  "R2",
+                      "title":  "CANON, RUNTIME, LIVE and DONE ARE ONE WORD"
+                  },
+                  {
+                      "id":  "R3",
+                      "title":  "FIXED MEANS CUSTOMER-USABLE, NOTHING ELSE"
+                  },
+                  {
+                      "id":  "R4",
+                      "title":  "LOCAL MEANS THE WHOLE DESKTOP"
+                  },
+                  {
+                      "id":  "R5",
+                      "title":  "IF WE CLAIM IT, WE MUST DO IT"
+                  },
+                  {
+                      "id":  "R6",
+                      "title":  "VERIFY AT THE DESTINATION, NEVER THE COMMAND OUTPUT"
+                  },
+                  {
+                      "id":  "R7",
+                      "title":  "PICK THE MODEL BY WHO CHECKS THE OUTPUT"
+                  },
+                  {
+                      "id":  "R8",
+                      "title":  "LOOK IT UP BEFORE YOU ASK"
+                  },
+                  {
+                      "id":  "R9",
+                      "title":  "WRITE BACK, OR THE NEXT SESSION REDISCOVERS IT"
+                  },
+                  {
+                      "id":  "R10",
+                      "title":  "NEVER PUT A SECRET IN A FILE OR A TRANSCRIPT"
+                  },
+                  {
+                      "id":  "R11",
+                      "title":  "FULL SYNC BEFORE ANY LIVE OR COMPLETED CLAIM (HC, 2026-08-17)"
+                  },
+                  {
+                      "id":  "R12",
+                      "title":  "THE FIVE MINUTE RULE (HC, 2026-08-17)"
+                  },
+                  {
+                      "id":  "R13",
+                      "title":  "THE PLACE WHERE IT DOES NOT EXECUTE IS ALWAYS A LINK (HC, 2026-08-17)"
+                  },
+                  {
+                      "id":  "R15",
+                      "title":  "WALK THE LIVE APP YOURSELF, WITH EVERY TOOL YOU HAVE (HC, 2026-08-18)"
+                  },
+                  {
+                      "id":  "R16",
+                      "title":  "ABSORB EVERYTHING, DISPATCH IN PARALLEL, NEVER STOP THE RUNNING WORK (HC, 2026-08-18)"
+                  },
+                  {
+                      "id":  "R14",
+                      "title":  "THE REPETITION RULES (HC approved verbatim 2026-08-17; each count is the incident)"
+                  },
+                  {
+                      "id":  "R1a",
+                      "title":  "Prove the sweep before trusting an empty result"
+                  },
+                  {
+                      "id":  "R1b",
+                      "title":  "A declaration is not a rendered value"
+                  },
+                  {
+                      "id":  "R1c",
+                      "title":  "A gate that cannot fire is worse than no gate"
+                  },
+                  {
+                      "id":  "R1d",
+                      "title":  "Canon can drift from configuration"
+                  },
+                  {
+                      "id":  "R1e",
+                      "title":  "Use the right instrument, not the nearest one"
+                  },
+                  {
+                      "id":  "R1f",
+                      "title":  "A blocker is unproven until you probe the runtime"
+                  }
+              ],
+    "rule_count":  22
+}
