@@ -1,0 +1,30 @@
+name: Desktop Agent CI
+
+on:
+  pull_request:
+    paths:
+      - "desktop/**"
+      - "release/**"
+      - "bootpack/**"
+      - ".gitattributes"
+      - ".github/workflows/desktop-agent-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "desktop/**"
+      - "release/**"
+      - "bootpack/**"
+      - ".gitattributes"
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e desktop/agent
+      - run: python -m unittest discover -s desktop/agent/tests -v
+      - shell: powershell
+        run: ./bootpack/build-boot-pack.ps1 -Verify
