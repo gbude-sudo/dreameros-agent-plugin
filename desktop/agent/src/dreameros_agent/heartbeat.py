@@ -6,11 +6,11 @@ from dataclasses import asdict, dataclass
 
 @dataclass(frozen=True)
 class ClientHeartbeat:
-    id: str
+    vendor: str
     detected: bool
-    adapter_version: str
     config_state: str
     mcp_state: str
+    managed_artifact_sha256: str | None
 
 
 def build_heartbeat(
@@ -18,9 +18,11 @@ def build_heartbeat(
     installation_id: str,
     agent_version: str,
     architecture: str,
-    manifest_sha256: str,
+    boot_contract_version: str,
+    manifest_schema_version: str,
+    boot_pack_version: str,
     bootpack_sha256: str,
-    clients: list[ClientHeartbeat],
+    adapters: list[ClientHeartbeat],
     event: str,
     repair_result: str,
 ) -> dict:
@@ -28,15 +30,22 @@ def build_heartbeat(
         raise ValueError("unsupported heartbeat event")
     if repair_result not in {"unchanged", "repaired", "refused"}:
         raise ValueError("unsupported repair result")
+    vendors = {adapter.vendor for adapter in adapters}
+    if vendors != {"claude", "codex", "cursor"} or len(adapters) != 3:
+        raise ValueError("heartbeat requires one Claude, Codex, and Cursor observation")
+    if not any(adapter.detected for adapter in adapters):
+        raise ValueError("heartbeat requires at least one detected adapter")
     return {
         "installation_id": installation_id,
         "agent_version": agent_version,
         "channel": "stable",
         "os_family": "windows",
         "architecture": architecture,
-        "manifest_sha256": manifest_sha256,
-        "bootpack_sha256": bootpack_sha256,
-        "clients": [asdict(client) for client in clients],
+        "boot_contract_version": boot_contract_version,
+        "manifest_schema_version": manifest_schema_version,
+        "boot_pack_version": boot_pack_version,
+        "boot_pack_sha256": bootpack_sha256,
+        "adapters": [asdict(adapter) for adapter in adapters],
         "event": event,
         "repair_result": repair_result,
     }

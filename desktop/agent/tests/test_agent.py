@@ -121,15 +121,30 @@ class DesktopAgentTests(unittest.TestCase):
             installation_id="test-installation",
             agent_version="0.1.0",
             architecture="x64",
-            manifest_sha256="a" * 64,
+            boot_contract_version="1.0.0",
+            manifest_schema_version="1.0.0",
+            boot_pack_version="1.0.0",
             bootpack_sha256="b" * 64,
-            clients=[ClientHeartbeat("codex", True, "1", "aligned", "connected")],
+            adapters=[
+                ClientHeartbeat(
+                    vendor=vendor,
+                    detected=vendor == "codex",
+                    config_state="aligned" if vendor == "codex" else "missing",
+                    mcp_state="connected" if vendor == "codex" else "disconnected",
+                    managed_artifact_sha256="c" * 64 if vendor == "codex" else None,
+                )
+                for vendor in ("claude", "codex", "cursor")
+            ],
             event="repair",
             repair_result="repaired",
         )
         flat = json.dumps(payload).lower()
         for forbidden in ("username", "hostname", "absolute_path", "token", "secret"):
             self.assertNotIn(forbidden, flat)
+        self.assertEqual(
+            {item["vendor"] for item in payload["adapters"]},
+            {"claude", "codex", "cursor"},
+        )
 
     def test_oauth_contract_uses_pkce_and_exact_loopback(self):
         discovery = OAuthDiscovery(
