@@ -280,6 +280,52 @@ if ($Install) {
         Write-Host ("  HEALED  {0}  ({1})" -f $i.dest, $i.engine) -ForegroundColor Green
     }
 
+    # R17 RUNTIME HALF, Codex. The boot canon above is PROSE - it reaches
+    # whoever reads the file. The hook below EXECUTES, which is the half
+    # that actually fires when the operator changes engine mid-session.
+    #
+    # It installs at the user level, not per repository, because an engine
+    # switch is not a per-repository event. It is placed here rather than
+    # in a separate installer so that "available at boot" is literally
+    # true: the SessionStart hook runs this script, so every session
+    # re-places the hook if something removed it.
+    #
+    # An existing user hooks.json is NEVER overwritten. Codex allows only
+    # one file there and it may already carry another lane's hooks, so a
+    # blind write would silently delete them. When one exists this reports
+    # MERGE NEEDED and moves on, which is a visible gap rather than a
+    # silent loss.
+    $codexHookSrc = Join-Path $repoRoot 'install\codex\payload\hooks\model-switch-ack-codex.py'
+    $codexJsonSrc = Join-Path $repoRoot 'install\codex\payload\hooks.json'
+    $codexHome    = Join-Path $env:USERPROFILE '.codex'
+    if ((Test-Path $codexHookSrc) -and (Test-Path $codexJsonSrc)) {
+        $codexHookDest = Join-Path $codexHome 'hooks\model-switch-ack-codex.py'
+        New-Dir (Split-Path -Parent $codexHookDest)
+        if ((Test-Path $codexHookDest) -and ((Get-Sha $codexHookSrc) -eq (Get-Sha $codexHookDest))) {
+            Write-Host ("  ALIGNED {0}  (Codex engine-switch hook)" -f $codexHookDest) -ForegroundColor DarkGreen
+        } else {
+            Copy-Item $codexHookSrc $codexHookDest -Force
+            Write-Host ("  HEALED  {0}  (Codex engine-switch hook)" -f $codexHookDest) -ForegroundColor Green
+        }
+
+        $codexJsonDest = Join-Path $codexHome 'hooks.json'
+        $rendered = (Get-Content $codexJsonSrc -Raw).Replace(
+            '__DREAMEROS_CODEX_HOME__', ($codexHome -replace '\\', '/'))
+        if (-not (Test-Path $codexJsonDest)) {
+            Write-Utf8 -Path $codexJsonDest -Text $rendered
+            Write-Host ("  HEALED  {0}  (Codex hook registration)" -f $codexJsonDest) -ForegroundColor Green
+        } elseif ((Get-Content $codexJsonDest -Raw) -match 'model-switch-ack-codex') {
+            Write-Host ("  ALIGNED {0}  (Codex hook registration)" -f $codexJsonDest) -ForegroundColor DarkGreen
+        } else {
+            Write-Host ("  MERGE NEEDED {0} - it exists and does not register the engine-switch hook. Add the Stop entry from install\codex\payload\hooks.json by hand rather than overwriting another lane's hooks." -f $codexJsonDest) -ForegroundColor Yellow
+        }
+
+        Write-Host "  NOTE: Codex records hook trust as a hash in config.toml. A newly" -ForegroundColor Yellow
+        Write-Host "  placed hook stays untrusted until Codex records it, so confirm it" -ForegroundColor Yellow
+        Write-Host "  fires before treating this as covered. A hook that exits 0 is not" -ForegroundColor Yellow
+        Write-Host "  a hook that ran." -ForegroundColor Yellow
+    }
+
     Write-Host "`n  Per-repo files remain reviewed Git artifacts." -ForegroundColor Yellow
     Write-Host "  Global Claude, Codex, Cursor, shared skills, and Agent Plugin" -ForegroundColor Yellow
     Write-Host "  discovery are installed automatically from this one source." -ForegroundColor Yellow
