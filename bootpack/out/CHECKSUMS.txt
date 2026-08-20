@@ -1,9 +1,9 @@
 DreamerOS Boot Pack v1.0.0
-source sha256 1e6c0b82f83bc06f1380f710ff62ced5d76d4a4fbfc34459df44f392ab1afc3e  SOURCE-dreameros-boot-canon.md
+source sha256 0665e45c1af09574e3b275de1d3ec5e2350e4234dbc21b47a40ac8d609bda537  SOURCE-dreameros-boot-canon.md
 generated outputs:
-  b56b75096c43113f5c790ad89404d56eaaea9fa508a4efc0e19f5d6267daeb74  claude\CLAUDE.md.block
-  b56b75096c43113f5c790ad89404d56eaaea9fa508a4efc0e19f5d6267daeb74  codex\AGENTS.md.block
-  1e2b0a565f62e80b64989a4134824eccb2a24b6aee11586c9041b81fb83d4a88  cursor\dreameros-boot-canon.mdc
-  53569e793a615ba6d0b9e5f15c91a765ae22b1492c6aade921f71f663ec8572d  skill\dreameros-boot\SKILL.md
-  fc042ab56d975f9b203e3a307f571b4d84483e434243fe354783543bae3f1254  paste\PASTE-INTO-ANY-LLM.txt
-  8b713d1e4ce3bcd5e5a5992f5a9256ff025b58aa1b00e3b406c195a5879d52da  manifest\dreameros-boot-canon.json
+  4f8a82decc502563bddab1ba420acec8b09324f5903a699e5dad360321139d42  claude\CLAUDE.md.block
+  4f8a82decc502563bddab1ba420acec8b09324f5903a699e5dad360321139d42  codex\AGENTS.md.block
+  1728101143d79f6cf5287f955dcf998a7667c5303dc5f1281fd1cc76618f0829  cursor\dreameros-boot-canon.mdc
+  c25d0b71db0c8df465bcf0af920c063f6efb2998c7599a00694b6d932b529c0f  skill\dreameros-boot\SKILL.md
+  a9299b3ad2019e6d8b91a917af521f385eb68d5d5c342c5a304e72e1228a4806  paste\PASTE-INTO-ANY-LLM.txt
+  1e6ca46204dce32fde0fa061b4263e4ba902aa9565fdd6d4215268d77d588622  manifest\dreameros-boot-canon.json
