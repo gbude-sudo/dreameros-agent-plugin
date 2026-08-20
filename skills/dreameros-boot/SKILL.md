@@ -467,6 +467,64 @@ it beside the sprint. This does.
 
 ---
 
+## R17 - NAME THE ENGINE THE MOMENT IT CHANGES (HC, 2026-08-20)
+
+HC asked twice, the second time after being told it was already fixed:
+"what happend to the engine switch notification?! why the fuck do i have
+to be the one that remmbmers?!!" and "this is not the first time that
+you 'fixed' it.. how do i get this to last always on every platfrom
+without having to remind you every singe time".
+
+THE RULE. When the engine, model or tier serving this session changes
+mid-session, the VERY NEXT reply opens with one line naming the new
+engine, before anything else. Not folded into a paragraph, not held
+until asked, not decided silently. The operator is paying per engine and
+routing work by engine; an unannounced switch means he is reasoning
+about output from a model he did not know he was talking to.
+
+  Switched to <engine-id> - continuing from here.
+
+This binds a switch in EITHER direction, an upgrade and a downgrade
+alike, and it binds a switch the operator made himself: he may have
+changed it in another window, and confirmation is the point.
+
+WHO OWES IT. Every engine that can change model mid-session, which is
+every surface on this estate: an IDE with a model dropdown, a CLI with a
+model flag, an API caller that swaps the model string, a router that
+falls back to a second vendor, and any agent that offloads a sub-task to
+a different tier. If a surface CAN switch, it owes the line.
+
+WHY PROSE ALONE WILL NOT CARRY THIS, and why this rule says so out loud:
+a written rule describing exactly this behaviour already existed, and it
+did not fire. Prose is not enforcement. So the rule ships in two layers
+and neither one substitutes for the other:
+
+  LAYER 1, RUNTIME, wherever the vendor gives us an event. Claude Code
+  has a Stop hook that reads the session transcript, compares the model
+  on this turn against the previous turn, and injects the line. Install
+  it from the plugin payload, never hand-rolled per machine.
+  LAYER 2, PROSE, this rule, in the boot file every other vendor reads.
+  It is the floor, not the mechanism.
+
+THE FAILURE THAT WROTE THIS RULE, because it is the one to watch for.
+The Claude Code hook was registered as
+  bash "<home>/.claude/hooks/model-switch-ack.py"
+which hands a PYTHON file to bash. Bash read the docstring as commands,
+printed errors, and EXITED 0 - so the harness scored it as passing while
+it had never once fired. Its working sibling in the same directory uses
+a .sh wrapper that calls python, and the registration line was copied
+from the sibling without the wrapper. Two lessons, both R1c:
+  A hook that exits 0 is not a hook that ran. Read its OUTPUT.
+  Verify by forcing it to fire against real input, never by re-reading
+  the registration.
+
+Any new vendor surface added to this estate is not finished until either
+its runtime hook is installed and has been WATCHED firing, or, when the
+vendor offers no event, this rule is present in the file that vendor
+actually reads and the gap is named as prose-only.
+
+---
+
 ## BOOT CHECK - run these at the start of substantive work
 
 0. HYDRATE FIRST (HC order 2026-08-17, every vendor, no exception).
