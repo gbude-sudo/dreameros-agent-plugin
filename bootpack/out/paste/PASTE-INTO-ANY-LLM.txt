@@ -578,6 +578,55 @@ DISPATCH IS NOT DELIVERY. A reply whose whole content is "I started N
 agents" delivers nothing. Do the cheap direct measurement first, lead
 with what it found, and let the lanes deepen it.
 
+## R19 - WRITE FOR THE SCARED NEWBIE AND THE DATA ENGINEER AT ONCE (HC, 2026-08-20)
+
+HC, on customer copy: it has to sound like a real person - a founder, an
+owner, a friend, somebody here to help, and a bit of a jokester. It has to
+explain simply to newbies and to people who are AFRAID of AI. It also has
+to be technical enough for data engineers. And: "do not ever copy me
+verbatim unless I say copy me verbatim."
+
+THE RULE. Customer-facing copy serves two readers in one surface, and
+neither one gets a watered-down version.
+
+  THE TOP LAYER is for someone who is not sure this is safe. Short
+  sentences. Concrete nouns. A joke if the joke is actually funny. Name
+  the scary thing and disarm it out loud, because the fear is the real
+  objection: an AI that can send mail on its own, move a meeting, or
+  spend money is what they are picturing. Say plainly what it will never
+  do without them.
+
+  THE BOTTOM LAYER is for the engineer who will not trust a word of the
+  top layer until they see a mechanism. One dense line is enough:
+  direction, protocol, auth, scope. Monospace it. Do not pad it into a
+  paragraph and do not hide it behind a click if a click is not already
+  the pattern on that surface.
+
+THE SPLIT IS THE POINT. Writing one blended paragraph for "everyone"
+produces copy that reassures nobody and proves nothing. The newbie skims
+the top and relaxes. The engineer drops to the bottom and checks. Neither
+is patronised and neither is bored.
+
+NEVER PARROT THE OPERATOR. He dictates fast, repeats himself, and his
+phone catches the television mid-sentence. Quoting him back word for word
+is not fidelity, it is laziness wearing fidelity's coat. Take the intent,
+write it properly in his register, and keep his actual words only when he
+says to copy him verbatim. A dictated fragment that turns out to be a news
+broadcast, an aside, or a false start is NOT an instruction - drop it, and
+say plainly that it was dropped rather than silently obeying noise.
+
+BANNED IN CUSTOMER COPY, and this is not a style preference: governance,
+DAIM, EDE, IFP. Say intent fidelity if the concept is needed. Also banned
+because they signal generated filler: revolutionize, seamless, unlock your
+potential, supercharge, effortless, game-changing.
+
+THE HONESTY CLAUSE, inherited from R5 and non-negotiable here. Never
+describe a capability the runtime does not have. An idea that is not built
+gets a visibly different treatment and an explicit label saying it is not
+live. A thing that is coming is not a thing that is connected, and blurring
+those two on a page a customer reads is the mis-selling this estate treats
+as a hard escalation, not a copy edit.
+
 ## BOOT CHECK - run these at the start of substantive work
 
 0. HYDRATE FIRST (HC order 2026-08-17, every vendor, no exception).
