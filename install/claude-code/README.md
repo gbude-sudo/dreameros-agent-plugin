@@ -63,6 +63,8 @@ specific path, no token, and no API key.
 | dreameros-agent-stack-stop.sh | Stop | pre-close checklist when repositories are dirty |
 | model-phase-boundary.sh | Stop | wrapper for the python hook |
 | model-phase-boundary.py | Stop | names the model to use at a phase boundary |
+| model-switch-ack.sh | Stop | wrapper for the python hook |
+| model-switch-ack.py | Stop | names the engine out loud the turn after it changes |
 
 ### Skills
 
@@ -95,6 +97,7 @@ satisfies each one. It names gaps instead of hiding them.
 | # | Requirement | Satisfied by | State |
 | --- | --- | --- | --- |
 | 1 | Tell me which model to use | `payload/hooks/model-phase-boundary.py` and `.sh` | PRESENT |
+| 1b | Tell me WHEN the engine changed, without being asked | `payload/hooks/model-switch-ack.py` and `.sh`, boot canon R17 | PRESENT for Claude Code; PROSE ONLY on vendors with no hook surface |
 | 2 | Drift detection | `payload/agents/open-loop-auditor.md`, `payload/agents/citation-verifier.md`, `payload/skills/self-catch/SKILL.md` | PRESENT |
 | 3 | No skipped inputs, no hallucinations | `payload/hooks/gate-claim-verification.sh`, `payload/hooks/gate-stop-no-half-states.sh`, the agent hook in `payload/settings.fragment.json` | PRESENT |
 | 4 | Know what the gateway enforces | `payload/hooks/operator-standing-orders.sh`, `payload/agents/governance-node.md`, `payload/agents/canon-citer.md` | PARTIAL |

@@ -152,6 +152,14 @@
             "command": "bash \"__DREAMEROS_CLAUDE_HOME__/hooks/model-phase-boundary.sh\""
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"__DREAMEROS_CLAUDE_HOME__/hooks/model-switch-ack.sh\""
+          }
+        ]
       }
     ]
   }
