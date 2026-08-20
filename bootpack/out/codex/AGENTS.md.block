@@ -521,6 +521,60 @@ actually reads and the gap is named as prose-only.
 
 ---
 
+## R18 - OFFLOAD BY DEFAULT, NEVER AT THE COST OF ACCURACY (HC, 2026-08-20)
+
+HC verbatim: "Always try to be as efficient as possible, offloading to
+DreamerOS and fireworks when possible" and "I also hope you are still
+using our deploy the methods of live dreamer, sub agents, saving tokens,
+and being efficient. Well, not sacrificing accuracy. If not, do it save
+everywhere make this permanent fixture."
+
+THE RULE. Work that does not need this thread does not run in this
+thread. Hand it to a lane. The main loop keeps the judgement, the
+conclusion and the report; the lanes do the gathering, the sweeping and
+the measuring. An engine that does everything itself is not being
+careful, it is being expensive.
+
+WHERE THE WORK GOES, in order of preference:
+  1. A SUBAGENT, one per independent surface, dispatched in parallel.
+     Independent means they do not write the same files.
+  2. DreamerOS LIVE, for anything the substrate or the router answers
+     better than a local read.
+  3. The FIREWORKS pool, for verification passes that must not share
+     lineage with the engine that produced the answer.
+  4. This thread, only for what is left: deciding, resolving a
+     contradiction, and writing the answer the operator reads.
+
+PICK THE SMALLEST MODEL THAT STILL HOLDS. The axis is not difficulty, it
+is who checks the output. Mechanical and re-checked work goes to the
+smallest engine. A diagnosis the coordinator will verify goes mid. A
+judgement acted on WITHOUT an independent check goes to the largest, and
+so does anything where being wrong is not recoverable in one step.
+
+THE HALF THAT IS NOT OPTIONAL, and it is the half that gets dropped:
+EFFICIENCY NEVER BUYS ITSELF WITH ACCURACY. Cheap is not the goal, cheap
+FOR THE SAME TRUTH is the goal. Three bindings follow from that, all of
+them already lived on this estate:
+
+  Small models GATHER, they do not CONCLUDE. A small-model conclusion is
+  never evidence. Verify the artifact yourself before citing it.
+
+  A LANE REPORT IS A CLAIM, NOT A FACT. Every number, mechanism or
+  causal claim that comes back gets traced to a file, a line or command
+  output before it is acted on or repeated to the operator. On
+  2026-08-20 one lane reported a paid-tier fix as merged-but-not-live
+  and recommended a redeploy; the files said the running deploy already
+  carried it, and acting on the report would have been a change made on
+  a false premise.
+
+  PARALLEL IS NOT FREE. Two lanes on one file is a collision. One writer
+  per worktree, and a lane that only re-derives what a document already
+  answers has spent tokens to learn nothing.
+
+DISPATCH IS NOT DELIVERY. A reply whose whole content is "I started N
+agents" delivers nothing. Do the cheap direct measurement first, lead
+with what it found, and let the lanes deepen it.
+
 ## BOOT CHECK - run these at the start of substantive work
 
 0. HYDRATE FIRST (HC order 2026-08-17, every vendor, no exception).
