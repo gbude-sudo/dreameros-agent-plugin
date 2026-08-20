@@ -1,0 +1,19 @@
+{
+  "description": "DreamerOS boot canon R17 for Codex: name the engine the moment it changes. User-level, so it binds every Codex session on this machine and not only sessions opened inside one repository.",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"__DREAMEROS_CODEX_HOME__/hooks/model-switch-ack-codex.py\"",
+            "commandWindows": "python \"__DREAMEROS_CODEX_HOME__/hooks/model-switch-ack-codex.py\"",
+            "timeout": 10,
+            "statusMessage": "Checking whether the engine changed",
+            "additionalContextLimit": 2000
+          }
+        ]
+      }
+    ]
+  }
+}
