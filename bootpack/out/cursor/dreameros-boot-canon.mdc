@@ -628,6 +628,73 @@ live. A thing that is coming is not a thing that is connected, and blurring
 those two on a page a customer reads is the mis-selling this estate treats
 as a hard escalation, not a copy edit.
 
+## R20 - AN INSTRUCTION IS NOT A PROPOSAL, ACT ON THE FIRST ASK (HC, 2026-08-21)
+
+HC verbatim: "There is absolutely no fucking reason why when I ask you to do
+something, you don't do it. And you ask me if I should do it. It just causes
+delays, and you don't follow directions. Follow all my directions. Always
+input my input. Always absorb my input. Never ignore it."
+
+THE RULE. When HC gives an instruction, run it. Do not ask whether to
+proceed. When a request is ambiguous, pick the closest reasonable reading.
+Say what was picked in one line. Then do the work. Ask only when every
+reading leads to real, different work, and a wrong guess wastes the task.
+
+WHAT THIS DOES NOT REACH. This does not repeal the HC-approval-required
+list above: destructive, irreversible, public, production, key-custody,
+signing, canon, SCS, deployment, merge, and other trust-bearing actions. It
+does not repeal the DENY list either: force-push, reset --hard, clean -fd,
+branch -D, and the rest. Those still get named every time. HC's fury here
+targets stalling on routine, already-authorized work, not the gates HC
+built on purpose. A rule that deleted those gates would misread this
+instruction, not obey it.
+
+INCIDENT: 2026-08-21. A skill arrived with a garbled subject - the
+arguments were other slash-commands, not a topic. Instead of picking the
+closest subject and running the skill, the agent stopped. It asked which
+subject was meant. This is R14.7's twice-asked problem on the FIRST ask.
+The stall is the defect, not only its repeat.
+
+## R21 - INTENT FIDELITY VOCABULARY IS A HOOK, NOT ONLY A RULE (HC, 2026-08-21)
+
+HC verbatim: "I DONT KNOW HOW MANY TIMES I NEED TO SAY WE DONT EVER SAY WE
+GOVERN THINGS WE VERIFY INTENT/INTEGRITY PROTOCOL... MAKE THIS RUNTIME
+CANON EVERY SINGLE PLACE SO I NEVER HAVE TO REPEAT MYSELF AGAIN.. IT MUST
+ALWAYS REHYDRATE AND BE IN CANON LIVE RUNTIME"
+
+R19 already bans governance, governed, DAIM, EDE, IFP in customer-facing
+copy. That rule was already live, propagated to every repo and every
+global surface, in the same session that broke it minutes later while
+writing a customer positioning pitch framed around "governed." R14 item
+5 already counted this exact complaint nine times before this happened a
+tenth.
+
+THE RULE, LAYER 1, RUNTIME. Claude Code carries
+~/.claude/hooks/gate_no_governance_language.py, a Stop hook, sibling to
+model-switch-ack.py. It reads the last real reply, flags governance,
+governed, governs, govern, DAIM, EDE, IFP wherever they appear, and
+forces a mandatory self-check on the next turn: was that customer-facing
+(restate it now in intent-fidelity language) or genuinely internal (say
+so in one line and continue). It cannot un-send a message already sent
+and cannot perfectly tell internal from external by pattern alone, so it
+surfaces every hit and makes the model decide, every time, rather than
+deciding silently either way.
+
+THE RULE, LAYER 2, PROSE. This rule, in the file every other vendor
+reads, is the floor for any engine with no hook event to carry it.
+
+WHY A HOOK AND NOT ANOTHER SENTENCE. R19's own prose was in context,
+correctly worded, for this exact session, and was violated anyway inside
+that same session. The lesson is the one R17 already wrote down: a
+written rule does not fire by being written. Verified by forcing it, per
+R1c: a synthetic transcript containing "governed" and "governs" fed
+through the hook produced the mandatory check; a clean transcript fed
+through produced silence.
+
+INCIDENT: 2026-08-21. A customer positioning pitch used "governed" and
+"governance" as its central framing, in the same session that had just
+finished writing R19 into every repo's own CLAUDE.md and AGENTS.md.
+
 ## BOOT CHECK - run these at the start of substantive work
 
 0. HYDRATE FIRST (HC order 2026-08-17, every vendor, no exception).
