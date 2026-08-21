@@ -91,6 +91,14 @@
                       "title":  "WRITE FOR THE SCARED NEWBIE AND THE DATA ENGINEER AT ONCE (HC, 2026-08-20)"
                   },
                   {
+                      "id":  "R20",
+                      "title":  "AN INSTRUCTION IS NOT A PROPOSAL, ACT ON THE FIRST ASK (HC, 2026-08-21)"
+                  },
+                  {
+                      "id":  "R21",
+                      "title":  "INTENT FIDELITY VOCABULARY IS A HOOK, NOT ONLY A RULE (HC, 2026-08-21)"
+                  },
+                  {
                       "id":  "R14",
                       "title":  "THE REPETITION RULES (HC approved verbatim 2026-08-17; each count is the incident)"
                   },
@@ -119,5 +127,5 @@
                       "title":  "A blocker is unproven until you probe the runtime"
                   }
               ],
-    "rule_count":  25
+    "rule_count":  27
 }
