@@ -103,6 +103,10 @@
                       "title":  "INTENT FIDELITY IS THREE LIVED FAILURES, NOT ONE WORD (HC, 2026-08-21)"
                   },
                   {
+                      "id":  "R23",
+                      "title":  "EVERY CLAIM GETS CHECKED, R8 GETS NAMED INSTRUMENTS (HC, 2026-08-22)"
+                  },
+                  {
                       "id":  "R14",
                       "title":  "THE REPETITION RULES (HC approved verbatim 2026-08-17; each count is the incident)"
                   },
@@ -131,5 +135,5 @@
                       "title":  "A blocker is unproven until you probe the runtime"
                   }
               ],
-    "rule_count":  28
+    "rule_count":  29
 }

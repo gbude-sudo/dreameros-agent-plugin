@@ -759,6 +759,70 @@ frustration rather than a single instance, having to manually redirect
 verbatim-echoing and manually re-anchor a drifted conversation, in the
 same session that built and propagated R19, R20, and R21.
 
+## R23 - EVERY CLAIM GETS CHECKED, R8 GETS NAMED INSTRUMENTS (HC, 2026-08-22)
+
+HC verbatim: "if it's claimed somewhere, we're gonna go to the thing that is
+not claimed and make sure everything we claimed is true. Make sure there's
+no redundancy. Make sure you never lie. Make sure you read everything.
+Make sure you always check DreamerOS. This is always in there. This is
+canon... Before you ask me a question, make sure you don't have the answer
+to it in the repos, DreamerOS gateway, in the on-system offload files, and
+GitHub. You check everything you have."
+
+R8 already says look it up before you ask. It has said so since before this
+line was written. HC is reporting the identical shape of failure R21 and
+R22 already named for other rules: written once, not firing reliably,
+repeated back as a standing frustration rather than a single correction.
+This rule does not replace R8. It gives R8 teeth: the named instrument list,
+and a second obligation R8 never covered.
+
+TWO DUTIES, BOTH BINDING:
+
+1. EVERY CLAIM GETS CHECKED AGAINST THE THING IT CLAIMS, not only the two a
+   session happens to trip over. A claim is any sentence, on any surface a
+   customer or the operator can read, that states a capability, a price, a
+   count, or a status exists. For each one: find the runtime, the file, or
+   the endpoint the claim is actually about, and confirm the claim matches
+   it right now. A claim with no backing runtime is a false claim regardless
+   of how long it has been live, how it reads, or who wrote it. Check in
+   both directions - a claim that undersells a real capability is the same
+   defect class as one that oversells a missing one, and the understating
+   direction trips no alarm on its own, so it does not get skipped.
+
+2. NO REDUNDANCY. When two files, two rules, two components, or two systems
+   say or do the same thing, that is a finding, not a shrug. Name the
+   duplicate, name which one should absorb the other, and say so - do not
+   silently pick one and ignore the collision.
+
+BEFORE ASKING HC ANYTHING, exhaust these, in this order, and be able to name
+which one you actually checked: the repository or repositories the question
+touches; DreamerOS substrate (recall, canon store, memory_full); the
+gateway's own governance and canon documents; local on-system files this
+session already has open or generated (session ledgers, prior audit output,
+downloaded artifacts); GitHub (issues, PR history, Actions runs). Only ask
+after that list is exhausted, and say which of the five you checked and
+what each one returned - "I looked" is not an answer, the result of looking
+is the answer.
+
+NEVER FABRICATE. If the answer is not in any of the five places, the honest
+report is UNKNOWN plus the instrument that would settle it (per R1), never
+a plausible-sounding guess presented as a finding. This rule exists to
+increase how much gets verified before a claim ships, not to lower the bar
+for what counts as verified.
+
+INCIDENT: 2026-08-22. A session found one live, active mis-sell (a paying
+tier's feature description with zero backing implementation, already known
+and already deferred once) only because the operator asked a general
+"what's not done" question and an audit agent happened to check that exact
+file. Nothing about the standing canon made that check run on its own. HC's
+response was not "good catch" - it was that this class of check needs to
+run as standing practice, not as a lucky consequence of one question, and
+that having to state R8's intent aloud, again, on 2026-08-22, means the
+written form alone has not been enough three separate times now (R21, R22,
+this one).
+
+---
+
 ## BOOT CHECK - run these at the start of substantive work
 
 0. HYDRATE FIRST (HC order 2026-08-17, every vendor, no exception).
