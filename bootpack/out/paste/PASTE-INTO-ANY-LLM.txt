@@ -694,6 +694,70 @@ INCIDENT: 2026-08-21. A customer positioning pitch used "governed" and
 "governance" as its central framing, in the same session that had just
 finished writing R19 into every repo's own CLAUDE.md and AGENTS.md.
 
+## R22 - INTENT FIDELITY IS THREE LIVED FAILURES, NOT ONE WORD (HC, 2026-08-21)
+
+HC named this live, as a standing personal frustration, not a one-time
+correction: "managing and measuring my intent is spotty... I always have
+to say things like dont copy and paste what i say" and separately "when I
+say something and we are talking about this for however long... you
+totally go off the reservation." Then: "we will need this and HIL sticky
+and presented always forever anywhere we are."
+
+THREE SEPARATE FAILURES, do not collapse them into one fix:
+
+1. PARROTING. R19 already says never parrot the operator. It was already
+   propagated to every repo and every global surface. HC is reporting
+   that he still has to say it out loud, which means the written rule is
+   not reliably firing - the identical shape of failure R21 already
+   fixed for the governance-vocabulary ban.
+2. TOPIC DRIFT. Losing the actual thread of a long-running conversation
+   and answering a different question than the one still in play.
+3. SPOTTY INTENT MEASUREMENT. The restructured/classified intent not
+   reliably matching what was actually meant.
+
+THE RULE, LAYER 1, RUNTIME, PARROTING ONLY. Claude Code carries
+~/.claude/hooks/gate_no_parrot.py, a Stop hook, sibling to
+gate_no_governance_language.py. It reads the last typed user message and
+the last reply, and flags any run of 8 or more consecutive words copied
+verbatim from the user message into the reply. Same philosophy as the
+governance hook: it cannot tell a real parrot apart from a legitimate
+quote (an error message, a citation, an explicit "copy me verbatim") by
+pattern alone, so it does not try - it surfaces every hit and makes the
+model decide, every time. Verified per R1c: a synthetic transcript with a
+15-word lifted sentence produced the mandatory check as ONE maximal hit,
+not eight overlapping fragments of the same sentence; a clean transcript
+produced silence; the real live transcript of the session that wrote this
+rule produced silence on its own most recent turn.
+
+THE RULE, LAYER 1, RUNTIME, DRIFT AND INTENT MEASUREMENT: NAMED GAP, NOT
+SOLVED. Neither of the other two failures has a reliable mechanical check
+the way a verbatim-substring match does. Forcing a fragile heuristic into
+a hook for these would itself become "a gate that cannot fire reliably,"
+counted as covered when it is not - the exact R1c failure this whole hook
+family exists to prevent. Until a real mechanism exists, the discipline
+is behavioral, not mechanical: restate the current ask in one line before
+acting on it, especially after a long stretch of tool-heavy work or a
+topic shift, so a drifted reading is visible and correctable in the same
+turn rather than discovered several turns later. This is R16's own
+"absorb it whole, restate it back" rule, applied specifically to guard
+against drift - it was already canon, it is repeated here because HC
+named the failure it is meant to prevent as still happening.
+
+THE RULE, LAYER 2, PROSE. This rule, in the file every other vendor
+reads, is the floor for parroting on any engine with no hook event to
+carry it, and is the ONLY layer that exists today for drift and intent
+measurement.
+
+WHY A HOOK AND NOT ANOTHER SENTENCE, for the part that got one. R19's own
+prose was already live, already propagated, and HC is reporting the
+failure as ongoing anyway. The lesson is the one R17 and R21 both already
+wrote down: a written rule does not fire by being written.
+
+INCIDENT: 2026-08-21. HC described, as a standing and repeated
+frustration rather than a single instance, having to manually redirect
+verbatim-echoing and manually re-anchor a drifted conversation, in the
+same session that built and propagated R19, R20, and R21.
+
 ## BOOT CHECK - run these at the start of substantive work
 
 0. HYDRATE FIRST (HC order 2026-08-17, every vendor, no exception).
