@@ -99,6 +99,10 @@
                       "title":  "INTENT FIDELITY VOCABULARY IS A HOOK, NOT ONLY A RULE (HC, 2026-08-21)"
                   },
                   {
+                      "id":  "R22",
+                      "title":  "INTENT FIDELITY IS THREE LIVED FAILURES, NOT ONE WORD (HC, 2026-08-21)"
+                  },
+                  {
                       "id":  "R14",
                       "title":  "THE REPETITION RULES (HC approved verbatim 2026-08-17; each count is the incident)"
                   },
@@ -127,5 +131,5 @@
                       "title":  "A blocker is unproven until you probe the runtime"
                   }
               ],
-    "rule_count":  27
+    "rule_count":  28
 }
