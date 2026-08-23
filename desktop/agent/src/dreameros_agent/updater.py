@@ -3,10 +3,12 @@ from __future__ import annotations
 
 import base64
 import json
+import os
 import platform
 import shutil
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -15,6 +17,7 @@ import httpx
 
 from .release_manifest import ManifestVerificationError, verify_artifact, verify_manifest
 from .state import LocalState
+from .trusted_keys import PINNED_LINUX_PACKAGE_PUBLIC_KEY_B64
 
 
 def artifact_key(system: str | None = None, machine: str | None = None) -> str:
@@ -35,7 +38,7 @@ def select_artifact(manifest: dict, *, system: str | None = None, machine: str |
     return selected
 
 
-def verify_platform_signature(path: Path, artifact: dict, *, system: str | None = None, runner=subprocess.run) -> None:
+def verify_platform_signature(path: Path, artifact: dict, *, system: str | None = None, linux_public_key_b64: str | None = None, runner=subprocess.run) -> None:
     family = (system or platform.system()).lower()
     if family == "windows":
         subject = artifact.get("authenticode_subject")
@@ -53,15 +56,43 @@ def verify_platform_signature(path: Path, artifact: dict, *, system: str | None 
         key_id = artifact.get("package_signing_key_id")
         if not key_id:
             raise ManifestVerificationError("stable Linux package lacks signing identity")
-        # The Ed25519-signed release manifest binds this package key id and
-        # the exact artifact hash. Debian has no universally installed
-        # package-signature verifier, so stable clients use that signed hash
-        # instead of requiring an extra system package before first update.
+        encoded = linux_public_key_b64 or PINNED_LINUX_PACKAGE_PUBLIC_KEY_B64
+        if not encoded:
+            raise ManifestVerificationError("stable Linux package public key is unavailable")
+        try:
+            public_key = base64.b64decode(encoded, validate=True)
+        except ValueError as exc:
+            raise ManifestVerificationError("stable Linux package public key is invalid") from exc
+        with tempfile.TemporaryDirectory(prefix="dreameros-gpg-") as keyring:
+            env = dict(os.environ, GNUPGHOME=keyring)
+            imported = runner(
+                ["gpg", "--batch", "--import"],
+                input=public_key,
+                env=env,
+                check=False,
+                capture_output=True,
+            )
+            if imported.returncode != 0:
+                raise ManifestVerificationError("Linux package public key import failed")
+            result = runner(
+                ["dpkg-sig", "--verify", str(path)],
+                env=env,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            output = f"{result.stdout}\n{result.stderr}"
+            if result.returncode != 0 or "GOODSIG" not in output or str(key_id) not in output:
+                raise ManifestVerificationError("Linux package signature identity is invalid")
         return
     for command in commands:
-        result = runner(command, check=False, capture_output=True)
+        result = runner(command, check=False, capture_output=True, text=True)
         if result.returncode != 0:
             raise ManifestVerificationError("platform package signature is invalid")
+        if family == "linux":
+            output = f"{result.stdout}\n{result.stderr}"
+            if "GOODSIG" not in output or str(key_id) not in output:
+                raise ManifestVerificationError("Linux package signature identity is invalid")
 
 
 @dataclass
@@ -106,7 +137,7 @@ class UpdateManager:
             backup = self.staging_dir / f"rollback-{current_executable.name}"
             shutil.copy2(current_executable, backup)
         self.state.update(
-            pending_update={"release_id": manifest["release_id"], "artifact": str(artifact), "started_at": datetime.now(timezone.utc).isoformat()},
+            pending_update={"release_id": manifest["release_id"], "expected_version": manifest["agent"]["version"], "artifact": str(artifact), "started_at": datetime.now(timezone.utc).isoformat()},
             rollback={"backup": str(backup) if backup else None, "previous_version": self.state.load().get("version")},
         )
 
@@ -122,7 +153,11 @@ class UpdateManager:
         backup = Path(value.get("rollback", {}).get("backup")) if value.get("rollback", {}).get("backup") else None
         if backup and current_executable and backup.exists():
             shutil.copy2(backup, current_executable)
-        value["update_status"] = "rolled_back"
+            value["update_status"] = "rolled_back"
+            value.pop("pending_update", None)
+            self.state.save(value)
+            return True
+        value["update_status"] = "recovery_required"
         value.pop("pending_update", None)
         self.state.save(value)
         return False

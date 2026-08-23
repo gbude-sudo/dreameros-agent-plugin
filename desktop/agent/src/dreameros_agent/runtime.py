@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import platform
 import sys
+import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -22,7 +24,7 @@ from .vault import TokenVault
 ALLOWED_REPAIR_ACTIONS = {
     "SEND_HEARTBEAT", "REPORT_ADAPTER_CENSUS", "REPAIR_ADAPTER",
     "REFRESH_BOOT_CONTRACT", "REFRESH_MANIFEST", "REFRESH_BOOT_PACK",
-    "WAIT_FOR_BOOT_PACK_REGISTRY", "VERIFY_INSTALLATION",
+    "WAIT_FOR_BOOT_PACK_REGISTRY",
 }
 
 
@@ -58,6 +60,7 @@ class AgentService:
         self.adapters = default_adapters(home, appdata)
         self.backup_dir = backup_dir
         self.proxy = None
+        self.attestation_lock = threading.Lock()
 
     def repair(self, target: str | None = None) -> bool:
         changed = False
@@ -69,6 +72,8 @@ class AgentService:
 
     def run(self, *, once: bool = False) -> None:
         local = self.state.load()
+        pending_health_check = self._prepare_pending_update(local)
+        local = self.state.load()
         installation = local.get("installation_id")
         if not installation:
             raise RuntimeError("desktop installation is not registered; run connect")
@@ -77,6 +82,8 @@ class AgentService:
             lambda: self.vault.read("access_token"),
             installation,
             agent_version=__version__,
+            on_mcp_success=lambda: self._verify_after_mcp(installation),
+            attestation_lock=self.attestation_lock,
         )
         delay = 5.0
         try:
@@ -87,7 +94,15 @@ class AgentService:
                     if self._maybe_auto_update(gateway, local):
                         return
                     payload = self._heartbeat_payload(proxy_connected=True)
-                    response = gateway.heartbeat(installation, payload)
+                    with self.attestation_lock:
+                        response = gateway.heartbeat(installation, payload)
+                    if pending_health_check:
+                        UpdateManager(
+                            self.state,
+                            PINNED_RELEASE_KEYS,
+                            self.state.path.parent / "updates",
+                        ).finish_or_rollback(True)
+                        pending_health_check = False
                     self._apply_actions(gateway, installation, response.get("repair_actions", []))
                     interval = max(30, min(600, int(response.get("heartbeat_interval_seconds", 300))))
                     delay = 5.0
@@ -109,6 +124,20 @@ class AgentService:
         if not token:
             raise RuntimeError("DreamerOS sign-in required")
         return token
+
+    def _prepare_pending_update(self, local: dict) -> bool:
+        pending = local.get("pending_update")
+        if not isinstance(pending, dict):
+            return False
+        expected = str(pending.get("expected_version") or "")
+        if expected and expected == __version__:
+            return True
+        UpdateManager(
+            self.state,
+            PINNED_RELEASE_KEYS,
+            self.state.path.parent / "updates",
+        ).finish_or_rollback(False)
+        return False
 
     def _refresh_if_needed(self, local: dict) -> None:
         try:
@@ -137,8 +166,6 @@ class AgentService:
             action = item["action"]
             if action == "REPAIR_ADAPTER" and item.get("adapter") in {"claude", "codex", "cursor"}:
                 self.repair(item["adapter"])
-            elif action == "VERIFY_INSTALLATION":
-                gateway.verify(installation)
             elif action == "REFRESH_BOOT_PACK" and PINNED_RELEASE_KEYS:
                 values = install_bootpack(
                     gateway.release_metadata(),
@@ -148,7 +175,28 @@ class AgentService:
                 )
                 self.state.update(**values)
 
+    def _verify_after_mcp(self, installation: str) -> None:
+        """Verify only after the Gateway recorded this installation's MCP call."""
+        last_error = None
+        for _ in range(3):
+            try:
+                result = GatewayClient(self._required_token()).verify(installation)
+                if result.get("state") == "RECEIPTED":
+                    return
+                last_error = GatewayError(
+                    str(result.get("receipt_held_back_reason") or "receipt verification held back")
+                )
+                time.sleep(0.1)
+            except GatewayError as exc:
+                last_error = exc
+                time.sleep(0.1)
+        if last_error is not None:
+            raise last_error
+
     def _maybe_auto_update(self, gateway: GatewayClient, local: dict) -> bool:
+        enabled = os.environ.get("DREAMEROS_AGENT_AUTO_UPDATE", "").strip().lower()
+        if enabled not in {"1", "true", "yes"}:
+            return False
         if not PINNED_RELEASE_KEYS or not getattr(sys, "frozen", False):
             return False
         try:

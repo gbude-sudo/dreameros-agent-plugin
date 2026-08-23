@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=DreamerOS Agent Setup
+Comment=Connect DreamerOS to supported AI clients
+Exec=/usr/local/bin/dreameros-agent install
+Terminal=false
+Categories=Utility;

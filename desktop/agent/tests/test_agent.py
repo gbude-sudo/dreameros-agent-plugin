@@ -7,6 +7,7 @@ import json
 import tempfile
 import unittest
 import zipfile
+from types import SimpleNamespace
 from unittest.mock import patch
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -26,20 +27,109 @@ from dreameros_agent.adapters import (
 from dreameros_agent.heartbeat import ClientHeartbeat, build_heartbeat
 from dreameros_agent.autostart import render_autostart
 from dreameros_agent.bootpack import install_bootpack
-from dreameros_agent.gateway import GatewayClient
+from dreameros_agent.cli import _gateway_connected, _needs_connect, _restore_vault, command_connect
+from dreameros_agent.gateway import GatewayClient, GatewayError
 from dreameros_agent.managed_files import ManagedFileError, render_owned_block
 from dreameros_agent.oauth_client import OAuthDiscovery, authorization_url, registration_payload
 from dreameros_agent.pkce import challenge_s256, new_state, new_verifier, state_matches
 from dreameros_agent.release_manifest import ManifestVerificationError, verify_manifest
 from dreameros_agent.platform_paths import paths_for
 from dreameros_agent.proxy import ProxyServer
-from dreameros_agent.runtime import _newer_version
+from dreameros_agent.runtime import AgentService, _newer_version
 from dreameros_agent.state import LocalState
-from dreameros_agent.updater import UpdateManager, artifact_key, select_artifact
+from dreameros_agent.updater import UpdateManager, artifact_key, select_artifact, verify_platform_signature
 from dreameros_agent.vault import MacOSKeychainVault, default_vault
 
 
 class DesktopAgentTests(unittest.TestCase):
+    def test_connected_status_requires_a_gateway_connected_state(self):
+        self.assertFalse(_gateway_connected(None))
+        self.assertFalse(_gateway_connected("REGISTERED"))
+        self.assertFalse(_gateway_connected("REVOKED"))
+        self.assertTrue(_gateway_connected("CONNECTED"))
+        self.assertTrue(_gateway_connected("HYDRATED"))
+        self.assertTrue(_gateway_connected("RECEIPTED"))
+
+    def test_install_reconnects_when_a_token_exists_without_registration(self):
+        class Vault:
+            def __init__(self, token): self.token = token
+            def read(self, _name): return self.token
+
+        with tempfile.TemporaryDirectory() as tmp:
+            state = LocalState(Path(tmp) / "state.json")
+            state.save({})
+            self.assertTrue(_needs_connect(Vault("orphaned-token"), state))
+            state.save({"installation_id": "registered"})
+            self.assertFalse(_needs_connect(Vault("working-token"), state))
+
+    def test_failed_reconnect_restores_every_prior_vault_value(self):
+        class Vault:
+            def __init__(self): self.values = {"access_token": "new"}
+            def store(self, name, value): self.values[name] = value
+            def delete(self, name): self.values.pop(name, None)
+
+        vault = Vault()
+        _restore_vault(vault, {
+            "access_token": "old-access",
+            "refresh_token": "old-refresh",
+            "expires_at": "123",
+        })
+        self.assertEqual(vault.values, {
+            "access_token": "old-access",
+            "refresh_token": "old-refresh",
+            "expires_at": "123",
+        })
+
+    def test_connect_restores_prior_credentials_after_http_failure(self):
+        class Vault:
+            def __init__(self):
+                self.values = {
+                    "access_token": "old-access",
+                    "refresh_token": "old-refresh",
+                    "expires_at": "123",
+                }
+            def read(self, name): return self.values.get(name)
+            def store(self, name, value): self.values[name] = value
+            def delete(self, name): self.values.pop(name, None)
+
+        class OAuth:
+            def __init__(self, _issuer, vault): self.vault = vault
+            def connect(self, timeout):
+                self.vault.store("access_token", "new-access")
+                self.vault.store("refresh_token", "new-refresh")
+                return "dros_client", object()
+            def discover(self):
+                return SimpleNamespace(issuer="https://mcp.dreameros.app", token_endpoint="https://mcp.dreameros.app/token")
+
+        class Service:
+            def __init__(self, *_args, **_kwargs): pass
+            def repair(self): return False
+
+        class Gateway:
+            def __init__(self, _token): pass
+            def register_installation(self, **_kwargs):
+                raise httpx.ConnectError("offline")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            vault = Vault()
+            args = SimpleNamespace(
+                home=tmp,
+                appdata=None,
+                backup_dir=None,
+                system="Linux",
+                timeout=1,
+            )
+            with patch("dreameros_agent.cli.default_vault", return_value=vault), \
+                 patch("dreameros_agent.cli.OAuthClient", OAuth), \
+                 patch("dreameros_agent.cli.AgentService", Service), \
+                 patch("dreameros_agent.cli.GatewayClient", Gateway):
+                self.assertEqual(command_connect(args), 2)
+            self.assertEqual(vault.values, {
+                "access_token": "old-access",
+                "refresh_token": "old-refresh",
+                "expires_at": "123",
+            })
+
     def test_vendor_configs_use_local_proxy_and_never_embed_tokens(self):
         self.assertEqual(LOCAL_MCP_URL, "http://127.0.0.1:18765/mcp")
         rendered = json.dumps(
@@ -238,6 +328,7 @@ class DesktopAgentTests(unittest.TestCase):
         self.assertIn("start \"\"", render_autostart("windows", executable))
         self.assertIn("RunAtLoad", render_autostart("darwin", executable))
         self.assertIn("WantedBy=default.target", render_autostart("linux", executable))
+        self.assertIn("Restart=always", render_autostart("linux", executable))
 
     def test_gateway_heartbeat_uses_bearer_and_exact_route(self):
         seen = {}
@@ -255,6 +346,7 @@ class DesktopAgentTests(unittest.TestCase):
 
     def test_proxy_injects_headers_and_does_not_log_secrets(self):
         seen = {}
+        verified = []
 
         class FakeRemote:
             def build_request(self, method, url, headers, content):
@@ -264,13 +356,14 @@ class DesktopAgentTests(unittest.TestCase):
             def send(self, request, stream=False):
                 return httpx.Response(200, content=b'{"ok":true}', request=request)
 
-        server = ProxyServer(("127.0.0.1", 0), token_provider=lambda: "vault-token", installation_id="123e4567-e89b-12d3-a456-426614174000", agent_version="0.2.0", client=FakeRemote())
+        server = ProxyServer(("127.0.0.1", 0), token_provider=lambda: "vault-token", installation_id="123e4567-e89b-12d3-a456-426614174000", agent_version="0.2.0", on_mcp_success=lambda: verified.append(True), client=FakeRemote())
         import threading
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
         try:
             health = httpx.get(f"http://127.0.0.1:{server.server_port}/health", timeout=2)
             self.assertEqual(health.json()["agent_version"], "0.2.0")
+            self.assertNotIn("installation", health.json())
             response = httpx.post(f"http://127.0.0.1:{server.server_port}/mcp", content=b"{}", headers={"Authorization": "Bearer caller-token"}, timeout=2)
             self.assertEqual(response.status_code, 200)
         finally:
@@ -278,6 +371,65 @@ class DesktopAgentTests(unittest.TestCase):
         self.assertEqual(seen["headers"]["Authorization"], "Bearer vault-token")
         self.assertEqual(seen["headers"]["X-DreamerOS-Installation"], "123e4567-e89b-12d3-a456-426614174000")
         self.assertNotIn("caller-token", str(seen))
+        self.assertEqual(verified, [True])
+
+    def test_proxy_does_not_verify_after_a_failed_mcp_response(self):
+        verified = []
+
+        class FakeRemote:
+            def build_request(self, method, url, headers, content):
+                return httpx.Request(method, url, headers=headers, content=content)
+
+            def send(self, request, stream=False):
+                return httpx.Response(400, content=b'{"error":"bad request"}', request=request)
+
+        server = ProxyServer(
+            ("127.0.0.1", 0),
+            token_provider=lambda: "vault-token",
+            installation_id="123e4567-e89b-12d3-a456-426614174000",
+            agent_version="0.2.0",
+            on_mcp_success=lambda: verified.append(True),
+            client=FakeRemote(),
+        )
+        import threading
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            response = httpx.post(f"http://127.0.0.1:{server.server_port}/mcp", content=b"{}", timeout=2)
+            self.assertEqual(response.status_code, 400)
+        finally:
+            server.shutdown(); server.server_close(); thread.join(timeout=2)
+        self.assertEqual(verified, [])
+
+    def test_receipt_verification_retries_after_an_intervening_heartbeat(self):
+        calls = []
+
+        class Vault:
+            def read(self, _name): return "access-token"
+
+        class RetryingGateway:
+            def __init__(self, _token): pass
+            def verify(self, installation):
+                calls.append(installation)
+                if len(calls) < 3:
+                    return {
+                        "state": "HYDRATED",
+                        "receipt_held_back_reason": "mcp_execution_not_newer_than_heartbeat",
+                    }
+                return {"state": "RECEIPTED"}
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            service = AgentService(
+                LocalState(root / "state.json"),
+                Vault(),
+                home=root,
+                appdata=None,
+                backup_dir=root / "backups",
+            )
+            with patch("dreameros_agent.runtime.GatewayClient", RetryingGateway):
+                service._verify_after_mcp("installation-id")
+        self.assertEqual(calls, ["installation-id"] * 3)
 
     def test_update_selection_tamper_and_rollback_metadata(self):
         manifest = {"agent": {"artifacts": {"windows-x86_64": {"url": "https://example/agent.exe", "sha256": "a" * 64}}}}
@@ -290,8 +442,72 @@ class DesktopAgentTests(unittest.TestCase):
             manager = UpdateManager(state, {}, root / "updates")
             self.assertFalse(manager.finish_or_rollback(False))
             result = state.load()
-            self.assertEqual(result["update_status"], "rolled_back")
+            self.assertEqual(result["update_status"], "recovery_required")
             self.assertNotIn("pending_update", result)
+
+    def test_rollback_reports_success_only_after_restoring_a_backup(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            current = root / "agent.exe"
+            backup = root / "rollback-agent.exe"
+            current.write_bytes(b"new")
+            backup.write_bytes(b"old")
+            state = LocalState(root / "state.json")
+            state.save({"pending_update": {"release_id": "desktop-v0.2.0"}, "rollback": {"backup": str(backup)}})
+            self.assertTrue(UpdateManager(state, {}, root / "updates").finish_or_rollback(False, current))
+            self.assertEqual(current.read_bytes(), b"old")
+            self.assertEqual(state.load()["update_status"], "rolled_back")
+
+    def test_linux_update_requires_the_expected_dpkg_signature_identity(self):
+        calls = []
+
+        def good_runner(command, **_kwargs):
+            calls.append(command)
+            return SimpleNamespace(returncode=0, stdout="GOODSIG _gpgorigin ABC123", stderr="")
+
+        verify_platform_signature(
+            Path("agent.deb"),
+            {"package_signing_key_id": "ABC123"},
+            system="Linux",
+            linux_public_key_b64=base64.b64encode(b"public-key").decode(),
+            runner=good_runner,
+        )
+        self.assertEqual(calls[0][:3], ["gpg", "--batch", "--import"])
+        self.assertEqual(calls[1][:2], ["dpkg-sig", "--verify"])
+        with self.assertRaises(ManifestVerificationError):
+            verify_platform_signature(
+                Path("agent.deb"),
+                {"package_signing_key_id": "OTHER"},
+                system="Linux",
+                linux_public_key_b64=base64.b64encode(b"public-key").decode(),
+                runner=good_runner,
+            )
+        with self.assertRaises(ManifestVerificationError):
+            verify_platform_signature(
+                Path("agent.deb"),
+                {"package_signing_key_id": "ABC123"},
+                system="Linux",
+                linux_public_key_b64="",
+                runner=good_runner,
+            )
+
+    def test_startup_waits_for_heartbeat_before_finishing_a_pending_update(self):
+        class EmptyVault:
+            def read(self, _name): return None
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = LocalState(root / "state.json")
+            state.save({
+                "pending_update": {"release_id": "desktop-v0.2.0", "expected_version": "0.2.0"},
+                "rollback": {"backup": None},
+            })
+            service = AgentService(state, EmptyVault(), home=root, appdata=None, backup_dir=root / "backups")
+            self.assertTrue(service._prepare_pending_update(state.load()))
+            self.assertIn("pending_update", state.load())
+            UpdateManager(state, {}, root / "updates").finish_or_rollback(True)
+            self.assertNotIn("pending_update", state.load())
+            self.assertEqual(state.load()["last_release_id"], "desktop-v0.2.0")
 
     def test_update_version_comparison_fails_closed(self):
         self.assertTrue(_newer_version("0.3.0", "0.2.0"))

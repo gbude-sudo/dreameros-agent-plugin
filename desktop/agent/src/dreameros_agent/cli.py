@@ -48,6 +48,22 @@ def _json(value: dict) -> None:
     print(json.dumps(value, separators=(",", ":"), sort_keys=True))
 
 
+def _needs_connect(vault, state: LocalState) -> bool:
+    return not vault.read("access_token") or not state.load().get("installation_id")
+
+
+def _restore_vault(vault, values: dict[str, str | None]) -> None:
+    for name, value in values.items():
+        if value:
+            vault.store(name, value)
+        else:
+            vault.delete(name)
+
+
+def _gateway_connected(state: str | None) -> bool:
+    return state in {"CONNECTED", "HYDRATED", "RECEIPTED"}
+
+
 def command_status(args) -> int:
     system, paths, appdata, state = _context(args)
     clients = adapter_observations(default_adapters(paths.home, appdata, system=system))
@@ -57,7 +73,16 @@ def command_status(args) -> int:
     except httpx.HTTPError:
         pass
     local = state.load()
-    _json({"agent_version": __version__, "installed": paths.autostart_file.exists(), "connected": bool(local.get("installation_id")), "proxy_healthy": proxy, "clients": clients})
+    gateway_state = None
+    token = default_vault(system).read("access_token")
+    installation_id = local.get("installation_id")
+    if token and installation_id:
+        try:
+            gateway_state = GatewayClient(token).installation_state(installation_id).get("state")
+        except RuntimeError:
+            gateway_state = None
+    connected = _gateway_connected(gateway_state)
+    _json({"agent_version": __version__, "installed": paths.autostart_file.exists(), "registered": bool(installation_id), "connected": connected, "gateway_state": gateway_state, "proxy_healthy": proxy, "clients": clients})
     return 0
 
 
@@ -76,6 +101,12 @@ def command_connect(args) -> int:
     system, paths, appdata, state = _context(args)
     vault = default_vault(system)
     oauth = OAuthClient(ISSUER, vault)
+    prior_state = state.load()
+    prior_tokens = {
+        name: vault.read(name)
+        for name in ("access_token", "refresh_token", "expires_at")
+    }
+    installation_id = None
     try:
         client_id, _tokens = oauth.connect(timeout=args.timeout)
         discovery = oauth.discover()
@@ -113,10 +144,18 @@ def command_connect(args) -> int:
             **bootpack,
         )
         webbrowser.open(f"https://app.dreameros.app/connect/desktop?installation={installation_id}")
-    except (OAuthError, RuntimeError, ManagedFileError, KeyError) as exc:
+    except (OAuthError, RuntimeError, ManagedFileError, KeyError, httpx.HTTPError, OSError) as exc:
+        token = vault.read("access_token")
+        if installation_id and token:
+            try:
+                GatewayClient(token).revoke(installation_id)
+            except RuntimeError:
+                pass
+        _restore_vault(vault, prior_tokens)
+        state.save(prior_state)
         _json({"status": "refused", "error": str(exc)})
         return 2
-    _json({"status": "connected", "installation_id": installation_id})
+    _json({"status": "registered", "installation_id": installation_id})
     return 0
 
 
@@ -125,7 +164,7 @@ def command_install(args) -> int:
     executable = Path(shutil.which("dreameros-agent") or sys.executable)
     install_autostart(paths, system, executable)
     vault = default_vault(system)
-    result = command_connect(args) if not vault.read("access_token") else command_repair(args)
+    result = command_connect(args) if _needs_connect(vault, _state) else command_repair(args)
     if result == 0 and system.lower() == "windows":
         subprocess.Popen(
             [str(executable), "run"],
@@ -142,6 +181,10 @@ def command_run(args) -> int:
 
 
 def command_update(args) -> int:
+    enabled = os.environ.get("DREAMEROS_AGENT_UPDATE_ENABLED", "").strip().lower()
+    if enabled not in {"1", "true", "yes"}:
+        _json({"status": "update_disabled", "error": "Desktop update is held back pending clean-machine recovery tests"})
+        return 3
     system, paths, _appdata, state = _context(args)
     token = default_vault(system).read("access_token")
     if not token:
@@ -167,17 +210,18 @@ def command_update(args) -> int:
         if healthy:
             break
         time.sleep(1)
-    manager.finish_or_rollback(healthy, current)
-    _json({"status": "updated" if healthy else "rolled_back", "release_id": manifest["release_id"]})
+    finalized = manager.finish_or_rollback(healthy, current)
+    status = "updated" if healthy else "rolled_back" if finalized else "recovery_required"
+    _json({"status": status, "release_id": manifest["release_id"]})
     return 0 if healthy else 3
 
 
 def command_rollback(args) -> int:
     system, paths, _appdata, state = _context(args)
     current = Path(sys.executable) if getattr(sys, "frozen", False) else None
-    UpdateManager(state, {}, paths.data_dir / "updates").finish_or_rollback(False, current)
-    _json({"status": "rolled_back"})
-    return 0
+    restored = UpdateManager(state, {}, paths.data_dir / "updates").finish_or_rollback(False, current)
+    _json({"status": "rolled_back" if restored else "rollback_unavailable"})
+    return 0 if restored else 3
 
 
 def command_sign_out(args) -> int:

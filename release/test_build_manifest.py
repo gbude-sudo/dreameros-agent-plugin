@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import base64
+import importlib.util
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -17,6 +19,18 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class BuildManifestTests(unittest.TestCase):
+    def test_release_version_validation_fails_closed(self):
+        path = ROOT / "release" / "validate_release_version.py"
+        spec = importlib.util.spec_from_file_location("validate_release_version", path)
+        module = importlib.util.module_from_spec(spec)
+        assert spec and spec.loader
+        spec.loader.exec_module(module)
+        module.validate_release_version("0.2.0", ROOT)
+        with self.assertRaises(ValueError):
+            module.validate_release_version("0.2.1", ROOT)
+        with self.assertRaises(ValueError):
+            module.validate_release_version("0.2.0;echo-no", ROOT)
+
     def test_manifest_matches_schema_and_signature(self):
         with tempfile.TemporaryDirectory() as temp:
             assets = Path(temp)
@@ -44,11 +58,12 @@ class BuildManifestTests(unittest.TestCase):
                     "--repository", "gbude-sudo/dreameros-agent-plugin",
                     "--bootpack-source", str(assets / "source.md"),
                     "--key-id", "test-key",
-                    "--private-key-b64", base64.b64encode(raw_private).decode("ascii"),
+                    "--private-key-env", "TEST_MANIFEST_PRIVATE_KEY_B64",
                     "--windows-subject", "DreamerOS Test",
                     "--linux-key-id", "test-linux-key",
                 ],
                 check=True,
+                env={**os.environ, "TEST_MANIFEST_PRIVATE_KEY_B64": base64.b64encode(raw_private).decode("ascii")},
             )
             manifest_bytes = (assets / "release-manifest.json").read_bytes()
             manifest = json.loads(manifest_bytes)

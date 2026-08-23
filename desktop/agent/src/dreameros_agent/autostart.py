@@ -34,7 +34,7 @@ After=network-online.target
 [Service]
 Type=simple
 ExecStart={command} run
-Restart=on-failure
+Restart=always
 RestartSec=10
 
 [Install]

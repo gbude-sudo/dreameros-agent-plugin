@@ -5,6 +5,7 @@ import argparse
 import base64
 import hashlib
 import json
+import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -34,7 +35,7 @@ def main() -> int:
     parser.add_argument("--repository", required=True)
     parser.add_argument("--bootpack-source", type=Path, required=True)
     parser.add_argument("--key-id", required=True)
-    parser.add_argument("--private-key-b64", required=True)
+    parser.add_argument("--private-key-env", default="DESKTOP_ED25519_PRIVATE_KEY_B64")
     parser.add_argument("--windows-subject", required=True)
     parser.add_argument("--linux-key-id", required=True)
     args = parser.parse_args()
@@ -84,7 +85,10 @@ def main() -> int:
     manifest_path = args.asset_dir / "release-manifest.json"
     payload = json.dumps(manifest, separators=(",", ":"), sort_keys=True).encode("utf-8")
     manifest_path.write_bytes(payload)
-    key = private_key(args.private_key_b64)
+    encoded_private_key = os.environ.get(args.private_key_env, "")
+    if not encoded_private_key:
+        raise ValueError(f"release signing key environment value is missing: {args.private_key_env}")
+    key = private_key(encoded_private_key)
     (args.asset_dir / "release-manifest.sig").write_text(
         base64.b64encode(key.sign(payload)).decode("ascii"), encoding="ascii"
     )

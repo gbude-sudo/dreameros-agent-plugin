@@ -16,10 +16,11 @@ Values must stay in GitHub environment secrets and must never be committed.
 - `APPLE_APPLICATION_CERT_PASSWORD` - application certificate import password.
 - `APPLE_APPLICATION_SIGNING_IDENTITY` - Developer ID Application identity.
 - `APPLE_SIGNING_IDENTITY` - Developer ID Installer identity.
-- `APPLE_ID` - notarization account.
-- `APPLE_TEAM_ID` - Apple developer team.
-- `APPLE_APP_SPECIFIC_PASSWORD` - notarization password.
+- `APPLE_NOTARY_KEY_ID` - App Store Connect API key identifier.
+- `APPLE_NOTARY_ISSUER_ID` - App Store Connect API issuer identifier.
+- `APPLE_NOTARY_PRIVATE_KEY_B64` - App Store Connect API private key.
 - `LINUX_PACKAGE_SIGNING_PRIVATE_KEY_B64` - package repository signing key.
+- `LINUX_PACKAGE_SIGNING_PUBLIC_KEY_B64` - public key embedded in the Linux agent.
 - `LINUX_PACKAGE_SIGNING_KEY_ID` - public signing key identifier.
 
 The corresponding Ed25519 public key and platform signer identities are public

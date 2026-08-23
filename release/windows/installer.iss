@@ -4,10 +4,13 @@
 #ifndef OutputDir
   #define OutputDir "..\..\dist"
 #endif
+#ifndef AppVersion
+  #define AppVersion "0.2.0"
+#endif
 [Setup]
 AppId={{C29DD52D-8E71-4B70-BC51-0B6C90675B18}
 AppName=DreamerOS Desktop Agent
-AppVersion=0.2.0
+AppVersion={#AppVersion}
 DefaultDirName={localappdata}\DreamerOS\Agent
 PrivilegesRequired=lowest
 OutputDir={#OutputDir}

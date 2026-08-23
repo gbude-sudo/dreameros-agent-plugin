@@ -16,11 +16,13 @@ _HOP_HEADERS = {"connection", "keep-alive", "proxy-authenticate", "proxy-authori
 class ProxyServer(ThreadingHTTPServer):
     daemon_threads = True
 
-    def __init__(self, address, *, token_provider: Callable[[], str | None], installation_id: str, agent_version: str, client=None, remote_url: str = REMOTE_MCP_URL):
+    def __init__(self, address, *, token_provider: Callable[[], str | None], installation_id: str, agent_version: str, on_mcp_success: Callable[[], None] | None = None, attestation_lock=None, client=None, remote_url: str = REMOTE_MCP_URL):
         super().__init__(address, ProxyHandler)
         self.token_provider = token_provider
         self.installation_id = installation_id
         self.agent_version = agent_version
+        self.on_mcp_success = on_mcp_success
+        self.attestation_lock = attestation_lock or threading.Lock()
         self.remote_url = remote_url
         self.http = client or httpx.Client(timeout=httpx.Timeout(300.0, connect=10.0))
 
@@ -32,7 +34,6 @@ class ProxyHandler(BaseHTTPRequestHandler):
         if self.path == "/health":
             body = json.dumps({
                 "status": "ok",
-                "installation": self.server.installation_id,  # type: ignore[attr-defined]
                 "agent_version": self.server.agent_version,  # type: ignore[attr-defined]
             }).encode()
             self.send_response(200)
@@ -77,7 +78,14 @@ class ProxyHandler(BaseHTTPRequestHandler):
         headers["X-DreamerOS-Installation"] = self.server.installation_id  # type: ignore[attr-defined]
         request = self.server.http.build_request(method, self.server.remote_url, headers=headers, content=body)  # type: ignore[attr-defined]
         try:
-            response = self.server.http.send(request, stream=True)  # type: ignore[attr-defined]
+            with self.server.attestation_lock:  # type: ignore[attr-defined]
+                response = self.server.http.send(request, stream=True)  # type: ignore[attr-defined]
+                callback = self.server.on_mcp_success  # type: ignore[attr-defined]
+                if callback is not None and 200 <= response.status_code < 300:
+                    try:
+                        callback()
+                    except (httpx.HTTPError, OSError, RuntimeError):
+                        pass
             self.send_response(response.status_code)
             for key, value in response.headers.items():
                 if key.lower() not in _HOP_HEADERS:
@@ -96,7 +104,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
         return
 
 
-def serve_proxy(token_provider: Callable[[], str | None], installation_id: str, *, agent_version: str, port: int = 18765) -> ProxyServer:
-    server = ProxyServer(("127.0.0.1", port), token_provider=token_provider, installation_id=installation_id, agent_version=agent_version)
+def serve_proxy(token_provider: Callable[[], str | None], installation_id: str, *, agent_version: str, on_mcp_success: Callable[[], None] | None = None, attestation_lock=None, port: int = 18765) -> ProxyServer:
+    server = ProxyServer(("127.0.0.1", port), token_provider=token_provider, installation_id=installation_id, agent_version=agent_version, on_mcp_success=on_mcp_success, attestation_lock=attestation_lock)
     threading.Thread(target=server.serve_forever, name="dreameros-mcp-proxy", daemon=True).start()
     return server

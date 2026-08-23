@@ -6,3 +6,4 @@ standalone binaries are built.
 """
 
 PINNED_RELEASE_KEYS: dict[str, str] = {}
+PINNED_LINUX_PACKAGE_PUBLIC_KEY_B64 = ""
