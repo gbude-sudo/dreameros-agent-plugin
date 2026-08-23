@@ -55,6 +55,8 @@ def verify_manifest(
         raise ManifestVerificationError(f"manifest missing fields: {sorted(missing)}")
     if payload["schema_version"] != "1.0":
         raise ManifestVerificationError("unsupported manifest schema")
+    if payload.get("channel") not in {"stable", "beta"}:
+        raise ManifestVerificationError("unsupported release channel")
     key_b64 = pinned_keys.get(payload["signing_key_id"])
     if not key_b64:
         raise ManifestVerificationError("manifest signing key is not pinned")

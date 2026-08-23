@@ -48,7 +48,7 @@ def atomic_write(path: Path, content: bytes, backup_dir: Path) -> Path | None:
     return backup
 
 
-def update_json_entry(path: Path, section: str, name: str, value: dict, backup_dir: Path) -> bool:
+def update_json_entry(path: Path, section: str, name: str, value: dict, backup_dir: Path, *, replace_values: tuple[dict, ...] = ()) -> bool:
     if path.exists():
         try:
             data = json.loads(path.read_text(encoding="utf-8-sig"))
@@ -61,7 +61,7 @@ def update_json_entry(path: Path, section: str, name: str, value: dict, backup_d
     target = data.setdefault(section, {})
     if not isinstance(target, dict):
         raise ManagedFileError(f"JSON section {section} must be an object")
-    if name in target and target[name] != value:
+    if name in target and target[name] != value and target[name] not in replace_values:
         raise ManagedFileError(f"refusing to replace unmanaged JSON entry: {section}.{name}")
     if target.get(name) == value:
         return False

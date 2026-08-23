@@ -4,11 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dreameros-desktop-agent"
-version = "0.1.0"
+version = "0.2.0"
 description = "DreamerOS per-user desktop bootstrap, repair, and heartbeat agent."
 requires-python = ">=3.11"
 dependencies = [
   "cryptography>=45",
+  "httpx>=0.27,<1",
   "pywin32>=306; platform_system == 'Windows'",
 ]
 

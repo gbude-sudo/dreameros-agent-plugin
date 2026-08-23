@@ -25,12 +25,26 @@
     "minimum_agent_version": { "type": "string", "minLength": 1 },
     "agent": {
       "type": "object",
-      "required": ["version", "windows_x64_url", "windows_x64_sha256", "authenticode_subject"],
+      "additionalProperties": false,
+      "required": ["version", "artifacts"],
       "properties": {
         "version": { "type": "string" },
-        "windows_x64_url": { "type": "string", "format": "uri" },
-        "windows_x64_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
-        "authenticode_subject": { "type": "string" }
+        "artifacts": {
+          "type": "object",
+          "minProperties": 3,
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["url", "sha256"],
+            "properties": {
+              "url": { "type": "string", "format": "uri" },
+              "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+              "authenticode_subject": { "type": "string" },
+              "notarized": { "type": "boolean" },
+              "package_signing_key_id": { "type": "string" }
+            }
+          }
+        }
       }
     },
     "bootpack": {

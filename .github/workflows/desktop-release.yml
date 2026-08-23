@@ -1,0 +1,274 @@
+name: Desktop Release
+
+permissions:
+  contents: write
+
+on:
+  pull_request:
+    paths:
+      - "desktop/agent/**"
+      - "release/**"
+      - ".github/workflows/desktop-release.yml"
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: candidate or stable
+        required: true
+        default: candidate
+        type: choice
+        options: [candidate, stable]
+      version:
+        description: Semantic desktop agent version
+        required: true
+        default: "0.2.0"
+
+jobs:
+  build-candidate:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: windows-x86_64
+          - os: macos-14
+            artifact: macos-arm64
+          - os: ubuntu-latest
+            artifact: linux-x86_64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e desktop/agent pyinstaller jsonschema
+      - run: python -m unittest discover -s desktop/agent/tests -v
+      - run: python release/test_build_manifest.py
+      - run: pyinstaller --clean --onefile --name dreameros-agent --paths desktop/agent/src desktop/agent/build_entry.py
+      - if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          choco install innosetup --no-progress -y
+          & 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' release\windows\installer.iss "/DSourceExe=$pwd\dist\dreameros-agent.exe" "/DOutputDir=$pwd\dist\package"
+      - if: runner.os == 'macOS'
+        run: |
+          mkdir -p dist/pkgroot/usr/local/bin dist/package
+          cp dist/dreameros-agent dist/pkgroot/usr/local/bin/dreameros-agent
+          chmod +x release/macos/scripts/postinstall
+          pkgbuild --root dist/pkgroot --scripts release/macos/scripts --identifier app.dreameros.desktop-agent --version 0.2.0 dist/package/DreamerOSAgent.pkg
+      - if: runner.os == 'Linux'
+        run: |
+          mkdir -p dist/debroot/DEBIAN dist/debroot/usr/local/bin dist/package
+          cp dist/dreameros-agent dist/debroot/usr/local/bin/dreameros-agent
+          printf 'Package: dreameros-desktop-agent\nVersion: 0.2.0\nArchitecture: amd64\nMaintainer: DreamerOS\nDescription: DreamerOS desktop MCP conductor\n' > dist/debroot/DEBIAN/control
+          cp release/linux/postinst dist/debroot/DEBIAN/postinst
+          chmod 755 dist/debroot/DEBIAN/postinst
+          dpkg-deb --build dist/debroot dist/package/dreameros-desktop-agent_0.2.0_amd64.deb
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}-candidate
+          path: dist/package/*
+          if-no-files-found: error
+
+  stable-signing-gate:
+    if: github.event_name == 'workflow_dispatch' && inputs.channel == 'stable'
+    needs: build-candidate
+    runs-on: ubuntu-latest
+    environment: desktop-stable-release
+    env:
+      DESKTOP_ED25519_PRIVATE_KEY_B64: ${{ secrets.DESKTOP_ED25519_PRIVATE_KEY_B64 }}
+      DESKTOP_ED25519_KEY_ID: ${{ secrets.DESKTOP_ED25519_KEY_ID }}
+      DESKTOP_ED25519_PUBLIC_KEY_B64: ${{ secrets.DESKTOP_ED25519_PUBLIC_KEY_B64 }}
+      WINDOWS_CODESIGN_CERT_PFX_B64: ${{ secrets.WINDOWS_CODESIGN_CERT_PFX_B64 }}
+      WINDOWS_CODESIGN_CERT_PASSWORD: ${{ secrets.WINDOWS_CODESIGN_CERT_PASSWORD }}
+      WINDOWS_CODESIGN_SUBJECT: ${{ secrets.WINDOWS_CODESIGN_SUBJECT }}
+      APPLE_INSTALLER_CERT_P12_B64: ${{ secrets.APPLE_INSTALLER_CERT_P12_B64 }}
+      APPLE_INSTALLER_CERT_PASSWORD: ${{ secrets.APPLE_INSTALLER_CERT_PASSWORD }}
+      APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+      APPLE_APPLICATION_CERT_P12_B64: ${{ secrets.APPLE_APPLICATION_CERT_P12_B64 }}
+      APPLE_APPLICATION_CERT_PASSWORD: ${{ secrets.APPLE_APPLICATION_CERT_PASSWORD }}
+      APPLE_APPLICATION_SIGNING_IDENTITY: ${{ secrets.APPLE_APPLICATION_SIGNING_IDENTITY }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      LINUX_PACKAGE_SIGNING_PRIVATE_KEY_B64: ${{ secrets.LINUX_PACKAGE_SIGNING_PRIVATE_KEY_B64 }}
+      LINUX_PACKAGE_SIGNING_KEY_ID: ${{ secrets.LINUX_PACKAGE_SIGNING_KEY_ID }}
+    steps:
+      - name: Require the full signing inventory
+        run: |
+          missing=0
+          for name in DESKTOP_ED25519_PRIVATE_KEY_B64 DESKTOP_ED25519_KEY_ID DESKTOP_ED25519_PUBLIC_KEY_B64 WINDOWS_CODESIGN_CERT_PFX_B64 WINDOWS_CODESIGN_CERT_PASSWORD WINDOWS_CODESIGN_SUBJECT APPLE_INSTALLER_CERT_P12_B64 APPLE_INSTALLER_CERT_PASSWORD APPLE_SIGNING_IDENTITY APPLE_APPLICATION_CERT_P12_B64 APPLE_APPLICATION_CERT_PASSWORD APPLE_APPLICATION_SIGNING_IDENTITY APPLE_ID APPLE_TEAM_ID APPLE_APP_SPECIFIC_PASSWORD LINUX_PACKAGE_SIGNING_PRIVATE_KEY_B64 LINUX_PACKAGE_SIGNING_KEY_ID; do
+            if [ -z "${!name}" ]; then echo "Missing required secret name: $name"; missing=1; fi
+          done
+          exit "$missing"
+
+  stable-windows:
+    if: github.event_name == 'workflow_dispatch' && inputs.channel == 'stable'
+    needs: stable-signing-gate
+    runs-on: windows-latest
+    environment: desktop-stable-release
+    env:
+      KEY_ID: ${{ secrets.DESKTOP_ED25519_KEY_ID }}
+      PUBLIC_KEY_B64: ${{ secrets.DESKTOP_ED25519_PUBLIC_KEY_B64 }}
+      CERT_B64: ${{ secrets.WINDOWS_CODESIGN_CERT_PFX_B64 }}
+      CERT_PASSWORD: ${{ secrets.WINDOWS_CODESIGN_CERT_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - shell: powershell
+        run: |
+          $body = "PINNED_RELEASE_KEYS = {`"$env:KEY_ID`": `"$env:PUBLIC_KEY_B64`"}`n"
+          Set-Content desktop/agent/src/dreameros_agent/trusted_keys.py $body -Encoding utf8
+      - run: python -m pip install -e desktop/agent pyinstaller jsonschema
+      - run: python -m unittest discover -s desktop/agent/tests -v
+      - run: python release/test_build_manifest.py
+      - run: pyinstaller --clean --onefile --name dreameros-agent --paths desktop/agent/src desktop/agent/build_entry.py
+      - shell: powershell
+        run: |
+          [IO.File]::WriteAllBytes("desktop-signing.pfx", [Convert]::FromBase64String($env:CERT_B64))
+          $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Filter signtool.exe -Recurse | Where-Object FullName -Match '\\x64\\' | Select-Object -Last 1
+          if (-not $signtool) { throw "signtool not found" }
+          & $signtool.FullName sign /fd SHA256 /td SHA256 /tr http://timestamp.digicert.com /f desktop-signing.pfx /p $env:CERT_PASSWORD dist/dreameros-agent.exe
+          choco install innosetup --no-progress -y
+          & 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' release\windows\installer.iss "/DSourceExe=$pwd\dist\dreameros-agent.exe" "/DOutputDir=$pwd\dist\package"
+          & $signtool.FullName sign /fd SHA256 /td SHA256 /tr http://timestamp.digicert.com /f desktop-signing.pfx /p $env:CERT_PASSWORD dist/package/DreamerOSAgentSetup.exe
+          Remove-Item desktop-signing.pfx -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stable-windows
+          path: dist/package/DreamerOSAgentSetup.exe
+          if-no-files-found: error
+
+  stable-macos:
+    if: github.event_name == 'workflow_dispatch' && inputs.channel == 'stable'
+    needs: stable-signing-gate
+    runs-on: macos-14
+    environment: desktop-stable-release
+    env:
+      KEY_ID: ${{ secrets.DESKTOP_ED25519_KEY_ID }}
+      PUBLIC_KEY_B64: ${{ secrets.DESKTOP_ED25519_PUBLIC_KEY_B64 }}
+      APP_CERT_B64: ${{ secrets.APPLE_APPLICATION_CERT_P12_B64 }}
+      APP_CERT_PASSWORD: ${{ secrets.APPLE_APPLICATION_CERT_PASSWORD }}
+      APP_IDENTITY: ${{ secrets.APPLE_APPLICATION_SIGNING_IDENTITY }}
+      INSTALLER_CERT_B64: ${{ secrets.APPLE_INSTALLER_CERT_P12_B64 }}
+      INSTALLER_CERT_PASSWORD: ${{ secrets.APPLE_INSTALLER_CERT_PASSWORD }}
+      INSTALLER_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPLE_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -c 'import os,pathlib; pathlib.Path("desktop/agent/src/dreameros_agent/trusted_keys.py").write_text("PINNED_RELEASE_KEYS = "+repr({os.environ["KEY_ID"]:os.environ["PUBLIC_KEY_B64"]})+"\n")'
+      - run: python -m pip install -e desktop/agent pyinstaller jsonschema
+      - run: python -m unittest discover -s desktop/agent/tests -v
+      - run: python release/test_build_manifest.py
+      - run: pyinstaller --clean --onefile --name dreameros-agent --paths desktop/agent/src desktop/agent/build_entry.py
+      - run: |
+          KEYCHAIN="$RUNNER_TEMP/dreameros.keychain-db"
+          security create-keychain -p build "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p build "$KEYCHAIN"
+          echo "$APP_CERT_B64" | base64 --decode > "$RUNNER_TEMP/app.p12"
+          echo "$INSTALLER_CERT_B64" | base64 --decode > "$RUNNER_TEMP/installer.p12"
+          security import "$RUNNER_TEMP/app.p12" -k "$KEYCHAIN" -P "$APP_CERT_PASSWORD" -T /usr/bin/codesign
+          security import "$RUNNER_TEMP/installer.p12" -k "$KEYCHAIN" -P "$INSTALLER_CERT_PASSWORD" -T /usr/bin/productsign
+          security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
+          security set-key-partition-list -S apple-tool:,apple: -s -k build "$KEYCHAIN"
+          codesign --force --options runtime --timestamp --sign "$APP_IDENTITY" dist/dreameros-agent
+          mkdir -p dist/pkgroot/usr/local/bin dist/package
+          cp dist/dreameros-agent dist/pkgroot/usr/local/bin/dreameros-agent
+          chmod +x release/macos/scripts/postinstall
+          pkgbuild --root dist/pkgroot --scripts release/macos/scripts --identifier app.dreameros.desktop-agent --version "${{ inputs.version }}" "$RUNNER_TEMP/unsigned.pkg"
+          productsign --sign "$INSTALLER_IDENTITY" "$RUNNER_TEMP/unsigned.pkg" dist/package/DreamerOSAgent.pkg
+          xcrun notarytool submit dist/package/DreamerOSAgent.pkg --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_PASSWORD" --wait
+          xcrun stapler staple dist/package/DreamerOSAgent.pkg
+          pkgutil --check-signature dist/package/DreamerOSAgent.pkg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stable-macos
+          path: dist/package/DreamerOSAgent.pkg
+          if-no-files-found: error
+
+  stable-linux:
+    if: github.event_name == 'workflow_dispatch' && inputs.channel == 'stable'
+    needs: stable-signing-gate
+    runs-on: ubuntu-latest
+    environment: desktop-stable-release
+    env:
+      KEY_ID: ${{ secrets.DESKTOP_ED25519_KEY_ID }}
+      PUBLIC_KEY_B64: ${{ secrets.DESKTOP_ED25519_PUBLIC_KEY_B64 }}
+      PACKAGE_KEY_B64: ${{ secrets.LINUX_PACKAGE_SIGNING_PRIVATE_KEY_B64 }}
+      PACKAGE_KEY_ID: ${{ secrets.LINUX_PACKAGE_SIGNING_KEY_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -c 'import os,pathlib; pathlib.Path("desktop/agent/src/dreameros_agent/trusted_keys.py").write_text("PINNED_RELEASE_KEYS = "+repr({os.environ["KEY_ID"]:os.environ["PUBLIC_KEY_B64"]})+"\n")'
+      - run: python -m pip install -e desktop/agent pyinstaller jsonschema
+      - run: python -m unittest discover -s desktop/agent/tests -v
+      - run: python release/test_build_manifest.py
+      - run: pyinstaller --clean --onefile --name dreameros-agent --paths desktop/agent/src desktop/agent/build_entry.py
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg-sig
+          echo "$PACKAGE_KEY_B64" | base64 --decode | gpg --batch --import
+          mkdir -p dist/debroot/DEBIAN dist/debroot/usr/local/bin dist/package
+          cp dist/dreameros-agent dist/debroot/usr/local/bin/dreameros-agent
+          printf 'Package: dreameros-desktop-agent\nVersion: %s\nArchitecture: amd64\nMaintainer: DreamerOS\nDescription: DreamerOS desktop MCP conductor\n' "${{ inputs.version }}" > dist/debroot/DEBIAN/control
+          cp release/linux/postinst dist/debroot/DEBIAN/postinst
+          chmod 755 dist/debroot/DEBIAN/postinst
+          dpkg-deb --build dist/debroot "dist/package/dreameros-desktop-agent_${{ inputs.version }}_amd64.deb"
+          dpkg-sig --sign builder -k "$PACKAGE_KEY_ID" "dist/package/dreameros-desktop-agent_${{ inputs.version }}_amd64.deb"
+          dpkg-sig --verify "dist/package/dreameros-desktop-agent_${{ inputs.version }}_amd64.deb"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stable-linux
+          path: dist/package/dreameros-desktop-agent_${{ inputs.version }}_amd64.deb
+          if-no-files-found: error
+
+  publish-stable:
+    if: github.event_name == 'workflow_dispatch' && inputs.channel == 'stable'
+    needs: [stable-windows, stable-macos, stable-linux]
+    runs-on: ubuntu-latest
+    environment: desktop-stable-release
+    env:
+      GH_TOKEN: ${{ github.token }}
+      MANIFEST_PRIVATE_KEY_B64: ${{ secrets.DESKTOP_ED25519_PRIVATE_KEY_B64 }}
+      MANIFEST_KEY_ID: ${{ secrets.DESKTOP_ED25519_KEY_ID }}
+      WINDOWS_SUBJECT: ${{ secrets.WINDOWS_CODESIGN_SUBJECT }}
+      LINUX_KEY_ID: ${{ secrets.LINUX_PACKAGE_SIGNING_KEY_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: stable-*
+          path: dist/release
+          merge-multiple: true
+      - run: |
+          python -m pip install cryptography
+          cd bootpack/out && zip -r ../../dist/release/dreameros-bootpack.zip .
+          cd ../..
+          python release/build_manifest.py \
+            --asset-dir dist/release \
+            --version "${{ inputs.version }}" \
+            --tag "desktop-v${{ inputs.version }}" \
+            --repository "$GITHUB_REPOSITORY" \
+            --bootpack-source bootpack/SOURCE-dreameros-boot-canon.md \
+            --key-id "$MANIFEST_KEY_ID" \
+            --private-key-b64 "$MANIFEST_PRIVATE_KEY_B64" \
+            --windows-subject "$WINDOWS_SUBJECT" \
+            --linux-key-id "$LINUX_KEY_ID"
+          PYTHONPATH=desktop/agent/src python -c 'import json,pathlib; from dreameros_agent.release_manifest import verify_manifest; p=pathlib.Path("dist/release"); pub=json.loads((p/"release-public-key.json").read_text()); verify_manifest((p/"release-manifest.json").read_bytes(),(p/"release-manifest.sig").read_text(),{pub["key_id"]:pub["public_key_b64"]})'
+      - run: |
+          gh release create "desktop-v${{ inputs.version }}" dist/release/* \
+            --target "$GITHUB_SHA" \
+            --title "DreamerOS Desktop Agent ${{ inputs.version }}" \
+            --notes "Signed installers for Windows, macOS, and Linux. The release manifest is Ed25519 signed."

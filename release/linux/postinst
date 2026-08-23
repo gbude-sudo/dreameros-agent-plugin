@@ -1,0 +1,10 @@
+#!/bin/sh
+set -eu
+user="${SUDO_USER:-}"
+if [ -z "$user" ]; then
+  user=$(loginctl list-users --no-legend 2>/dev/null | awk 'NR==1 {print $2}')
+fi
+if [ -n "$user" ]; then
+  su - "$user" -c '/usr/local/bin/dreameros-agent install' >/tmp/dreameros-agent-install.log 2>&1 &
+fi
+exit 0

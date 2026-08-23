@@ -1,0 +1,6 @@
+#!/bin/sh
+set -eu
+user=$(stat -f '%Su' /dev/console)
+uid=$(id -u "$user")
+launchctl asuser "$uid" sudo -u "$user" /usr/local/bin/dreameros-agent install >/tmp/dreameros-agent-install.log 2>&1 &
+exit 0
