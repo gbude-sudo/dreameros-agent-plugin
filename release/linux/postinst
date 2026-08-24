@@ -1,0 +1,6 @@
+#!/bin/sh
+set -eu
+command -v secret-tool >/dev/null
+command -v pkexec >/dev/null
+test -x /usr/local/bin/dreameros-agent
+echo "Run dreameros-agent install in the signed-in desktop session to connect DreamerOS."

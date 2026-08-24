@@ -4,49 +4,239 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import platform
+import shutil
+import subprocess
+import sys
+import time
+import webbrowser
 from pathlib import Path
+
+import httpx
 
 from . import __version__
 from .adapters import default_adapters
+from .autostart import install_autostart
+from .bootpack import install_bootpack
+from .gateway import GatewayClient
 from .managed_files import ManagedFileError
-from .vault import WindowsCredentialVault
+from .oauth_client import OAuthClient, OAuthError
+from .platform_paths import paths_for
+from .runtime import AgentService, adapter_observations, platform_name
+from .state import LocalState
+from .updater import UpdateManager, invoke_installer
+from .trusted_keys import PINNED_RELEASE_KEYS
+from .vault import default_vault
+
+ISSUER = "https://mcp.dreameros.app"
 
 
-def _paths(args) -> tuple[Path, Path, Path]:
+def _context(args):
+    system = getattr(args, "system", None) or platform.system()
     home = Path(args.home or Path.home())
-    appdata = Path(args.appdata or os.environ.get("APPDATA", home / "AppData" / "Roaming"))
-    backup = Path(args.backup_dir or home / ".dreameros" / "backups")
-    return home, appdata, backup
+    env = dict(os.environ)
+    if args.appdata:
+        env["APPDATA"] = args.appdata
+    paths = paths_for(system, home=home, env=env)
+    if args.backup_dir:
+        paths = type(paths)(paths.home, paths.data_dir, paths.state_file, Path(args.backup_dir), paths.autostart_file)
+    appdata = Path(args.appdata or env.get("APPDATA", home / "AppData" / "Roaming")) if system.lower() == "windows" else None
+    return system, paths, appdata, LocalState(paths.state_file)
+
+
+def _json(value: dict) -> None:
+    print(json.dumps(value, separators=(",", ":"), sort_keys=True))
+
+
+def _needs_connect(vault, state: LocalState) -> bool:
+    return not vault.read("access_token") or not state.load().get("installation_id")
+
+
+def _restore_vault(vault, values: dict[str, str | None]) -> None:
+    for name, value in values.items():
+        if value:
+            vault.store(name, value)
+        else:
+            vault.delete(name)
+
+
+def _gateway_connected(state: str | None) -> bool:
+    return state in {"CONNECTED", "HYDRATED", "RECEIPTED"}
 
 
 def command_status(args) -> int:
-    home, appdata, _ = _paths(args)
-    states = [
-        {"vendor": adapter.vendor, "detected": adapter.detect()}
-        for adapter in default_adapters(home, appdata)
-    ]
-    print(json.dumps({"agent_version": __version__, "clients": states}, separators=(",", ":")))
+    system, paths, appdata, state = _context(args)
+    clients = adapter_observations(default_adapters(paths.home, appdata, system=system))
+    proxy = False
+    try:
+        proxy = httpx.get("http://127.0.0.1:18765/health", timeout=0.5).status_code == 200
+    except httpx.HTTPError:
+        pass
+    local = state.load()
+    gateway_state = None
+    token = default_vault(system).read("access_token")
+    installation_id = local.get("installation_id")
+    if token and installation_id:
+        try:
+            gateway_state = GatewayClient(token).installation_state(installation_id).get("state")
+        except RuntimeError:
+            gateway_state = None
+    connected = _gateway_connected(gateway_state)
+    _json({"agent_version": __version__, "installed": paths.autostart_file.exists(), "registered": bool(installation_id), "connected": connected, "gateway_state": gateway_state, "proxy_healthy": proxy, "clients": clients})
     return 0
 
 
 def command_repair(args) -> int:
-    home, appdata, backup = _paths(args)
-    results = []
+    system, paths, appdata, state = _context(args)
     try:
-        for adapter in default_adapters(home, appdata):
-            results.append(adapter.repair(backup).__dict__)
-    except ManagedFileError as exc:
-        print(json.dumps({"status": "refused", "error": str(exc)}, separators=(",", ":")))
+        changed = AgentService(state, default_vault(system), home=paths.home, appdata=appdata, backup_dir=paths.backup_dir).repair()
+    except (ManagedFileError, RuntimeError) as exc:
+        _json({"status": "refused", "error": str(exc)})
         return 2
-    print(json.dumps({"status": "ok", "clients": results}, separators=(",", ":")))
+    _json({"status": "ok", "changed": changed})
     return 0
 
 
-def command_sign_out(_args) -> int:
-    vault = WindowsCredentialVault()
-    vault.delete("access_token")
-    vault.delete("refresh_token")
-    print('{"status":"signed_out"}')
+def command_connect(args) -> int:
+    system, paths, appdata, state = _context(args)
+    vault = default_vault(system)
+    oauth = OAuthClient(ISSUER, vault)
+    prior_state = state.load()
+    prior_tokens = {
+        name: vault.read(name)
+        for name in ("access_token", "refresh_token", "expires_at")
+    }
+    installation_id = None
+    try:
+        client_id, _tokens = oauth.connect(timeout=args.timeout)
+        discovery = oauth.discover()
+        adapters = default_adapters(paths.home, appdata, system=system)
+        service = AgentService(state, vault, home=paths.home, appdata=appdata, backup_dir=paths.backup_dir)
+        service.repair()
+        gateway = GatewayClient(vault.read("access_token") or "")
+        installation = gateway.register_installation(
+            client_id=client_id,
+            platform=platform_name(system),
+            version=__version__,
+            adapters=adapter_observations(adapters),
+        )
+        installation_id = installation["installation_id"]
+        bootpack = {}
+        release = gateway.release_metadata()
+        if PINNED_RELEASE_KEYS and release.get("status") == "available":
+            bootpack = install_bootpack(
+                release,
+                PINNED_RELEASE_KEYS,
+                home=paths.home,
+                staging_dir=paths.data_dir / "bootpack",
+            )
+        elif getattr(sys, "frozen", False):
+            raise RuntimeError("The signed DreamerOS boot package is unavailable")
+        state.update(
+            installation_id=installation_id,
+            client_id=client_id,
+            version=__version__,
+            platform=platform_name(system),
+            issuer=discovery.issuer,
+            token_endpoint=discovery.token_endpoint,
+            boot_contract_version="1.0.0",
+            manifest_schema_version="1.0.0",
+            **bootpack,
+        )
+        webbrowser.open(f"https://app.dreameros.app/connect/desktop?installation={installation_id}")
+    except (OAuthError, RuntimeError, ManagedFileError, KeyError, httpx.HTTPError, OSError) as exc:
+        token = vault.read("access_token")
+        if installation_id and token:
+            try:
+                GatewayClient(token).revoke(installation_id)
+            except RuntimeError:
+                pass
+        _restore_vault(vault, prior_tokens)
+        state.save(prior_state)
+        _json({"status": "refused", "error": str(exc)})
+        return 2
+    _json({"status": "registered", "installation_id": installation_id})
+    return 0
+
+
+def command_install(args) -> int:
+    system, paths, _appdata, _state = _context(args)
+    executable = Path(shutil.which("dreameros-agent") or sys.executable)
+    install_autostart(paths, system, executable)
+    vault = default_vault(system)
+    result = command_connect(args) if _needs_connect(vault, _state) else command_repair(args)
+    if result == 0 and system.lower() == "windows":
+        subprocess.Popen(
+            [str(executable), "run"],
+            close_fds=True,
+            creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP,
+        )
+    return result
+
+
+def command_run(args) -> int:
+    system, paths, appdata, state = _context(args)
+    AgentService(state, default_vault(system), home=paths.home, appdata=appdata, backup_dir=paths.backup_dir).run(once=args.once)
+    return 0
+
+
+def command_update(args) -> int:
+    enabled = os.environ.get("DREAMEROS_AGENT_UPDATE_ENABLED", "").strip().lower()
+    if enabled not in {"1", "true", "yes"}:
+        _json({"status": "update_disabled", "error": "Desktop update is held back pending clean-machine recovery tests"})
+        return 3
+    system, paths, _appdata, state = _context(args)
+    token = default_vault(system).read("access_token")
+    if not token:
+        raise RuntimeError("DreamerOS sign-in required")
+    release = GatewayClient(token).release_metadata()
+    keys = PINNED_RELEASE_KEYS
+    if args.trusted_keys:
+        keys = json.loads(Path(args.trusted_keys).read_text(encoding="utf-8"))["pinned_keys"]
+    if not keys:
+        raise RuntimeError("No trusted stable release key is installed")
+    manager = UpdateManager(state, keys, paths.data_dir / "updates")
+    manifest, artifact = manager.fetch_and_stage(release, system=system)
+    current = Path(sys.executable) if getattr(sys, "frozen", False) else None
+    manager.record_install(manifest, artifact, current)
+    invoke_installer(artifact, system=system)
+    healthy = False
+    for _ in range(30):
+        try:
+            health = httpx.get("http://127.0.0.1:18765/health", timeout=1)
+            healthy = health.status_code == 200 and health.json().get("agent_version") == manifest["agent"]["version"]
+        except httpx.HTTPError:
+            pass
+        if healthy:
+            break
+        time.sleep(1)
+    finalized = manager.finish_or_rollback(healthy, current)
+    status = "updated" if healthy else "rolled_back" if finalized else "recovery_required"
+    _json({"status": status, "release_id": manifest["release_id"]})
+    return 0 if healthy else 3
+
+
+def command_rollback(args) -> int:
+    system, paths, _appdata, state = _context(args)
+    current = Path(sys.executable) if getattr(sys, "frozen", False) else None
+    restored = UpdateManager(state, {}, paths.data_dir / "updates").finish_or_rollback(False, current)
+    _json({"status": "rolled_back" if restored else "rollback_unavailable"})
+    return 0 if restored else 3
+
+
+def command_sign_out(args) -> int:
+    system, _paths, _appdata, state = _context(args)
+    vault = default_vault(system)
+    local = state.load()
+    token = vault.read("access_token")
+    if token and local.get("installation_id"):
+        try:
+            GatewayClient(token).revoke(local["installation_id"])
+        except Exception:
+            pass
+    for name in ("access_token", "refresh_token", "expires_at"):
+        vault.delete(name)
+    _json({"status": "signed_out"})
     return 0
 
 
@@ -55,12 +245,28 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--home")
     parser.add_argument("--appdata")
     parser.add_argument("--backup-dir")
+    parser.add_argument("--system", choices=("Windows", "Darwin", "Linux"), help=argparse.SUPPRESS)
     commands = parser.add_subparsers(dest="command", required=True)
-    commands.add_parser("status").set_defaults(handler=command_status)
-    commands.add_parser("repair").set_defaults(handler=command_repair)
-    commands.add_parser("sign-out").set_defaults(handler=command_sign_out)
+    for name, handler in (("status", command_status), ("repair", command_repair), ("rollback", command_rollback), ("sign-out", command_sign_out)):
+        commands.add_parser(name).set_defaults(handler=handler)
+    connect = commands.add_parser("connect")
+    connect.add_argument("--timeout", type=float, default=180.0)
+    connect.set_defaults(handler=command_connect)
+    install = commands.add_parser("install")
+    install.add_argument("--timeout", type=float, default=180.0)
+    install.set_defaults(handler=command_install)
+    run = commands.add_parser("run")
+    run.add_argument("--once", action="store_true")
+    run.set_defaults(handler=command_run)
+    update = commands.add_parser("update")
+    update.add_argument("--trusted-keys")
+    update.set_defaults(handler=command_update)
     args = parser.parse_args(argv)
-    return args.handler(args)
+    try:
+        return args.handler(args)
+    except (RuntimeError, ValueError, OSError) as exc:
+        _json({"status": "error", "error": str(exc)})
+        return 2
 
 
 if __name__ == "__main__":
