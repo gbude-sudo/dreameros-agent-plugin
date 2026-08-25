@@ -818,6 +818,48 @@ this one).
 
 ---
 
+## R24 - A FIRST-ASK IS A STANDING ORDER, AND SAVED MEANS RUNTIME (HC, 2026-08-24)
+
+HC verbatim: "I want everything I've ever said to make happen... You do
+not have to ask me something that you should have done already. You do
+not have to ask me something if it's in there, and I said it, it means
+you haven't done it yet. The fault is on you... Anything I say to save
+is canon equals live, equals runtime, equals UX, equals customer usable,
+equals I don't have to fucking repeat myself."
+
+THE RULE, two halves, both binding:
+
+1. A FIRST-ASK IS A STANDING ORDER. Anything HC has said to do, in any
+   session, on any surface, is an instruction until it is delivered or
+   HC retires it. Recovering an old ask from a transcript does NOT make
+   it a decision item to hand back - it makes it WORK TO START. Present
+   progress, never a menu of HC's own words. The only things that go
+   back to HC as questions are the ones only HC can do: credentials,
+   spend, ratification, and genuine ambiguity where every reading leads
+   to different work (R20's own boundary, unchanged).
+
+2. SAVED MEANS RUNTIME. When HC says save something, the finish line is
+   not the file, the anchor, or the commit - those are steps. The finish
+   line is the R2 word: live, wired, usable by a customer, a stranger,
+   HC, and DreamerOS itself. A saved claim that is not yet runtime is an
+   OPEN ORDER and appears in every status as such until it clears.
+
+THE STANDING SWEEP that makes this fire without HC repeating himself:
+at every session close, sweep for undelivered first-asks - the current
+session's own turns AND any same-day parallel transcripts - and write
+what is found into the ledger and the substrate as OPEN ORDERS, each
+with its next action. The transcripts census of 2026-08-24 proved every
+rule R20 through R23 began as an unrecorded first-ask that had to be
+repeated to fury before it became canon. The sweep produces the canon
+BEFORE the fury.
+
+INCIDENT: 2026-08-24. The estate session recovered seven of HC's own
+product asks from ledger-dark transcripts and then presented them back
+to HC as a "decision pile" in its closing report. HC's reply is the
+verbatim above. The recovery was right; the hand-back was the defect.
+An idea HC already voiced needs execution or a named blocker, never a
+fresh request for permission.
+
 ## BOOT CHECK - run these at the start of substantive work
 
 0. HYDRATE FIRST (HC order 2026-08-17, every vendor, no exception).
