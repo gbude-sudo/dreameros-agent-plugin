@@ -898,16 +898,22 @@ graded myself is a claim. A table an adversary failed to break is closer to a
 fact.
 
 WHERE THIS LIVES, so it cannot be un-learned:
-  RUNTIME, the enforced half. gate-claim-verification.sh and
-  gate-stop-no-half-states.sh (Stop hooks) already check the git-destination
-  claims; gate_answer_from_measurement.py checks any state answer. When one
-  fires it is the mechanism working - measure and conform, never bypass (R6).
+  RUNTIME, the enforced half, Claude Code Stop hooks. gate-claim-verification.sh
+  and gate-stop-no-half-states.sh check the git-destination claims;
+  gate_answer_from_measurement.py checks any state answer; gate_done_proof.py
+  fires when a reply uses a completion word (done, fixed, live, deployed) with
+  no measurement anywhere in it, and stays silent when a measurement is
+  present. When one fires it is the mechanism working - measure and conform,
+  never bypass (R6). Proven by forcing it, per R1c, 2026-08-25.
   SKILL, the runnable shape. done-proof (in every engine skill dir) carries
   the table, the ladder, and the adversarial-check requirement.
-  PROSE, this rule, the floor for every engine with no hook event.
-What no hook can enforce is "did you tabulate every claim". That stays
-behavioral on purpose - a gate that guesses whether a reply is complete is
-worse than no gate (R1c). This rule is that behavioral floor.
+  PROSE, this rule, the floor for every engine with no hook event (Codex and
+  Cursor read the canon; the Stop hooks are Claude Code only).
+gate_done_proof.py catches the bare big-word-with-no-measurement case, a
+mechanizable subset. What no hook can enforce is "did you tabulate EVERY
+claim" - that stays behavioral on purpose, a gate that guesses whether a
+reply is complete is worse than no gate (R1c). This rule is that behavioral
+floor.
 
 INCIDENT: 2026-08-25. HC asked for a mechanism that proves every claim against
 the Definition of Done. In the same session, a "every working tree is clean"
