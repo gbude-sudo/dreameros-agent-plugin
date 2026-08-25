@@ -74,8 +74,14 @@ def _read_transcript(path: str) -> list[dict]:
     state at Stop time, not an error - skip the bad line, keep the rest."""
     entries: list[dict] = []
     try:
-        with open(path, encoding="utf-8-sig") as f:
-            for line in f:
+        with open(path, "rb") as _fb:
+            _fb.seek(0, 2)
+            _sz = _fb.tell()
+            _fb.seek(max(0, _sz - 400_000))
+            if _sz > 400_000:
+                _fb.readline()  # drop the partial first line after the seek
+            _lines = _fb.read().decode("utf-8-sig", "ignore").splitlines()
+        for line in _lines:
                 if not line.strip():
                     continue
                 try:

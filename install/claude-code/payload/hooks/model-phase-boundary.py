@@ -55,10 +55,24 @@ _BIG_EFFORTS = {"high", "xhigh", "max"}
 
 def _read_transcript(path: str) -> list[dict]:
     try:
-        with open(path, encoding="utf-8") as f:
-            return [json.loads(line) for line in f if line.strip()]
+        with open(path, "rb") as _fb:
+            _fb.seek(0, 2)
+            _sz = _fb.tell()
+            _fb.seek(max(0, _sz - 400_000))
+            if _sz > 400_000:
+                _fb.readline()  # drop the partial first line after the seek
+            _lines = _fb.read().decode("utf-8", "ignore").splitlines()
     except Exception:
         return []
+    out: list[dict] = []
+    for line in _lines:
+        if not line.strip():
+            continue
+        try:
+            out.append(json.loads(line))
+        except Exception:
+            continue
+    return out
 
 
 def _is_real_user_message(entry: dict) -> bool:

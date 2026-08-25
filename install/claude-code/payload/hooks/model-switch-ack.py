@@ -38,11 +38,43 @@ _STATE_DIR = Path.home() / ".claude" / "hooks" / ".model-switch-ack-state"
 
 
 def _read_transcript(path: str) -> list[dict]:
+    """Parse the transcript per line, tolerating any line that will not parse.
+
+    The earlier version wrapped the whole comprehension in one try/except, so
+    a SINGLE unparseable line returned an empty list for the entire file. The
+    hook then saw fewer than two modeled turns, exited 0, and the switch went
+    unannounced with nothing reporting an error - the same silent-pass shape
+    as the bash-reading-a-.py bug this hook already survived once.
+
+    That is not a rare condition. Claude Code writes the transcript
+    asynchronously and documents that it may lag the live conversation, so a
+    half-written final line is the NORMAL state at Stop time, which is exactly
+    when this hook runs. A leading byte-order mark reproduces it too.
+
+    Skipping the bad line and keeping the rest is right for this reader: it
+    only ever compares the model on the last two real turns, so one dropped
+    record costs nothing, while dropping the file costs the announcement.
+    encoding="utf-8-sig" strips a BOM if one is present.
+    """
+    entries: list[dict] = []
     try:
-        with open(path, encoding="utf-8") as f:
-            return [json.loads(line) for line in f if line.strip()]
+        with open(path, "rb") as _fb:
+            _fb.seek(0, 2)
+            _sz = _fb.tell()
+            _fb.seek(max(0, _sz - 400_000))
+            if _sz > 400_000:
+                _fb.readline()  # drop the partial first line after the seek
+            _lines = _fb.read().decode("utf-8-sig", "ignore").splitlines()
+        for line in _lines:
+                if not line.strip():
+                    continue
+                try:
+                    entries.append(json.loads(line))
+                except Exception:
+                    continue  # one malformed record, not a dead transcript
     except Exception:
         return []
+    return entries
 
 
 def _is_real_user_message(entry: dict) -> bool:
