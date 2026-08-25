@@ -69,6 +69,67 @@ if ($bad.Count -gt 0) {
     throw 'fix the source before generating. A generator that emits a canon violation is worse than no generator.'
 }
 
+# --- completeness gate ---------------------------------------------------------
+# This runs BEFORE any target is written and BEFORE any checksum is computed.
+# Without it: a truncated or empty source still builds cleanly, the checksums
+# in CHECKSUMS.txt are computed fresh over that same truncated content, and
+# -Verify passes forever after, because -Verify only compares output to the
+# checksums this same build wrote. That closed loop cannot catch a bad
+# source. This gate is the check outside the loop.
+#
+# Incident this exists to stop happening again: commit 7a4b699 dropped a
+# whole rule (R24) from the merged source, and a human caught it, not the
+# pipeline.
+$MinPayloadChars = 5000
+$PayloadLen = $Payload.Length
+if ($PayloadLen -lt $MinPayloadChars) {
+    Write-Host "COMPLETENESS GATE FAILED" -ForegroundColor Red
+    Write-Host ("  source is {0} chars, the minimum is {1} chars." -f $PayloadLen, $MinPayloadChars) -ForegroundColor Red
+    Write-Host ("  source file: {0}" -f $Source) -ForegroundColor Red
+    Write-Host "  Refusing to write any output or compute any checksum." -ForegroundColor Red
+    throw ("source payload too short: {0} chars, minimum {1}. Fix the source, do not rebuild over it." -f $PayloadLen, $MinPayloadChars)
+}
+
+$FloorFile = Join-Path $Root 'known-good-rule-count.txt'
+if (-not (Test-Path $FloorFile)) {
+    throw "known-good rule-count floor missing: $FloorFile. Create it before building (see bootpack/known-good-rule-count.txt)."
+}
+$RuleCountFloor = 0
+$floorParsed = $false
+foreach ($line in (Get-Content $FloorFile)) {
+    $t = $line.Trim()
+    if ($t -eq '' -or $t.StartsWith('#')) { continue }
+    if ([int]::TryParse($t, [ref]$RuleCountFloor)) { $floorParsed = $true }
+    break
+}
+if (-not $floorParsed) {
+    throw "known-good-rule-count.txt has no parseable integer floor: $FloorFile"
+}
+
+# Count rules once, here, before anything is written. The manifest step
+# below reuses this same count so the gate and the reported count can
+# never disagree with each other.
+$RuleMatches = New-Object System.Collections.Generic.List[object]
+foreach ($m in [regex]::Matches($Payload, '(?m)^## (R\d+[a-z]?) - (.+)$')) { $RuleMatches.Add($m) }
+foreach ($m in [regex]::Matches($Payload, '(?m)^### (R\d+[a-z]) - (.+)$')) { $RuleMatches.Add($m) }
+$RuleCountNow = $RuleMatches.Count
+
+if ($RuleCountNow -lt $RuleCountFloor) {
+    Write-Host "COMPLETENESS GATE FAILED" -ForegroundColor Red
+    Write-Host ("  current rule count : {0}" -f $RuleCountNow) -ForegroundColor Red
+    Write-Host ("  known-good floor   : {0}" -f $RuleCountFloor) -ForegroundColor Red
+    Write-Host ("  floor file         : {0}" -f $FloorFile) -ForegroundColor Red
+    Write-Host ("  source file        : {0}" -f $Source) -ForegroundColor Red
+    Write-Host "  A truncated or empty source builds cleanly by default and passes" -ForegroundColor Red
+    Write-Host "  -Verify forever after, because -Verify only compares output to the" -ForegroundColor Red
+    Write-Host "  checksums this same build wrote. Refusing to write any output or" -ForegroundColor Red
+    Write-Host "  compute any checksum." -ForegroundColor Red
+    Write-Host "  If this drop is real and deliberate, update the floor by hand in a" -ForegroundColor Yellow
+    Write-Host "  separate, reviewed commit:" -ForegroundColor Yellow
+    Write-Host ("    edit {0} and set the floor to {1} (or lower)." -f $FloorFile, $RuleCountNow) -ForegroundColor Yellow
+    throw ("rule count dropped below the known-good floor: {0} < {1}. Not writing any output." -f $RuleCountNow, $RuleCountFloor)
+}
+
 # --- targets ------------------------------------------------------------------
 $Targets = @()
 
@@ -138,10 +199,7 @@ $manifest = [ordered]@{
     applies_to  = @('claude-code','claude-desktop','codex','cursor','chatgpt','gemini','grok','perplexity','byollm','mcp-client','agent-sdk')
     rules       = @()
 }
-foreach ($m in [regex]::Matches($Payload, '(?m)^## (R\d+[a-z]?) - (.+)$')) {
-    $manifest.rules += [ordered]@{ id = $m.Groups[1].Value; title = $m.Groups[2].Value.Trim() }
-}
-foreach ($m in [regex]::Matches($Payload, '(?m)^### (R\d+[a-z]) - (.+)$')) {
+foreach ($m in $RuleMatches) {
     $manifest.rules += [ordered]@{ id = $m.Groups[1].Value; title = $m.Groups[2].Value.Trim() }
 }
 $manifest.rule_count = $manifest.rules.Count
