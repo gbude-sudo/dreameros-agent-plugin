@@ -1,0 +1,16 @@
+# Known-good floor for bootpack/build-boot-pack.ps1 completeness gate.
+#
+# This is the minimum acceptable count of R-numbered rules found in
+# SOURCE-dreameros-boot-canon.md. The build FAILS before writing any
+# output file or computing any checksum when the counted rule count
+# drops below this number. A truncated or empty source must not
+# silently generate valid-looking output and install over every
+# engine's real boot file.
+#
+# Raising this number is a deliberate, separate, committed change made
+# when a new rule is added on purpose. A real reduction in rule count
+# also requires a deliberate, separate, committed change here. This
+# file must never be edited as a side effect of a build.
+#
+# measured 2026-08-25: SOURCE-dreameros-boot-canon.md carries 31 rules.
+31
