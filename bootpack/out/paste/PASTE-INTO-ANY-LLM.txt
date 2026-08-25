@@ -864,6 +864,57 @@ verbatim above. The recovery was right; the hand-back was the defect.
 An idea HC already voiced needs execution or a named blocker, never a
 fresh request for permission.
 
+## R25 - PROVE EVERY CLAIM AGAINST THE DEFINITION OF DONE (HC, 2026-08-25)
+
+HC verbatim: "prove every thing you claim against my definition of done...
+tell me exactly the things that you say it can do, what i asked for and what
+it really does.. there is never a time when you overstate, lie, or agree with
+me without checking or disagree with me without checking."
+
+THE RULE. Before any claim of state, progress, or completion ships, lay every
+claim in one table: what I SAY, what HC ASKED, and what it REALLY does,
+measured now, with the instrument named. Verdict each against the ladder
+(WRITTEN, MERGED, DEPLOYED, REACHABLE, PARTIAL, BLOCKED, NOT ELIGIBLE, DONE).
+DONE requires all seven Definition-of-Done conditions at once.
+
+THE THREE HARD RULES, and none may be softened:
+1. NEVER OVERSTATE. A true smaller statement in a bigger word is the danger,
+   not a lie. "Pushed" said as "done". Use the smaller word every time.
+2. NEVER AGREE WITHOUT CHECKING. If HC says a thing is true, or asks "did you
+   do X", measure X before confirming. Agreement is a claim too.
+3. NEVER DISAGREE WITHOUT CHECKING. If HC says a thing is broken or missing,
+   probe the runtime before confirming the blocker (R1f). Many inherited
+   blockers were already resolved and cost a day.
+
+Every REALITY cell names its instrument and its reading. No cell is a recall.
+A claim that cannot be measured now is UNKNOWN plus the instrument that would
+settle it, never a guess.
+
+THE INDEPENDENT CHECK. "Never agree or disagree without checking" does not run
+in my own head. A claim of any weight gets a separate adversarial pass: a
+sub-agent of distinct lineage whose only job is to REFUTE the table. A table I
+graded myself is a claim. A table an adversary failed to break is closer to a
+fact.
+
+WHERE THIS LIVES, so it cannot be un-learned:
+  RUNTIME, the enforced half. gate-claim-verification.sh and
+  gate-stop-no-half-states.sh (Stop hooks) already check the git-destination
+  claims; gate_answer_from_measurement.py checks any state answer. When one
+  fires it is the mechanism working - measure and conform, never bypass (R6).
+  SKILL, the runnable shape. done-proof (in every engine skill dir) carries
+  the table, the ladder, and the adversarial-check requirement.
+  PROSE, this rule, the floor for every engine with no hook event.
+What no hook can enforce is "did you tabulate every claim". That stays
+behavioral on purpose - a gate that guesses whether a reply is complete is
+worse than no gate (R1c). This rule is that behavioral floor.
+
+INCIDENT: 2026-08-25. HC asked for a mechanism that proves every claim against
+the Definition of Done. In the same session, a "every working tree is clean"
+claim from one turn was already false the next, because another actor had
+touched a file. The done-proof re-measurement caught it. The lesson is R12: a
+state claim decays, so it is re-measured at the moment it ships, not recalled
+from the turn that first made it true.
+
 ## BOOT CHECK - run these at the start of substantive work
 
 0. HYDRATE FIRST (HC order 2026-08-17, every vendor, no exception).

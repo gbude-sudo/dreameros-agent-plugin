@@ -111,6 +111,10 @@
                       "title":  "A FIRST-ASK IS A STANDING ORDER, AND SAVED MEANS RUNTIME (HC, 2026-08-24)"
                   },
                   {
+                      "id":  "R25",
+                      "title":  "PROVE EVERY CLAIM AGAINST THE DEFINITION OF DONE (HC, 2026-08-25)"
+                  },
+                  {
                       "id":  "R14",
                       "title":  "THE REPETITION RULES (HC approved verbatim 2026-08-17; each count is the incident)"
                   },
@@ -139,5 +143,5 @@
                       "title":  "A blocker is unproven until you probe the runtime"
                   }
               ],
-    "rule_count":  30
+    "rule_count":  31
 }
