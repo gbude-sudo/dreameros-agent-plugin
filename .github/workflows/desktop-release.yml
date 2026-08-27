@@ -64,6 +64,59 @@ jobs:
         run: |
           choco install innosetup --no-progress -y
           & 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' release\windows\installer.iss "/DSourceExe=$pwd\dist\dreameros-agent.exe" "/DOutputDir=$pwd\dist\package"
+      - name: Smoke test candidate Windows install and uninstall
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $installDir = Join-Path $env:LOCALAPPDATA 'DreamerOS\Agent'
+          $installedAgent = Join-Path $installDir 'dreameros-agent.exe'
+          $uninstaller = Join-Path $installDir 'unins000.exe'
+          $protocolKey = 'HKCU:\Software\Classes\dreameros'
+          $candidateInstaller = Join-Path $pwd 'dist\package\DreamerOSAgentSetup.exe'
+          $expectedVersion = python -c "from dreameros_agent import __version__; print(__version__)"
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($expectedVersion)) { throw 'Could not read the candidate agent version' }
+          if (Test-Path -LiteralPath $installDir) { throw "Fresh runner install target already exists: $installDir" }
+          if (Test-Path -LiteralPath $protocolKey) { throw "Fresh runner protocol key already exists: $protocolKey" }
+          if (Get-Process -Name 'dreameros-agent' -ErrorAction SilentlyContinue) { throw 'Fresh runner agent process already exists' }
+          if (-not (Test-Path -LiteralPath $candidateInstaller)) { throw "Candidate installer is missing: $candidateInstaller" }
+
+          $smokeFailure = $null
+          $cleanupFailure = $null
+          try {
+            $installerProcess = Start-Process -FilePath $candidateInstaller -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/SP-') -Wait -PassThru
+            if ($installerProcess.ExitCode -ne 0) { throw "Candidate installer failed with exit code $($installerProcess.ExitCode)" }
+            if (-not (Test-Path -LiteralPath $installedAgent)) { throw "Installed agent is missing: $installedAgent" }
+            if (Get-Process -Name 'dreameros-agent' -ErrorAction SilentlyContinue) { throw 'Silent install launched the agent postinstall command' }
+
+            & $installedAgent --help
+            if ($LASTEXITCODE -ne 0) { throw "Installed agent --help failed with exit code $LASTEXITCODE" }
+            $statusOutput = & $installedAgent status
+            if ($LASTEXITCODE -ne 0) { throw "Installed agent status failed with exit code $LASTEXITCODE" }
+            try {
+              $status = $statusOutput | ConvertFrom-Json -ErrorAction Stop
+            } catch {
+              throw "Installed agent status did not return JSON: $($_.Exception.Message)"
+            }
+            if ([string]::IsNullOrWhiteSpace($status.agent_version)) { throw 'Installed agent status JSON has no agent_version' }
+            if ($status.agent_version -ne $expectedVersion) { throw "Installed agent version $($status.agent_version) does not match $expectedVersion" }
+          } catch {
+            $smokeFailure = $_
+          } finally {
+            try {
+              if (Test-Path -LiteralPath $uninstaller) {
+                $uninstallerProcess = Start-Process -FilePath $uninstaller -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART') -Wait -PassThru
+                if ($uninstallerProcess.ExitCode -ne 0) { throw "Candidate uninstaller failed with exit code $($uninstallerProcess.ExitCode)" }
+              }
+              if (Test-Path -LiteralPath $installedAgent) { throw "Installed agent remains after uninstall: $installedAgent" }
+              if (Test-Path -LiteralPath $protocolKey) { throw "Protocol key remains after uninstall: $protocolKey" }
+            } catch {
+              $cleanupFailure = $_
+            }
+          }
+          if ($smokeFailure -and $cleanupFailure) { throw "Candidate install smoke failed: $($smokeFailure.Exception.Message). Cleanup also failed: $($cleanupFailure.Exception.Message)" }
+          if ($smokeFailure) { throw $smokeFailure }
+          if ($cleanupFailure) { throw $cleanupFailure }
       - if: runner.os == 'macOS'
         run: |
           mkdir -p dist/pkgroot/usr/local/bin dist/package

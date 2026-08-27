@@ -28,4 +28,4 @@ Root: HKCU; Subkey: "Software\Classes\dreameros"; ValueType: string; ValueName: 
 Root: HKCU; Subkey: "Software\Classes\dreameros\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\dreameros-agent.exe"" connect"
 
 [Run]
-Filename: "{app}\dreameros-agent.exe"; Parameters: "install"; Description: "Connect DreamerOS"; Flags: postinstall nowait
+Filename: "{app}\dreameros-agent.exe"; Parameters: "install"; Description: "Connect DreamerOS"; Flags: postinstall nowait skipifsilent
