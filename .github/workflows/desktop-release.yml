@@ -84,8 +84,8 @@ jobs:
           $smokeFailure = $null
           $cleanupFailure = $null
           try {
-            & $candidateInstaller /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-
-            if ($LASTEXITCODE -ne 0) { throw "Candidate installer failed with exit code $LASTEXITCODE" }
+            $installerProcess = Start-Process -FilePath $candidateInstaller -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/SP-') -Wait -PassThru
+            if ($installerProcess.ExitCode -ne 0) { throw "Candidate installer failed with exit code $($installerProcess.ExitCode)" }
             if (-not (Test-Path -LiteralPath $installedAgent)) { throw "Installed agent is missing: $installedAgent" }
             if (Get-Process -Name 'dreameros-agent' -ErrorAction SilentlyContinue) { throw 'Silent install launched the agent postinstall command' }
 
@@ -105,8 +105,8 @@ jobs:
           } finally {
             try {
               if (Test-Path -LiteralPath $uninstaller) {
-                & $uninstaller /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
-                if ($LASTEXITCODE -ne 0) { throw "Candidate uninstaller failed with exit code $LASTEXITCODE" }
+                $uninstallerProcess = Start-Process -FilePath $uninstaller -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART') -Wait -PassThru
+                if ($uninstallerProcess.ExitCode -ne 0) { throw "Candidate uninstaller failed with exit code $($uninstallerProcess.ExitCode)" }
               }
               if (Test-Path -LiteralPath $installedAgent) { throw "Installed agent remains after uninstall: $installedAgent" }
               if (Test-Path -LiteralPath $protocolKey) { throw "Protocol key remains after uninstall: $protocolKey" }
