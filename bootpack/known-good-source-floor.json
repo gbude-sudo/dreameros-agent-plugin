@@ -1,0 +1,14 @@
+﻿{
+    "minimum_version":  "2.2.0",
+    "semantic_sha256":  "52b1c6a9fd0edf5c51602b4ad0a952aaa04368b9a4bba89cf628df2733c52456",
+    "measured_from":  "v2.2.0: R26 THE CORNERSTONE added on HC direct order 2026-08-31 (same power everywhere, before+after through DreamerOS, gateway as go-between); floor updated as the ordered review, session 25ca7ca3",
+    "required_clauses":  [
+                             "## LAYER 0 - AUTHORITY. SETTLE THIS BEFORE ANYTHING ELSE.",
+                             "### R1g - An error is not an inventory",
+                             "### R1l - Prove every claim against the definition of done",
+                             "## RULE ADDRESSES PRESERVED",
+                             "## LAYER 3 - THE OUTPUT GATE. NOTHING SHIPS UNCHECKED.",
+                             "## LAYER 3b - MAXIMUM COGNITIVE LOAD. MULTI-PASS OR DO NOT ANSWER.",
+                             "## R26 - THE CORNERSTONE: SAME POWER EVERYWHERE, THE GATEWAY IN BETWEEN"
+                         ]
+}

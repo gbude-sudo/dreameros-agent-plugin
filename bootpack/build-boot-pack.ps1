@@ -18,18 +18,26 @@
 [CmdletBinding()]
 param(
     [switch]$Verify,
+    [switch]$VerifyInstalled,
     [switch]$Install
 )
 
 $ErrorActionPreference = 'Stop'
 $Root   = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Source = Join-Path $Root 'SOURCE-dreameros-boot-canon.md'
+$QuoteEvidenceSource = Join-Path $Root 'evidence\HC_ATTRIBUTED_QUOTES_v1_0_0.md'
 $Out    = Join-Path $Root 'out'
 
 if (-not (Test-Path $Source)) { throw "source missing: $Source" }
+if (-not (Test-Path $QuoteEvidenceSource)) { throw "quote evidence missing: $QuoteEvidenceSource" }
 $Payload = Get-Content $Source -Raw
-$Version = 'v1.0.0'
+$QuoteEvidencePayload = Get-Content $QuoteEvidenceSource -Raw
+$VersionMatch = [regex]::Match($Payload, '(?m)^# DreamerOS Boot Canon v([0-9]+\.[0-9]+\.[0-9]+)\s*$')
+if (-not $VersionMatch.Success) { throw 'boot canon source has no semantic version heading.' }
+$VersionNumber = $VersionMatch.Groups[1].Value
+$Version = 'v' + $VersionNumber
 $Marker  = 'DREAMEROS-BOOT-CANON'
+$VerifyGenerated = $Verify -or $VerifyInstalled
 
 function New-Dir([string]$p) { if (-not (Test-Path $p)) { New-Item -ItemType Directory -Path $p -Force | Out-Null } }
 function Write-Utf8([string]$Path, [string]$Text) {
@@ -53,6 +61,53 @@ function Get-Sha([string]$Path) {
         return ([System.BitConverter]::ToString($sha.ComputeHash($bytes))).Replace("-", "").ToLower()
     } finally {
         $sha.Dispose()
+    }
+}
+function Get-TextSha([string]$Text) {
+    $Text = $Text.Replace(([string][char]13 + [char]10), [string][char]10)
+    $Text = $Text.Replace([string][char]13, [string][char]10)
+    $encoding = New-Object System.Text.UTF8Encoding($false)
+    $bytes = $encoding.GetBytes($Text)
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        return ([System.BitConverter]::ToString($sha.ComputeHash($bytes))).Replace("-", "").ToLower()
+    } finally {
+        $sha.Dispose()
+    }
+}
+
+# This is the check outside the generator/checksum loop. A generated set can
+# be perfectly self-consistent while its source is stale. The reviewed floor
+# pins the current source version, semantic hash, and structural canaries. On
+# this desktop the separate DreamerOS checkout is also compared when present.
+$SourceFloorFile = Join-Path $Root 'known-good-source-floor.json'
+if (-not (Test-Path -LiteralPath $SourceFloorFile)) {
+    throw "known-good source floor missing: $SourceFloorFile"
+}
+$SourceFloor = Get-Content -Raw -LiteralPath $SourceFloorFile | ConvertFrom-Json
+if ([version]$VersionNumber -lt [version]$SourceFloor.minimum_version) {
+    throw "boot canon source version $VersionNumber is below floor $($SourceFloor.minimum_version)."
+}
+$SourceSemanticSha = Get-Sha $Source
+if ($SourceSemanticSha -ne [string]$SourceFloor.semantic_sha256) {
+    throw "boot canon source hash differs from the reviewed floor. Reconcile the source, then update the floor separately under review."
+}
+foreach ($clause in @($SourceFloor.required_clauses)) {
+    if (-not $Payload.Contains([string]$clause)) {
+        throw "boot canon source is missing required clause: $clause"
+    }
+}
+
+$ExternalFloorCandidates = @()
+if ($env:DREAMEROS_BOOT_CANON_FLOOR) {
+    $ExternalFloorCandidates += $env:DREAMEROS_BOOT_CANON_FLOOR
+}
+foreach ($candidate in ($ExternalFloorCandidates | Select-Object -Unique)) {
+    if (-not (Test-Path -LiteralPath $candidate)) { continue }
+    $external = (Resolve-Path -LiteralPath $candidate).Path
+    if ($external -eq (Resolve-Path -LiteralPath $Source).Path) { continue }
+    if ((Get-Sha $external) -ne $SourceSemanticSha) {
+        throw "boot canon source differs from external current floor: $external"
     }
 }
 
@@ -151,7 +206,7 @@ $Payload
 "@
 }
 
-$Targets += @{
+$CursorRuleTarget = @{
     Path = Join-Path $Out 'cursor\dreameros-boot-canon.mdc'
     Text = @"
 ---
@@ -160,6 +215,235 @@ alwaysApply: true
 ---
 
 $Payload
+"@
+}
+$Targets += $CursorRuleTarget
+$CursorPluginRule = Join-Path (Split-Path -Parent $Root) 'cursor\rules\dreameros-boot-canon.mdc'
+
+$ProjectPointerVersion = 'v1.0.0'
+$ProjectPointerBody = @"
+<!-- DREAMEROS-BOOT-CANON: NOT DUPLICATED HERE -->
+<!-- DREAMEROS-PROJECT-BOOT-POINTER $ProjectPointerVersion -->
+## DreamerOS Boot Canon - loaded globally, not copied here
+
+The full DreamerOS Boot Canon is generated from
+gbude-sudo/dreameros-agent-plugin:bootpack/SOURCE-dreameros-boot-canon.md and delivered
+through each engine's machine-wide native surface. This project file
+intentionally contains no copy of the canon and cannot import another rule.
+
+Before substantive DreamerOS work, verify the native surface for the active
+engine:
+
+1. Claude Code or Desktop: the current generated block is present once in
+   ~/.claude/CLAUDE.md.
+2. Codex: the current generated block is present once in ~/.codex/AGENTS.md.
+3. Cursor: Customize shows the local Dreameros plugin, and its
+   dreameros-boot-canon rule is set to Always and appears in the active rule
+   trace for the fresh Agent chat.
+
+If the active engine cannot prove its full native boot rule, report BLOCKED
+and stop substantive work. Do not treat this pointer as a fallback canon.
+Repository instructions add project scope after boot; they do not replace the
+Human Conductor or the current generated boot rule.
+
+To change a boot rule, edit the shared source and run
+bootpack/build-boot-pack.ps1 -Install. Never paste the full canon into a
+repository instruction or project rule. A second copy loads later, drifts, and
+can override the current machine-wide rule.
+<!-- END DREAMEROS-BOOT-CANON POINTER -->
+"@
+
+$Targets += @{
+    Path = Join-Path $Out 'project\DREAMEROS_BOOT_CANON_POINTER.md.block'
+    Text = $ProjectPointerBody
+}
+
+$Targets += @{
+    Path = Join-Path $Out 'cursor\dreameros-project-pointer.mdc'
+    Text = @"
+---
+description: DreamerOS project boot pointer. Requires the current native DreamerOS boot rule and contains no duplicated canon.
+alwaysApply: true
+---
+
+$ProjectPointerBody
+"@
+}
+
+$Targets += @{
+    Path = Join-Path $Out 'cursor\dreameros-global-plugin-pointer.mdc'
+    Text = @"
+---
+description: DreamerOS Cursor global pointer. Requires the native local Dreameros plugin and contains no duplicated canon.
+alwaysApply: true
+---
+
+<!-- DREAMEROS-CURSOR-GLOBAL-PLUGIN-POINTER v1.0.0 -->
+## DreamerOS Boot Canon - carried by the native Cursor plugin
+
+The full DreamerOS Boot Canon exists exactly once for Cursor in the local
+``Dreameros`` plugin rule named ``dreameros-boot-canon``. This user-level file is a
+fail-closed pointer only; it does not copy or import the canon.
+
+Before substantive DreamerOS work in Cursor, require all of these in the fresh
+Agent chat:
+
+1. Customize lists the local ``Dreameros`` plugin.
+2. The plugin rule ``dreameros-boot-canon`` appears in the active rule trace.
+3. The companion ``dreameros-runtime`` rule appears in the same trace.
+
+If any item is not proven, report BLOCKED and stop substantive work. Do not use
+this pointer as a fallback boot contract. Change the full rule only through
+gbude-sudo/dreameros-agent-plugin:bootpack/SOURCE-dreameros-boot-canon.md and
+the central generator.
+"@
+}
+
+$Targets += @{
+    Path = Join-Path $Out 'cursor\answer-from-measurement.adapter.mdc'
+    Text = @"
+---
+description: DreamerOS state-measurement enforcement adapter. Requires current evidence before dynamic state claims.
+alwaysApply: true
+---
+
+<!-- DREAMEROS-CURSOR-ENFORCEMENT-ADAPTER v1.0.0 kind=state-measurement -->
+This project rule is an enforcement adapter, not a canon copy. The full boot
+contract must come from the active native DreamerOS carrier.
+
+Before stating status, count, health, deployment, liveness, cleanliness, or
+completion:
+
+1. Take a current reading from the system the claim names and identify the
+   instrument.
+2. If the reading cannot be taken, report UNKNOWN and name the missing
+   instrument.
+3. Before trusting an empty search, run the same sweep against a known positive
+   control and require it to match.
+4. If the full native DreamerOS boot rule cannot be proven active, report
+   BLOCKED and stop substantive work.
+
+Change this adapter only through the central DreamerOS agent-plugin generator.
+"@
+}
+
+$Targets += @{
+    Path = Join-Path $Out 'cursor\canon-equals-live.adapter.mdc'
+    Text = @"
+---
+description: DreamerOS status-vocabulary enforcement adapter. Prevents larger completion words from replacing measured evidence.
+alwaysApply: true
+---
+
+<!-- DREAMEROS-CURSOR-ENFORCEMENT-ADAPTER v1.0.0 kind=status-vocabulary -->
+This project rule is an enforcement adapter, not a canon copy. The full boot
+contract and its current status vocabulary must come from the active native
+DreamerOS carrier.
+
+Before a completion claim:
+
+1. Measure the requested destination, not the command that attempted the work.
+2. Use the smallest evidence rung supported by the reading, such as WRITTEN,
+   MERGED, DEPLOYED, REACHABLE, PARTIAL, BLOCKED, or UNKNOWN.
+3. Do not use a customer-completion word unless every condition in the current
+   native boot contract was measured and the Human Conductor verified it.
+4. If the full native DreamerOS boot rule cannot be proven active, report
+   BLOCKED and stop substantive work.
+
+Change this adapter only through the central DreamerOS agent-plugin generator.
+"@
+}
+
+$Targets += @{
+    Path = Join-Path $Out 'cursor\dreameros-cold-start.adapter.mdc'
+    Text = @"
+---
+description: DreamerOS project coordination adapter. Adds repository scope after the native DreamerOS session boot.
+alwaysApply: true
+---
+
+<!-- DREAMEROS-CURSOR-PROJECT-ADAPTER v1.0.0 kind=project-coordination -->
+The native DreamerOS plugin owns session-package hydration and the current
+boot contract. This project adapter does not repeat that sequence or copy
+canon.
+
+After the native boot is proven active:
+
+1. Read the repository and nested instruction files that apply to the files in
+   scope.
+2. Measure the repository path, branch, HEAD, upstream, origin/main, worktree
+   status, and active coordination claims before editing.
+3. Keep one writer per overlapping file set and preserve unrelated work.
+4. Treat branch creation, commit, push, merge, deployment, credentials, and
+   production changes as separate approval gates defined by the Human
+   Conductor and repository instructions.
+
+If the native DreamerOS boot cannot be proven active, report BLOCKED for
+DreamerOS hydration and continue only safe local work in STANDALONE mode.
+Change this adapter only through the central DreamerOS agent-plugin generator.
+"@
+}
+
+$Targets += @{
+    Path = Join-Path $Out 'cursor\dreameros-first.adapter.mdc'
+    Text = @"
+---
+description: DreamerOS project handoff adapter. Persists verified outcomes without duplicating session hydration.
+alwaysApply: true
+---
+
+<!-- DREAMEROS-CURSOR-PROJECT-ADAPTER v1.0.0 kind=verified-handoff -->
+The native DreamerOS plugin owns session-package hydration, context, state,
+recall, and canon routing. This project adapter adds only the close boundary.
+
+After substantive project work:
+
+1. Re-read changed files, inspect the final diff, and run proportional checks.
+2. Distinguish local, merged, deployed, reachable, customer-usable, blocked,
+   and unverified evidence. Never promote one rung to another.
+3. When DreamerOS memory is connected, store a concise handoff with repository,
+   branch, changed files, checks, held-back scope, and the next action.
+4. Never store credentials, token values, private keys, or environment values.
+5. If a substrate write is required but unavailable, report it as BLOCKED and
+   use the repository's dated local handoff path when its instructions require
+   one.
+
+Change this adapter only through the central DreamerOS agent-plugin generator.
+"@
+}
+
+$Targets += @{
+    Path = Join-Path $Out 'claude\dreameros-session-start.sh'
+    Text = @'
+#!/usr/bin/env bash
+# DREAMEROS-CLAUDE-SESSION-START-ADAPTER v1.0.0
+# Thin runtime adapter. The full boot canon remains in the native global file.
+set -euo pipefail
+
+cat <<'JSON'
+{
+  "hookSpecificOutput": {
+    "hookEventName": "SessionStart",
+    "additionalContext": "DreamerOS session boot is mandatory before substantive work. Use the exact DreamerOS tool names exposed by this session; never hardcode an MCP server id. In order: (1) call dreameros_session_package for the active Claude engine and current project, (2) call dreameros_context, (3) call dreameros_state with action load, and (4) call a scoped dreameros_recall for the current topic. Read relevant canon only when the task requires it. Then read global, repository, and nested instructions; measure Git state; and check active coordination claims. If any required DreamerOS tool is unavailable, report BLOCKED for DreamerOS hydration and continue only safe local work in STANDALONE mode. Never expose or store credentials, token values, private keys, or environment values."
+  }
+}
+JSON
+'@
+}
+
+$Targets += @{
+    Path = Join-Path $Out 'evidence\HC_ATTRIBUTED_QUOTES_v1_0_0.md'
+    Text = $QuoteEvidencePayload
+}
+
+$Targets += @{
+    Path = Join-Path $Out 'project\DREAMEROS_CENTRAL_BOOT_GENERATOR_POINTER.ps1.block'
+    Text = @"
+# DREAMEROS-CENTRAL-BOOT-GENERATOR-POINTER v1.0.0
+# Historical generator path retained as a fail-closed pointer.
+# The only active generator is:
+# gbude-sudo/dreameros-agent-plugin:bootpack/build-boot-pack.ps1
+throw 'This historical boot generator is superseded. Use the central DreamerOS agent-plugin generator. No files were written.'
 "@
 }
 
@@ -203,9 +487,30 @@ foreach ($m in $RuleMatches) {
     $manifest.rules += [ordered]@{ id = $m.Groups[1].Value; title = $m.Groups[2].Value.Trim() }
 }
 $manifest.rule_count = $manifest.rules.Count
+$manifest.project_pointer = [ordered]@{
+    version = $ProjectPointerVersion
+    purpose = 'Fail-closed project pointer. The full canon remains machine-wide and single-source.'
+    cursor_path = 'cursor/dreameros-project-pointer.mdc'
+    cursor_global_plugin_pointer = 'cursor/dreameros-global-plugin-pointer.mdc'
+    embedded_path = 'project/DREAMEROS_BOOT_CANON_POINTER.md.block'
+}
+$manifest.project_adapters = [ordered]@{
+    version = 'v1.0.0'
+    measurement = 'cursor/answer-from-measurement.adapter.mdc'
+    status_vocabulary = 'cursor/canon-equals-live.adapter.mdc'
+    project_coordination = 'cursor/dreameros-cold-start.adapter.mdc'
+    verified_handoff = 'cursor/dreameros-first.adapter.mdc'
+    claude_session_start = 'claude/dreameros-session-start.sh'
+    historical_generator_pointer = 'project/DREAMEROS_CENTRAL_BOOT_GENERATOR_POINTER.ps1.block'
+}
+$manifest.evidence = [ordered]@{
+    hc_attributed_quotes = 'evidence/HC_ATTRIBUTED_QUOTES_v1_0_0.md'
+    unique_quote_count = 16
+    purpose = 'Portable evidence only. Not a second rule surface.'
+}
 $Targets += @{
     Path = Join-Path $Out 'manifest\dreameros-boot-canon.json'
-    Text = ($manifest | ConvertTo-Json -Depth 6)
+    Text = ($manifest | ConvertTo-Json -Depth 6 -Compress)
 }
 
 # --- build --------------------------------------------------------------------
@@ -213,9 +518,10 @@ $Targets += @{
 # rebuild first, or it would overwrite the very drift it exists to catch.
 $ckPath = Join-Path $Out 'CHECKSUMS.txt'
 
-if (-not $Verify) {
+if (-not $VerifyGenerated) {
     New-Dir $Out
     foreach ($t in $Targets) { Write-Utf8 -Path $t.Path -Text $t.Text }
+    Write-Utf8 -Path $CursorPluginRule -Text $CursorRuleTarget.Text
 
     $lines  = @()
     $lines += "DreamerOS Boot Pack $Version"
@@ -232,7 +538,7 @@ if (-not $Verify) {
 }
 
 # --- verify -------------------------------------------------------------------
-if ($Verify) {
+if ($VerifyGenerated) {
     Write-Host "=== DIVERGENCE CHECK (read-only, no rebuild) ===" -ForegroundColor Cyan
     if (-not (Test-Path $ckPath)) { throw "no CHECKSUMS.txt. Run without -Verify first." }
     $stored = Get-Content $ckPath
@@ -246,19 +552,77 @@ if ($Verify) {
         $rel = $t.Path.Substring($Out.Length).TrimStart('\')
         if (-not (Test-Path $t.Path)) { Write-Host ("  MISSING " + $rel) -ForegroundColor Red; $fail++; continue }
         $now = Get-Sha $t.Path
+        $rendered = Get-TextSha $t.Text
         $rec = $stored | Where-Object { $_ -match ([regex]::Escape($rel) + '$') }
-        if (-not $rec -or $rec -notmatch $now) { Write-Host ("  DRIFT  " + $rel) -ForegroundColor Red; $fail++ }
+        if ($now -ne $rendered) { Write-Host ("  DRIFT  " + $rel + " differs from current renderer") -ForegroundColor Red; $fail++ }
+        elseif (-not $rec -or $rec -notmatch $now) { Write-Host ("  DRIFT  " + $rel) -ForegroundColor Red; $fail++ }
         else { Write-Host ("  ok     " + $rel) -ForegroundColor Green }
+    }
+    if (-not (Test-Path $CursorPluginRule)) {
+        Write-Host "  MISSING cursor\rules\dreameros-boot-canon.mdc" -ForegroundColor Red
+        $fail++
+    } elseif ((Get-Sha $CursorPluginRule) -ne (Get-Sha $CursorRuleTarget.Path)) {
+        Write-Host "  DRIFT  cursor\rules\dreameros-boot-canon.mdc" -ForegroundColor Red
+        $fail++
+    } else {
+        Write-Host "  ok     cursor\rules\dreameros-boot-canon.mdc (plugin mirror)" -ForegroundColor Green
     }
     if ($fail -gt 0) { throw "$fail generated file(s) drifted from source. Rebuild, do not hand-edit." }
     Write-Host "  no drift" -ForegroundColor Green
 }
 
+if ($VerifyInstalled) {
+    Write-Host "`n=== INSTALLED DESTINATION CHECK (read-only) ===" -ForegroundColor Cyan
+    $fail = 0
+    $blockPattern = '<!-- BEGIN DREAMEROS-BOOT-CANON v[0-9]+\.[0-9]+\.[0-9]+ - GENERATED, DO NOT EDIT\. Source: SOURCE-dreameros-boot-canon\.md -->[\s\S]*?<!-- END DREAMEROS-BOOT-CANON v[0-9]+\.[0-9]+\.[0-9]+ -->'
+    $globalBlocks = @(
+        @{ Path = Join-Path $env:USERPROFILE '.claude\CLAUDE.md'; Source = Join-Path $Out 'claude\CLAUDE.md.block'; Label = 'Claude global boot block' },
+        @{ Path = Join-Path $env:USERPROFILE '.codex\AGENTS.md'; Source = Join-Path $Out 'codex\AGENTS.md.block'; Label = 'Codex global boot block' }
+    )
+    foreach ($item in $globalBlocks) {
+        if (-not (Test-Path -LiteralPath $item.Path -PathType Leaf)) {
+            Write-Host ("  MISSING {0} {1}" -f $item.Label, $item.Path) -ForegroundColor Red
+            $fail++
+            continue
+        }
+        $installedText = [IO.File]::ReadAllText($item.Path)
+        $matches = [regex]::Matches($installedText, $blockPattern)
+        $expectedText = [IO.File]::ReadAllText($item.Source)
+        if ($matches.Count -ne 1 -or (Get-TextSha $matches[0].Value) -ne (Get-TextSha $expectedText)) {
+            Write-Host ("  DRIFT   {0} {1}" -f $item.Label, $item.Path) -ForegroundColor Red
+            $fail++
+        } else {
+            Write-Host ("  ok      {0}" -f $item.Label) -ForegroundColor Green
+        }
+    }
+    $repoRoot = Split-Path -Parent $Root
+    $fileChecks = @(
+        @{ Source = Join-Path $Out 'cursor\dreameros-global-plugin-pointer.mdc'; Path = Join-Path $env:USERPROFILE '.cursor\rules\dreameros-boot-canon.mdc'; Label = 'Cursor global plugin pointer' },
+        @{ Source = Join-Path $Out 'skill\dreameros-boot\SKILL.md'; Path = Join-Path $env:USERPROFILE '.claude\skills\dreameros-boot\SKILL.md'; Label = 'Claude boot skill' },
+        @{ Source = Join-Path $Out 'skill\dreameros-boot\SKILL.md'; Path = Join-Path $env:USERPROFILE '.codex\skills\dreameros-boot\SKILL.md'; Label = 'Codex boot skill' },
+        @{ Source = Join-Path $Out 'skill\dreameros-boot\SKILL.md'; Path = Join-Path $env:USERPROFILE '.agents\skills\dreameros-boot\SKILL.md'; Label = 'Shared boot skill' },
+        @{ Source = Join-Path $Out 'skill\dreameros-boot\SKILL.md'; Path = Join-Path $repoRoot 'skills\dreameros-boot\SKILL.md'; Label = 'Agent Plugin boot skill' },
+        @{ Source = Join-Path $Out 'evidence\HC_ATTRIBUTED_QUOTES_v1_0_0.md'; Path = Join-Path $env:USERPROFILE '.agents\evidence\dreameros\HC_ATTRIBUTED_QUOTES_v1_0_0.md'; Label = 'Shared quote evidence' },
+        @{ Source = Join-Path $Out 'claude\dreameros-session-start.sh'; Path = Join-Path $env:USERPROFILE '.claude\hooks\dreameros-session-start.sh'; Label = 'Claude SessionStart adapter' }
+    )
+    foreach ($item in $fileChecks) {
+        if (-not (Test-Path -LiteralPath $item.Path -PathType Leaf) -or (Get-Sha $item.Source) -ne (Get-Sha $item.Path)) {
+            Write-Host ("  DRIFT   {0} {1}" -f $item.Label, $item.Path) -ForegroundColor Red
+            $fail++
+        } else {
+            Write-Host ("  ok      {0}" -f $item.Label) -ForegroundColor Green
+        }
+    }
+    if ($fail -gt 0) { throw "$fail installed DreamerOS carrier(s) are missing or drifted." }
+    Write-Host "  VERIFIED installed Claude, Codex, Cursor pointer, skills, evidence, and Claude hook" -ForegroundColor Green
+}
+
 # --- install ------------------------------------------------------------------
 if ($Install) {
     Write-Host "`n=== INSTALL into each vendor's native global surface ===" -ForegroundColor Cyan
-    $begin  = "<!-- BEGIN $Marker"
-    $end    = "<!-- END $Marker $Version -->"
+    $begin = "<!-- BEGIN $Marker"
+    $blockPattern = [regex]::Escape($begin) + '[\s\S]*?' +
+        [regex]::Escape("<!-- END $Marker") + '\s+v[0-9]+\.[0-9]+\.[0-9]+\s+-->'
 
     $installs = @(
         @{
@@ -277,11 +641,22 @@ if ($Install) {
         if (-not (Test-Path $i.f)) { Write-Host ("  SKIP   {0} does not exist ({1})" -f $i.f, $i.engine) -ForegroundColor Yellow; continue }
         $block = Get-Content $i.block -Raw
         $cur = Get-Content $i.f -Raw
-        if ($cur -match [regex]::Escape($begin)) {
-            $pattern = [regex]::Escape($begin) + '[\s\S]*?' + [regex]::Escape($end)
-            $new = [regex]::Replace($cur, $pattern, [System.Text.RegularExpressions.MatchEvaluator]{ param($m) $block.TrimEnd() })
+        $beginCount = ([regex]::Matches($cur, [regex]::Escape($begin))).Count
+        if ($beginCount -gt 1) {
+            throw "multiple DreamerOS boot blocks found in $($i.f); refusing an ambiguous replacement."
+        }
+        if ($beginCount -eq 1) {
+            $existingBlocks = [regex]::Matches($cur, $blockPattern)
+            if ($existingBlocks.Count -ne 1) {
+                throw "DreamerOS boot block in $($i.f) has an unrecognized or unbalanced version wrapper."
+            }
+            $new = [regex]::Replace($cur, $blockPattern, [System.Text.RegularExpressions.MatchEvaluator]{ param($m) $block.TrimEnd() })
         } else {
             $new = $cur.TrimEnd() + "`r`n`r`n" + $block
+        }
+        $newBlocks = [regex]::Matches($new, $blockPattern)
+        if ($newBlocks.Count -ne 1 -or $newBlocks[0].Value -notmatch [regex]::Escape("# DreamerOS Boot Canon $Version")) {
+            throw "generated $Version block was not present exactly once after rendering $($i.f)."
         }
         if ($new -eq $cur) {
             Write-Host ("  ALIGNED {0}  ({1})" -f $i.f, $i.engine) -ForegroundColor DarkGreen
@@ -296,9 +671,9 @@ if ($Install) {
     $repoRoot = Split-Path -Parent $Root
     $fileInstalls = @(
         @{
-            source = Join-Path $Out 'cursor\dreameros-boot-canon.mdc'
+            source = Join-Path $Out 'cursor\dreameros-global-plugin-pointer.mdc'
             dest = Join-Path $env:USERPROFILE '.cursor\rules\dreameros-boot-canon.mdc'
-            engine = 'Cursor global rules'
+            engine = 'Cursor global plugin pointer'
         }
         @{
             source = Join-Path $Out 'skill\dreameros-boot\SKILL.md'
@@ -319,6 +694,16 @@ if ($Install) {
             source = Join-Path $Out 'skill\dreameros-boot\SKILL.md'
             dest = Join-Path $repoRoot 'skills\dreameros-boot\SKILL.md'
             engine = 'Agent Plugin clients'
+        }
+        @{
+            source = Join-Path $Out 'evidence\HC_ATTRIBUTED_QUOTES_v1_0_0.md'
+            dest = Join-Path $env:USERPROFILE '.agents\evidence\dreameros\HC_ATTRIBUTED_QUOTES_v1_0_0.md'
+            engine = 'Shared DreamerOS quote evidence'
+        }
+        @{
+            source = Join-Path $Out 'claude\dreameros-session-start.sh'
+            dest = Join-Path $env:USERPROFILE '.claude\hooks\dreameros-session-start.sh'
+            engine = 'Claude DreamerOS SessionStart adapter'
         }
     )
 
@@ -391,8 +776,16 @@ if ($Install) {
     Write-Host "`n  VERIFY AT THE DESTINATION, per R6. Read it back:" -ForegroundColor Cyan
     foreach ($i in $installs) {
         if (Test-Path $i.f) {
-            $n = ([regex]::Matches((Get-Content $i.f -Raw), [regex]::Escape($begin))).Count
-            Write-Host ("    {0} contains {1} boot-canon block(s)" -f (Split-Path $i.f -Leaf), $n)
+            $destinationText = Get-Content $i.f -Raw
+            $destinationBlocks = [regex]::Matches($destinationText, $blockPattern)
+            if ($destinationBlocks.Count -ne 1) {
+                throw "destination block count failed for $($i.f): $($destinationBlocks.Count)"
+            }
+            $actualBlock = $destinationBlocks[0].Value.Replace("`r`n", "`n").TrimEnd()
+            $expectedBlock = (Get-Content $i.block -Raw).Replace("`r`n", "`n").TrimEnd()
+            $same = $actualBlock -ceq $expectedBlock
+            Write-Host ("    {0} block-match={1} version={2}" -f (Split-Path $i.f -Leaf), $same, $Version)
+            if (-not $same) { throw "destination block bytes failed for $($i.f)" }
         }
     }
     foreach ($i in $fileInstalls) {

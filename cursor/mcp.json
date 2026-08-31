@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "dreameros-platform": {
+      "type": "streamable-http",
+      "url": "https://mcp.dreameros.app/mcp"
+    }
+  }
+}

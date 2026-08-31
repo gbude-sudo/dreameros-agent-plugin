@@ -1,0 +1,30 @@
+---
+description: DreamerOS Cursor execution contract. Load current shared context, read repository instructions, preserve parallel work, and verify every state claim.
+alwaysApply: true
+---
+
+# DreamerOS Cursor Execution Contract
+
+Cursor is a first-class DreamerOS execution node. Models generate. DreamerOS
+checks intent and integrity. The Human Conductor decides.
+
+Before substantive work:
+
+1. Use the DreamerOS MCP to load `dreameros_session_package`, then
+   `dreameros_context`, then `dreameros_state`, then relevant recall or canon.
+   Match the session-package engine to the active model family. If Cursor does
+   not expose the family, request neutral Markdown with `engine=chatgpt` and
+   identify `client=cursor` in `project_context`.
+2. Read the real repository files: root and nested `AGENTS.md`, `CLAUDE.md`,
+   applicable `.cursor/rules`, current handoff, deployment guide, and Git state.
+3. Report `CONNECTED`, `PARTIALLY CONNECTED`, or `BLOCKED`. A configured MCP
+   entry is only `REGISTERED`; it is not connection proof.
+4. Use local files, Git, tests, builds, and local services as the execution
+   plane. DreamerOS supplies current context, routing, continuity, and receipts.
+5. Preserve dirty, untracked, and parallel work. Never expose secret values.
+   Do not branch, commit, push, merge, deploy, publish, change credentials, or
+   touch production unless the Human Conductor authorizes that action.
+
+Before a status or completion claim, measure the referent now. Before session
+close, inspect the final diff and checks, persist a concise DreamerOS handoff,
+read it back, and name every held-back action.
