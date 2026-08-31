@@ -1,0 +1,5 @@
+# DREAMEROS-CENTRAL-BOOT-GENERATOR-POINTER v1.0.0
+# Historical generator path retained as a fail-closed pointer.
+# The only active generator is:
+# gbude-sudo/dreameros-agent-plugin:bootpack/build-boot-pack.ps1
+throw 'This historical boot generator is superseded. Use the central DreamerOS agent-plugin generator. No files were written.'

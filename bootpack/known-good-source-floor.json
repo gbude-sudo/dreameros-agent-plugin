@@ -1,0 +1,13 @@
+{
+  "minimum_version": "2.1.0",
+  "semantic_sha256": "8b59f54dfea8aa1d2ec0ff07f48188406411fcbd2f0f56e8aff1dbc5e4f6acf5",
+  "measured_from": "DreamerOS agent-plugin source plus checked-in 16-quote evidence hash set on 2026-08-28",
+  "required_clauses": [
+    "## LAYER 0 - AUTHORITY. SETTLE THIS BEFORE ANYTHING ELSE.",
+    "### R1g - An error is not an inventory",
+    "### R1l - Prove every claim against the definition of done",
+    "## RULE ADDRESSES PRESERVED",
+    "## LAYER 3 - THE OUTPUT GATE. NOTHING SHIPS UNCHECKED.",
+    "## LAYER 3b - MAXIMUM COGNITIVE LOAD. MULTI-PASS OR DO NOT ANSWER."
+  ]
+}

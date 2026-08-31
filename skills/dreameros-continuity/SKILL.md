@@ -11,9 +11,15 @@ discussed in an earlier session on any AI surface.
 
 ## Before starting substantive work
 
+<!-- DREAMEROS-BOOT-PRECONDITION v1.0.0 -->
+This skill runs after the native session boot. First require returned proof for
+`dreameros_session_package`, then `dreameros_context`, then `dreameros_state`.
+If the current chat has no such proof, perform those calls in that order before
+continuity recall.
+
 1. Call the `dreameros_recall` tool with a short query describing the topic
    at hand. If the user references past work ("continue the pricing doc",
-   "what did we decide about X"), recall FIRST and answer from what comes
+   "what did we decide about X"), recall after the required boot and answer from what comes
    back rather than guessing.
 2. If recall returns relevant memories, treat them as the user's real prior
    context. Prefer them over assumptions. If a memory contradicts what the

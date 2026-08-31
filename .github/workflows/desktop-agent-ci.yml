@@ -6,6 +6,17 @@ on:
       - "desktop/**"
       - "release/**"
       - "bootpack/**"
+      - ".cursor-plugin/**"
+      - "cursor/**"
+      - "install/claude-code/**"
+      - "install/codex/**"
+      - "install/cursor/**"
+      - "install/easy-button/**"
+      - "skills/**"
+      - "scripts/validate.py"
+      - "plugin.json"
+      - "mcp.json"
+      - "README.md"
       - ".gitattributes"
       - ".github/workflows/desktop-agent-ci.yml"
   push:
@@ -14,7 +25,19 @@ on:
       - "desktop/**"
       - "release/**"
       - "bootpack/**"
+      - ".cursor-plugin/**"
+      - "cursor/**"
+      - "install/claude-code/**"
+      - "install/codex/**"
+      - "install/cursor/**"
+      - "install/easy-button/**"
+      - "skills/**"
+      - "scripts/validate.py"
+      - "plugin.json"
+      - "mcp.json"
+      - "README.md"
       - ".gitattributes"
+      - ".github/workflows/desktop-agent-ci.yml"
 
 jobs:
   test:
@@ -24,7 +47,42 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - run: python scripts/validate.py
       - run: python -m pip install -e desktop/agent
       - run: python -m unittest discover -s desktop/agent/tests -v
       - shell: powershell
         run: ./bootpack/build-boot-pack.ps1 -Verify
+      - shell: pwsh
+        run: ./bootpack/build-boot-pack.ps1 -Verify
+      - shell: powershell
+        run: |
+          [void][ScriptBlock]::Create((Get-Content -Raw -LiteralPath './install/cursor/install.ps1'))
+          [void][ScriptBlock]::Create((Get-Content -Raw -LiteralPath './install/cursor/sync-project-rules.ps1'))
+          [void][ScriptBlock]::Create((Get-Content -Raw -LiteralPath './install/cursor/restore-project-rules.ps1'))
+          [void][ScriptBlock]::Create((Get-Content -Raw -LiteralPath './install/cursor/audit-project-boot-surfaces.ps1'))
+          [void][ScriptBlock]::Create((Get-Content -Raw -LiteralPath './install/cursor/plan-project-migration.ps1'))
+          [void][ScriptBlock]::Create((Get-Content -Raw -LiteralPath './install/cursor/render-project-migration-diffs.ps1'))
+          [void][ScriptBlock]::Create((Get-Content -Raw -LiteralPath './install/cursor/tests/install.tests.ps1'))
+          [void][ScriptBlock]::Create((Get-Content -Raw -LiteralPath './install/cursor/tests/sync-project-rules.tests.ps1'))
+          [void][ScriptBlock]::Create((Get-Content -Raw -LiteralPath './install/cursor/tests/audit-project-boot-surfaces.tests.ps1'))
+          [void][ScriptBlock]::Create((Get-Content -Raw -LiteralPath './install/cursor/tests/plan-project-migration.tests.ps1'))
+          [void][ScriptBlock]::Create((Get-Content -Raw -LiteralPath './install/cursor/tests/render-project-migration-diffs.tests.ps1'))
+          [void][ScriptBlock]::Create((Get-Content -Raw -LiteralPath './bootpack/tests/build-installed.tests.ps1'))
+      - shell: powershell
+        run: ./bootpack/tests/build-installed.tests.ps1
+      - shell: powershell
+        run: ./install/cursor/tests/install.tests.ps1
+      - shell: powershell
+        run: ./install/cursor/tests/sync-project-rules.tests.ps1
+      - shell: powershell
+        run: ./install/cursor/tests/audit-project-boot-surfaces.tests.ps1
+      - shell: pwsh
+        run: ./install/cursor/tests/audit-project-boot-surfaces.tests.ps1
+      - shell: powershell
+        run: ./install/cursor/tests/plan-project-migration.tests.ps1
+      - shell: pwsh
+        run: ./install/cursor/tests/plan-project-migration.tests.ps1
+      - shell: powershell
+        run: ./install/cursor/tests/render-project-migration-diffs.tests.ps1
+      - shell: pwsh
+        run: ./install/cursor/tests/render-project-migration-diffs.tests.ps1

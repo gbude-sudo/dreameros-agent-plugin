@@ -1,14 +1,20 @@
 ---
-name: dreameros-governed-routing
+name: dreameros-verified-routing
 description: Route hard or contested questions through DreamerOS multi-engine consultation so the answer reflects more than one model's judgment.
 ---
 
-# DreamerOS Governed Routing
+# DreamerOS Verified Routing
 
 Use this skill when the user's DreamerOS connection is available and a
 question would benefit from more than one AI engine's perspective: contested
 claims, high-ambiguity decisions, creative directions with no single right
 answer, or when the user explicitly asks for a second opinion.
+
+<!-- DREAMEROS-BOOT-PRECONDITION v1.0.0 -->
+Before any routing call, require returned proof for
+`dreameros_session_package`, then `dreameros_context`, then `dreameros_state`.
+If the current chat has no such proof, perform those three calls in that order
+before calling `dreameros_route`.
 
 ## How
 

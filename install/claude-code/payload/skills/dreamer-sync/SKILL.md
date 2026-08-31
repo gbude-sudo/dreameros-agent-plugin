@@ -50,28 +50,33 @@ corrections to your own prior anchors. Two rules:
   before acting - the substrate is the tiebreaker, and if the substrate is stale
   against runtime, fix the substrate (leg 2), not your story.
 
-## Leg 4 - GIT-SYNC (local and remote agree, all repos)
+## Leg 4 - GIT-SYNC census (measure every discovered repo)
 
-The eight DreamerOS repos live under C:\Users\PC\Documents\DreamerOS\
-(dreamerOS, dreameros-app-frontend, dreameros-app-site, dreameros-scs-gateway,
-dreameros-hc-command-center, dreameros-light-proxy, intentfidelityprotocol-site,
-thedreamerai-site). For each:
+Resolve the current user's home at runtime. Enumerate direct Git repositories
+under `~/Documents/DreamerOS` and `~/Documents/Codex`; do not hardcode a user,
+drive, repository count, or stale repository list. For each discovered repo:
 
 ```bash
-git -C "/c/Users/PC/Documents/DreamerOS/<repo>" fetch --quiet
-git -C "/c/Users/PC/Documents/DreamerOS/<repo>" status --short --branch
+git -C "<absolute-repo-path>" fetch --quiet
+git -C "<absolute-repo-path>" status --short --branch
 ```
 
+This leg is read-only unless the current task separately authorizes repository
+mutations. Report clean/dirty, branch, HEAD, upstream, origin/main, ahead/behind,
+and missing remotes. Do not pull, switch, delete, prune, merge, commit, or push
+from the census itself.
+
 Then, per repo state:
-- Clean and behind: `git pull --ff-only` (never merge-pull in the sweep).
-- Clean on a merged branch whose upstream is [gone]: checkout main, pull, delete the
-  local branch, `git remote prune origin`.
+- Clean and behind: report the exact count and the `git pull --ff-only` next
+  action; do not run it without current repository authority.
+- Clean on a merged branch whose upstream is gone: report the branch and proof
+  that its patch landed; do not switch or delete it from this census.
 - DIRTY with changes you did not author: HANDS OFF. No pull, no reset, no stash.
   Surface it to the operator with the branch name and file list - another session's
   work in progress is a handoff, not clutter. (Standing example: the frontend BASE
   checkout at dreameros-app-frontend without the worktree suffix is a different
   checkout from the session worktree - verify the FULL path before every write.)
-- No remote configured (dreameros-light-proxy today): note it, skip it.
+- No remote configured: note it without naming a historical repo as current.
 - After any merge you drove: return that checkout to main and delete the branch
   only after proving the squash landed on origin/main.
 

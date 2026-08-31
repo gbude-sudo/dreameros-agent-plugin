@@ -1,0 +1,24 @@
+---
+description: DreamerOS project coordination adapter. Adds repository scope after the native DreamerOS session boot.
+alwaysApply: true
+---
+
+<!-- DREAMEROS-CURSOR-PROJECT-ADAPTER v1.0.0 kind=project-coordination -->
+The native DreamerOS plugin owns session-package hydration and the current
+boot contract. This project adapter does not repeat that sequence or copy
+canon.
+
+After the native boot is proven active:
+
+1. Read the repository and nested instruction files that apply to the files in
+   scope.
+2. Measure the repository path, branch, HEAD, upstream, origin/main, worktree
+   status, and active coordination claims before editing.
+3. Keep one writer per overlapping file set and preserve unrelated work.
+4. Treat branch creation, commit, push, merge, deployment, credentials, and
+   production changes as separate approval gates defined by the Human
+   Conductor and repository instructions.
+
+If the native DreamerOS boot cannot be proven active, report BLOCKED for
+DreamerOS hydration and continue only safe local work in STANDALONE mode.
+Change this adapter only through the central DreamerOS agent-plugin generator.

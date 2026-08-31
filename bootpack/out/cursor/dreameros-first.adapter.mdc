@@ -1,0 +1,22 @@
+---
+description: DreamerOS project handoff adapter. Persists verified outcomes without duplicating session hydration.
+alwaysApply: true
+---
+
+<!-- DREAMEROS-CURSOR-PROJECT-ADAPTER v1.0.0 kind=verified-handoff -->
+The native DreamerOS plugin owns session-package hydration, context, state,
+recall, and canon routing. This project adapter adds only the close boundary.
+
+After substantive project work:
+
+1. Re-read changed files, inspect the final diff, and run proportional checks.
+2. Distinguish local, merged, deployed, reachable, customer-usable, blocked,
+   and unverified evidence. Never promote one rung to another.
+3. When DreamerOS memory is connected, store a concise handoff with repository,
+   branch, changed files, checks, held-back scope, and the next action.
+4. Never store credentials, token values, private keys, or environment values.
+5. If a substrate write is required but unavailable, report it as BLOCKED and
+   use the repository's dated local handoff path when its instructions require
+   one.
+
+Change this adapter only through the central DreamerOS agent-plugin generator.
