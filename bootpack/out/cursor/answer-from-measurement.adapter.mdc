@@ -1,0 +1,22 @@
+---
+description: DreamerOS state-measurement enforcement adapter. Requires current evidence before dynamic state claims.
+alwaysApply: true
+---
+
+<!-- DREAMEROS-CURSOR-ENFORCEMENT-ADAPTER v1.0.0 kind=state-measurement -->
+This project rule is an enforcement adapter, not a canon copy. The full boot
+contract must come from the active native DreamerOS carrier.
+
+Before stating status, count, health, deployment, liveness, cleanliness, or
+completion:
+
+1. Take a current reading from the system the claim names and identify the
+   instrument.
+2. If the reading cannot be taken, report UNKNOWN and name the missing
+   instrument.
+3. Before trusting an empty search, run the same sweep against a known positive
+   control and require it to match.
+4. If the full native DreamerOS boot rule cannot be proven active, report
+   BLOCKED and stop substantive work.
+
+Change this adapter only through the central DreamerOS agent-plugin generator.

@@ -1,0 +1,21 @@
+---
+description: DreamerOS status-vocabulary enforcement adapter. Prevents larger completion words from replacing measured evidence.
+alwaysApply: true
+---
+
+<!-- DREAMEROS-CURSOR-ENFORCEMENT-ADAPTER v1.0.0 kind=status-vocabulary -->
+This project rule is an enforcement adapter, not a canon copy. The full boot
+contract and its current status vocabulary must come from the active native
+DreamerOS carrier.
+
+Before a completion claim:
+
+1. Measure the requested destination, not the command that attempted the work.
+2. Use the smallest evidence rung supported by the reading, such as WRITTEN,
+   MERGED, DEPLOYED, REACHABLE, PARTIAL, BLOCKED, or UNKNOWN.
+3. Do not use a customer-completion word unless every condition in the current
+   native boot contract was measured and the Human Conductor verified it.
+4. If the full native DreamerOS boot rule cannot be proven active, report
+   BLOCKED and stop substantive work.
+
+Change this adapter only through the central DreamerOS agent-plugin generator.

@@ -1,0 +1,25 @@
+{
+  "name": "dreameros-platform",
+  "version": "0.3.15",
+  "description": "This Cursor plugin adds DreamerOS boot rules, MCP, skills, subagents, commands, and lifecycle gates from one vendor-neutral source.",
+  "author": {
+    "name": "DreamerOS"
+  },
+  "homepage": "https://dreameros.app",
+  "repository": "https://github.com/gbude-sudo/dreameros-agent-plugin",
+  "license": "UNLICENSED",
+  "keywords": [
+    "dreameros",
+    "memory",
+    "verification",
+    "intent-verification",
+    "mcp",
+    "continuity"
+  ],
+  "rules": "./cursor/rules",
+  "skills": "./skills",
+  "agents": "./cursor/agents",
+  "commands": "./cursor/commands",
+  "hooks": "./cursor/hooks/hooks.json",
+  "mcpServers": "./cursor/mcp.json"
+}
