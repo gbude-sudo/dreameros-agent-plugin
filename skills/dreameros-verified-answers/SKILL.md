@@ -10,6 +10,12 @@ answer carries real consequences if wrong: medical, financial, legal,
 safety, irreversible business decisions, or any claim the user says they
 will act on directly.
 
+<!-- DREAMEROS-BOOT-PRECONDITION v1.0.0 -->
+Before any verification call, require returned proof for
+`dreameros_session_package`, then `dreameros_context`, then `dreameros_state`.
+If the current chat has no such proof, perform those three calls in that order
+before drafting or calling `dreameros_verify`.
+
 ## When to verify
 
 1. The user asks a factual question in a high-stakes domain.

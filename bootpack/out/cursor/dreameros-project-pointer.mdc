@@ -1,0 +1,34 @@
+---
+description: DreamerOS project boot pointer. Requires the current native DreamerOS boot rule and contains no duplicated canon.
+alwaysApply: true
+---
+
+<!-- DREAMEROS-BOOT-CANON: NOT DUPLICATED HERE -->
+<!-- DREAMEROS-PROJECT-BOOT-POINTER v1.0.0 -->
+## DreamerOS Boot Canon - loaded globally, not copied here
+
+The full DreamerOS Boot Canon is generated from
+gbude-sudo/dreameros-agent-plugin:bootpack/SOURCE-dreameros-boot-canon.md and delivered
+through each engine's machine-wide native surface. This project file
+intentionally contains no copy of the canon and cannot import another rule.
+
+Before substantive DreamerOS work, verify the native surface for the active
+engine:
+
+1. Claude Code or Desktop: the current generated block is present once in
+   ~/.claude/CLAUDE.md.
+2. Codex: the current generated block is present once in ~/.codex/AGENTS.md.
+3. Cursor: Customize shows the local Dreameros plugin, and its
+   dreameros-boot-canon rule is set to Always and appears in the active rule
+   trace for the fresh Agent chat.
+
+If the active engine cannot prove its full native boot rule, report BLOCKED
+and stop substantive work. Do not treat this pointer as a fallback canon.
+Repository instructions add project scope after boot; they do not replace the
+Human Conductor or the current generated boot rule.
+
+To change a boot rule, edit the shared source and run
+bootpack/build-boot-pack.ps1 -Install. Never paste the full canon into a
+repository instruction or project rule. A second copy loads later, drifts, and
+can override the current machine-wide rule.
+<!-- END DREAMEROS-BOOT-CANON POINTER -->

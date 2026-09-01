@@ -1,0 +1,23 @@
+---
+description: DreamerOS Cursor global pointer. Requires the native local Dreameros plugin and contains no duplicated canon.
+alwaysApply: true
+---
+
+<!-- DREAMEROS-CURSOR-GLOBAL-PLUGIN-POINTER v1.0.0 -->
+## DreamerOS Boot Canon - carried by the native Cursor plugin
+
+The full DreamerOS Boot Canon exists exactly once for Cursor in the local
+`Dreameros` plugin rule named `dreameros-boot-canon`. This user-level file is a
+fail-closed pointer only; it does not copy or import the canon.
+
+Before substantive DreamerOS work in Cursor, require all of these in the fresh
+Agent chat:
+
+1. Customize lists the local `Dreameros` plugin.
+2. The plugin rule `dreameros-boot-canon` appears in the active rule trace.
+3. The companion `dreameros-runtime` rule appears in the same trace.
+
+If any item is not proven, report BLOCKED and stop substantive work. Do not use
+this pointer as a fallback boot contract. Change the full rule only through
+gbude-sudo/dreameros-agent-plugin:bootpack/SOURCE-dreameros-boot-canon.md and
+the central generator.

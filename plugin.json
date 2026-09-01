@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "dreameros",
-  "version": "0.2.0",
-  "description": "DreamerOS universal boot, governed memory, verification, and multi-engine routing through one shared gateway and vendor-native adapters.",
+  "version": "0.3.15",
+  "description": "DreamerOS starts agents with shared rules, verifies intent, carries memory across sessions, checks claims, and routes work through one gateway with vendor-native adapters.",
   "author": {
     "name": "DreamerOS",
     "url": "https://dreameros.app"
@@ -11,9 +11,10 @@
   "repository": "https://github.com/gbude-sudo/dreameros-agent-plugin",
   "license": "UNLICENSED",
   "keywords": [
+    "dreameros",
     "memory",
     "verification",
-    "governance",
+    "intent-verification",
     "mcp",
     "continuity"
   ]

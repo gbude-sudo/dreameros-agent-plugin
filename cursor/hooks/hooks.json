@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": "python ./cursor/hooks/dreameros_cursor_hook.py",
+        "type": "command",
+        "timeout": 10,
+        "failClosed": true
+      }
+    ],
+    "subagentStart": [
+      {
+        "command": "python ./cursor/hooks/dreameros_cursor_hook.py",
+        "type": "command",
+        "timeout": 10,
+        "failClosed": true
+      }
+    ],
+    "beforeSubmitPrompt": [
+      {
+        "command": "python ./cursor/hooks/dreameros_cursor_hook.py",
+        "type": "command",
+        "timeout": 10,
+        "failClosed": true
+      }
+    ],
+    "beforeShellExecution": [
+      {
+        "command": "python ./cursor/hooks/dreameros_cursor_hook.py",
+        "type": "command",
+        "timeout": 10,
+        "failClosed": true
+      }
+    ],
+    "beforeMCPExecution": [
+      {
+        "command": "python ./cursor/hooks/dreameros_cursor_hook.py",
+        "type": "command",
+        "timeout": 10,
+        "failClosed": true
+      }
+    ],
+    "afterMCPExecution": [
+      {
+        "command": "python ./cursor/hooks/dreameros_cursor_hook.py",
+        "type": "command",
+        "timeout": 10,
+        "failClosed": true
+      }
+    ],
+    "postToolUse": [
+      {
+        "command": "python ./cursor/hooks/dreameros_cursor_hook.py",
+        "type": "command",
+        "matcher": "MCP:.*",
+        "timeout": 10,
+        "failClosed": true
+      }
+    ],
+    "beforeReadFile": [
+      {
+        "command": "python ./cursor/hooks/dreameros_cursor_hook.py",
+        "type": "command",
+        "timeout": 10,
+        "failClosed": true
+      }
+    ]
+  }
+}
