@@ -66,6 +66,26 @@ function Assert-ChildPath([string]$Path, [string]$Parent, [string]$Label) {
     }
 }
 
+function Get-CanonicalPath([string]$Path) {
+    # Windows PowerShell 5.1 reports the children of an 8.3 short-form
+    # directory (the GitHub runner profile RUNNER~1, for example) in long form, while
+    # Resolve-Path, Join-Path and raw environment values keep the form they
+    # were given. Read the longest existing prefix back from the provider so
+    # every path this script compares uses the form the provider reports.
+    $full = [IO.Path]::GetFullPath($Path).TrimEnd('\')
+    $missing = @()
+    $existing = $full
+    while (-not (Test-Path -LiteralPath $existing)) {
+        $parent = [IO.Path]::GetDirectoryName($existing)
+        if ([string]::IsNullOrEmpty($parent)) { return $full }
+        $missing = @([IO.Path]::GetFileName($existing)) + $missing
+        $existing = $parent
+    }
+    $canonical = (Get-Item -LiteralPath $existing -Force).FullName.TrimEnd('\')
+    foreach ($segment in $missing) { $canonical = Join-Path $canonical $segment }
+    return $canonical
+}
+
 function Find-GitRoot([string]$Path) {
     $current = Get-Item -LiteralPath (Split-Path -Parent $Path)
     while ($current) {
@@ -162,7 +182,7 @@ function Assert-OnlyTransactionChanges([string]$Root, [object[]]$ChangedItems) {
 $resolvedRoots = @()
 foreach ($root in $EstateRoots) {
     if (-not (Test-Path -LiteralPath $root -PathType Container)) { continue }
-    $resolvedRoots += (Resolve-Path -LiteralPath $root).Path
+    $resolvedRoots += Get-CanonicalPath $root
 }
 if ($resolvedRoots.Count -eq 0) { throw 'No requested estate roots exist.' }
 
@@ -238,7 +258,7 @@ if (-not $Apply) {
 
 $approved = @($ApprovedRepository | ForEach-Object {
     if (-not (Test-Path -LiteralPath $_ -PathType Container)) { throw "Approved repository does not exist: $_" }
-    (Resolve-Path -LiteralPath $_).Path
+    Get-CanonicalPath $_
 } | Sort-Object -Unique)
 $knownGitRoots = @($records.GitRoot | Sort-Object -Unique)
 $approvedRecords = @($records | Where-Object { $approved -contains $_.GitRoot })

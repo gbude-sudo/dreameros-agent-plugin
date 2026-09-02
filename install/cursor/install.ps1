@@ -8,8 +8,30 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-$PluginRoot = Join-Path $env:USERPROFILE '.cursor\plugins'
+
+function Get-CanonicalPath([string]$Path) {
+    # Windows PowerShell 5.1 reports the children of an 8.3 short-form
+    # directory (the GitHub runner profile RUNNER~1, for example) in long form, while
+    # Resolve-Path, Join-Path and raw environment values keep the form they
+    # were given. Read the longest existing prefix back from the provider so
+    # every path this script compares uses the form the provider reports.
+    $full = [IO.Path]::GetFullPath($Path).TrimEnd('\')
+    $missing = @()
+    $existing = $full
+    while (-not (Test-Path -LiteralPath $existing)) {
+        $parent = [IO.Path]::GetDirectoryName($existing)
+        if ([string]::IsNullOrEmpty($parent)) { return $full }
+        $missing = @([IO.Path]::GetFileName($existing)) + $missing
+        $existing = $parent
+    }
+    $canonical = (Get-Item -LiteralPath $existing -Force).FullName.TrimEnd('\')
+    foreach ($segment in $missing) { $canonical = Join-Path $canonical $segment }
+    return $canonical
+}
+
+$RepoRoot = Get-CanonicalPath (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+$UserHome = Get-CanonicalPath $env:USERPROFILE
+$PluginRoot = Join-Path $UserHome '.cursor\plugins'
 $LocalRoot = Join-Path $PluginRoot 'local'
 $Target = Join-Path $LocalRoot 'dreameros'
 $BackupRoot = Join-Path $PluginRoot 'backups'
@@ -31,6 +53,19 @@ function Assert-ChildPath([string]$Path, [string]$Parent, [string]$Label) {
     }
 }
 
+function Get-RelativeChildPath([string]$Root, [string]$FullName) {
+    # Slice a child path against its root in the provider's own form. A
+    # Substring on the raw root length cuts at the wrong offset when the root
+    # is short form and the child is long form. Fail loudly on a mismatch.
+    $root = Get-CanonicalPath $Root
+    foreach ($candidate in @($FullName, (Get-CanonicalPath $FullName))) {
+        if ($candidate.StartsWith($root + '\', [StringComparison]::OrdinalIgnoreCase)) {
+            return $candidate.Substring($root.Length + 1)
+        }
+    }
+    throw "path is not under its managed root ($Root): $FullName"
+}
+
 function Get-TreeDigest([string]$Path) {
     if (-not (Test-Path -LiteralPath $Path -PathType Container)) {
         throw "Plugin tree does not exist: $Path"
@@ -40,7 +75,7 @@ function Get-TreeDigest([string]$Path) {
             Where-Object { $_.Extension -ne '.pyc' -and $_.FullName -notmatch '\\__pycache__\\' } |
             Sort-Object FullName |
             ForEach-Object {
-                $relative = $_.FullName.Substring($Path.Length).TrimStart('\').Replace('\', '/')
+                $relative = (Get-RelativeChildPath -Root $Path -FullName $_.FullName).Replace('\', '/')
                 $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $_.FullName).Hash.ToLowerInvariant()
                 "$relative|$hash"
             }
@@ -111,7 +146,7 @@ if (-not [string]::IsNullOrWhiteSpace($RestoreBackup)) {
     if (-not (Test-Path -LiteralPath $RestoreBackup -PathType Container)) {
         throw "Restore backup does not exist: $RestoreBackup"
     }
-    $restore = (Resolve-Path -LiteralPath $RestoreBackup).Path.TrimEnd('\')
+    $restore = Get-CanonicalPath $RestoreBackup
     Assert-ChildPath -Path $restore -Parent $BackupRoot -Label 'Cursor plugin restore backup'
     if (-not [string]::Equals((Split-Path -Parent $restore).TrimEnd('\'), $BackupRoot.TrimEnd('\'), [StringComparison]::OrdinalIgnoreCase)) {
         throw 'RestoreBackup must be one direct child of the managed Cursor backup directory.'
@@ -166,7 +201,7 @@ function Assert-Source {
         throw 'Cursor plugin MCP config must not contain an Authorization header.'
     }
     $bootSource = Join-Path $RepoRoot 'bootpack\out\cursor\dreameros-global-plugin-pointer.mdc'
-    $bootInstalled = Join-Path $env:USERPROFILE '.cursor\rules\dreameros-boot-canon.mdc'
+    $bootInstalled = Join-Path $UserHome '.cursor\rules\dreameros-boot-canon.mdc'
     if (-not (Test-Path -LiteralPath $bootInstalled)) {
         throw 'Global Cursor plugin pointer is missing. Run bootpack\build-boot-pack.ps1 -Install first.'
     }
@@ -185,7 +220,7 @@ function Copy-Asset([string]$Relative) {
     if (Test-Path -LiteralPath $source -PathType Container) {
         foreach ($file in Get-ChildItem -LiteralPath $source -File -Recurse -Force |
             Where-Object { $_.Extension -ne '.pyc' -and $_.FullName -notmatch '\\__pycache__\\' }) {
-            $suffix = $file.FullName.Substring($source.Length).TrimStart('\')
+            $suffix = Get-RelativeChildPath -Root $source -FullName $file.FullName
             $installed = Join-Path $destination $suffix
             New-Item -ItemType Directory -Path (Split-Path -Parent $installed) -Force | Out-Null
             Copy-Item -LiteralPath $file.FullName -Destination $installed -Force
@@ -203,7 +238,7 @@ function Assert-Installed {
         if (Test-Path -LiteralPath $source -PathType Container) {
             foreach ($file in Get-ChildItem -LiteralPath $source -File -Recurse -Force |
                 Where-Object { $_.Extension -ne '.pyc' -and $_.FullName -notmatch '\\__pycache__\\' }) {
-                $suffix = $file.FullName.Substring($RepoRoot.Length).TrimStart('\')
+                $suffix = Get-RelativeChildPath -Root $RepoRoot -FullName $file.FullName
                 [void]$expected.Add($suffix)
                 $installed = Join-Path $Target $suffix
                 if (-not (Test-Path -LiteralPath $installed)) { throw "installed file missing: $suffix" }
@@ -229,7 +264,7 @@ function Assert-Installed {
     }
     $extras = @(
         Get-ChildItem -LiteralPath $Target -File -Recurse -Force |
-            ForEach-Object { $_.FullName.Substring($Target.Length).TrimStart('\') } |
+            ForEach-Object { Get-RelativeChildPath -Root $Target -FullName $_.FullName } |
             Where-Object { -not $expected.Contains($_) }
     )
     if ($extras.Count -gt 0) {
