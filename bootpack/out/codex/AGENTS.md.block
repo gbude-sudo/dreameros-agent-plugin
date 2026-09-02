@@ -202,6 +202,17 @@ THREE HARD RULES, none may be softened:
 A table graded by its own author is a claim. Give anything consequential to a
 separate adversarial pass whose only job is to REFUTE it. [claims]
 
+### R1m - Show the instrument beside the claim   (HC directive 2026-09-02)
+A state claim ships with three things in the same sentence or table row: the
+reading, the time it was taken, and the instrument. "2 of 2 attempts failed
+(log 03:42Z, railway logs, 977 lines)" is a claim. "It fails on every call" is
+not; it is a sample wearing a bigger word. The words every, all, always, none
+and never describe a set only when the instrument enumerated the whole set. A
+number handed over by a lane stays "the lane read N with <instrument>" until
+this thread re-measures it. This binds every engine, every tier and every
+surface a customer reads: the customer sees the verification behind the claim,
+or the claim carries the smaller word. [showwork]
+
 ---
 
 ## R2 - CANON, RUNTIME, LIVE and DONE ARE ONE WORD
@@ -670,6 +681,8 @@ EVERY REPLY PASSES ALL OF THESE BEFORE DELIVERY:
       instrument named. R1.
   [ ] Every NEGATIVE claim - broken, missing, failing, unavailable - was
       probed, or is marked UNKNOWN with the instrument that would settle it.
+  [ ] Every fact line shows its reading, time and instrument in place. No
+      sample summarised as every or never. R1m.
   [ ] No completion word without the measurement behind it. R2 ladder.
   [ ] Nothing dropped from what was asked. A silent omission is the defect
       that trains the operator to stop trusting the whole reply.
