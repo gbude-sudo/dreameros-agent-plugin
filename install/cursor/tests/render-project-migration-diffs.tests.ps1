@@ -463,3 +463,9 @@ Write-Output (@{
     fixture_root = $TempRoot
     ps5_ps7_sha256 = Get-TextSha $ps5Result.Text
 } | ConvertTo-Json -Compress)
+
+# The last child process above may be a deliberate failure run that exits
+# non-zero. GitHub's powershell step wrapper ends with "exit $LASTEXITCODE",
+# so without this line a passing test reports failure. Every assertion
+# throws on failure, so reaching here means pass.
+exit 0
