@@ -285,7 +285,9 @@ Assert-True ([string]::IsNullOrWhiteSpace($stdinResult.ErrorText)) 'standard-inp
 $stdinJson = $stdinResult.Text | ConvertFrom-Json
 Assert-True ($stdinJson.plan.path -eq '<standard-input>') 'standard-input renderer did not identify its input mode'
 Assert-True ($stdinJson.plan.sha256 -eq (Get-TextSha $plannerResult.Text)) 'standard-input renderer did not hash the parsed bytes'
-Assert-True ($stdinJson.summary.rendered_content_diffs -eq 6 -and $stdinJson.summary.withheld_actions -eq 1) 'standard-input renderer summary mismatch'
+$stdinStatuses = @($stdinJson.repositories | ForEach-Object { $_.actions } | ForEach-Object { $_.action + '=' + $_.status + ':' + $_.reason }) -join ' | '
+Assert-True ($stdinJson.summary.rendered_content_diffs -eq 6 -and $stdinJson.summary.withheld_actions -eq 1) "standard-input renderer summary mismatch: summary=$($stdinJson.summary | ConvertTo-Json -Compress) overall_state=$($stdinJson.overall_state) repositories=$(@($stdinJson.repositories).Count) actions=$stdinStatuses"
+
 Assert-True (-not $stdinResult.Text.Contains($secretSentinel)) 'standard-input renderer exposed the MCP sentinel'
 
 $result = $ps7Result.Text | ConvertFrom-Json
