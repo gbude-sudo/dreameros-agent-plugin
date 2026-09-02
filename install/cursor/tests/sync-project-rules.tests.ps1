@@ -1,5 +1,33 @@
 $ErrorActionPreference = 'Stop'
 
+# GitHub's windows runner exposes TEMP in 8.3 short form under RUNNER~1.
+# Windows PowerShell 5.1 expands that form when it reports children, so a
+# fixture path built from the raw value compares unequal to Get-ChildItem
+# output. Both engines must also receive identical fixture paths. Ask Win32
+# for the long form once and build every fixture path from it.
+if (-not ('DreamerOS.Tests.Win32Path' -as [type])) {
+    Add-Type -Namespace DreamerOS.Tests -Name Win32Path -MemberDefinition @'
+[DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+public static extern uint GetLongPathNameW(string shortPath, System.Text.StringBuilder longPath, uint bufferLength);
+[DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+public static extern uint GetShortPathNameW(string longPath, System.Text.StringBuilder shortPath, uint bufferLength);
+'@
+}
+
+function Get-LongPath([string]$Path) {
+    $buffer = New-Object Text.StringBuilder 32768
+    $length = [DreamerOS.Tests.Win32Path]::GetLongPathNameW($Path, $buffer, $buffer.Capacity)
+    if ($length -eq 0 -or $length -gt $buffer.Capacity) { throw "GetLongPathNameW failed for $Path" }
+    return $buffer.ToString()
+}
+
+function Get-ShortPath([string]$Path) {
+    $buffer = New-Object Text.StringBuilder 32768
+    $length = [DreamerOS.Tests.Win32Path]::GetShortPathNameW($Path, $buffer, $buffer.Capacity)
+    if ($length -eq 0 -or $length -gt $buffer.Capacity) { throw "GetShortPathNameW failed for $Path" }
+    return $buffer.ToString()
+}
+
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
 $SyncScript = Join-Path $RepoRoot 'install\cursor\sync-project-rules.ps1'
 $RestoreScript = Join-Path $RepoRoot 'install\cursor\restore-project-rules.ps1'
@@ -7,7 +35,7 @@ $BuildScript = Join-Path $RepoRoot 'bootpack\build-boot-pack.ps1'
 $Pointer = Join-Path $RepoRoot 'bootpack\out\cursor\dreameros-project-pointer.mdc'
 $Legacy = Join-Path $RepoRoot 'bootpack\out\cursor\dreameros-boot-canon.mdc'
 $PowerShellExe = (Get-Process -Id $PID).Path
-$TempRoot = Join-Path $env:TEMP ('dreameros-pointer-tests-' + [guid]::NewGuid().ToString('N'))
+$TempRoot = Join-Path (Get-LongPath $env:TEMP) ('dreameros-pointer-tests-' + [guid]::NewGuid().ToString('N'))
 $TestHome = Join-Path $TempRoot 'home'
 $Utf8 = New-Object Text.UTF8Encoding($false)
 $Cases = 0
@@ -111,6 +139,11 @@ Assert-True ($censusResult.Text -match 'LEGACY_FULL_COPY DIRTY') 'dirty legacy s
 Assert-True ($censusResult.Text -match 'UNKNOWN FILE-CLEAN') 'unknown state missing'
 Assert-True ($censusResult.Text -match 'LEGACY_FULL_COPY=2 UNKNOWN=2 DIRTY=2') 'aggregate state counts wrong'
 Assert-True ((Get-SemanticSha $aligned.Rule) -eq (Get-SemanticSha $alignedCrLf.Rule)) 'CRLF pointer must normalize'
+
+# GitHub runners hand the sync tool estate roots in 8.3 short form. Ownership
+# of each discovered rule must still resolve when the root arrives that way.
+$censusShort = Invoke-Sync (Get-ShortPath $census)
+Assert-True ($censusShort.Text -match 'POINTER_ALIGNED FILE-CLEAN') "census failed with short-form estate root: $($censusShort.Text)"
 
 # A real Git estate with no project boot rule is intentionally GLOBAL_ONLY.
 $globalOnlyEstate = Join-Path $TempRoot 'global-only'

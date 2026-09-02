@@ -3,3 +3,4 @@ cursor/rules/dreameros-boot-canon.mdc text eol=lf
 skills/**/SKILL.md text eol=lf
 desktop/** text eol=lf
 release/** text eol=lf
+install/cursor/** text eol=lf

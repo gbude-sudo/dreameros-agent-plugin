@@ -1,5 +1,24 @@
 $ErrorActionPreference = 'Stop'
 
+# GitHub's windows runner exposes TEMP in 8.3 short form under RUNNER~1.
+# Windows PowerShell 5.1 expands that form when it reports children, so a
+# fixture path built from the raw value compares unequal to Get-ChildItem
+# output. Both engines must also receive identical fixture paths. Ask Win32
+# for the long form once and build every fixture path from it.
+if (-not ('DreamerOS.Tests.Win32Path' -as [type])) {
+    Add-Type -Namespace DreamerOS.Tests -Name Win32Path -MemberDefinition @'
+[DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+public static extern uint GetLongPathNameW(string shortPath, System.Text.StringBuilder longPath, uint bufferLength);
+'@
+}
+
+function Get-LongPath([string]$Path) {
+    $buffer = New-Object Text.StringBuilder 32768
+    $length = [DreamerOS.Tests.Win32Path]::GetLongPathNameW($Path, $buffer, $buffer.Capacity)
+    if ($length -eq 0 -or $length -gt $buffer.Capacity) { throw "GetLongPathNameW failed for $Path" }
+    return $buffer.ToString()
+}
+
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
 $AuditScript = Join-Path $RepoRoot 'install\cursor\audit-project-boot-surfaces.ps1'
 $EmbeddedPointer = [IO.File]::ReadAllText((Join-Path $RepoRoot 'bootpack\out\project\DREAMEROS_BOOT_CANON_POINTER.md.block'))
@@ -14,7 +33,7 @@ $ClaudeFull = [IO.File]::ReadAllText((Join-Path $RepoRoot 'bootpack\out\claude\C
 $CodexFull = [IO.File]::ReadAllText((Join-Path $RepoRoot 'bootpack\out\codex\AGENTS.md.block'))
 $CursorFull = [IO.File]::ReadAllText((Join-Path $RepoRoot 'bootpack\out\cursor\dreameros-boot-canon.mdc'))
 $PowerShellExe = (Get-Process -Id $PID).Path
-$TempRoot = Join-Path $env:TEMP ('dreameros-surface-audit-tests-' + [guid]::NewGuid().ToString('N'))
+$TempRoot = Join-Path (Get-LongPath $env:TEMP) ('dreameros-surface-audit-tests-' + [guid]::NewGuid().ToString('N'))
 $AuditHome = Join-Path $TempRoot 'audit-home'
 $EnterpriseHooks = Join-Path $TempRoot 'enterprise-hooks-not-present.json'
 $Utf8 = New-Object Text.UTF8Encoding($false)
