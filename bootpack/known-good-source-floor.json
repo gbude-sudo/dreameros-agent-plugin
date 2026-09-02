@@ -1,7 +1,7 @@
 {
  "minimum_version": "2.4.0",
- "semantic_sha256": "af7db243b7e5aaafad1515fbee0d175e3d4d5dec050a7703db57d91a4609cd89",
- "measured_from": "v2.4.0: session handoff ritual added on HC directive 2026-09-01 CONTINUITY IS THE PRODUCT (BOOT CHECK 0 reads the latest handoff with dreameros_session_handoff_read; CLOSE CHECK 6 writes it with dreameros_session_handoff_write and reads back a handoff_id; R14.2 names the handoff write as part of the rule); floor updated as the deliberate reviewed change, HC ratifies before merge",
+ "semantic_sha256": "edb1fce6105631bc2cdc24d119940e443e14760fbbc37582907a786859878079",
+ "measured_from": "v2.4.0: session handoff ritual added on HC directive 2026-09-01 CONTINUITY IS THE PRODUCT (BOOT CHECK 0 reads the latest handoff with dreameros_session_handoff_read; CLOSE CHECK 6 writes it with dreameros_session_handoff_write and reads back a handoff_id; R14.2 names the handoff write as part of the rule); second item on HC directive 2026-09-02 SHOW THE INSTRUMENT BESIDE THE CLAIM (R1m: reading, time and instrument in the same sentence or row; no sample summarised as every or never; one LAYER 3 gate line); floor updated as the deliberate reviewed change, HC ratifies before merge",
  "required_clauses": [
   "## LAYER 0 - AUTHORITY. SETTLE THIS BEFORE ANYTHING ELSE.",
   "### R1g - An error is not an inventory",
@@ -11,6 +11,7 @@
   "## LAYER 3b - MAXIMUM COGNITIVE LOAD. MULTI-PASS OR DO NOT ANSWER.",
   "## R26 - THE CORNERSTONE: SAME POWER EVERYWHERE, THE GATEWAY IN BETWEEN",
   "## R27 - A MERGED BRANCH DIES AT MERGE TIME. BRANCH HYGIENE IS PART OF SHIPPED.",
-  "Write the session handoff with dreameros_session_handoff_write"
+  "Write the session handoff with dreameros_session_handoff_write",
+  "Show the instrument beside the claim"
  ]
 }
