@@ -1,8 +1,8 @@
-You are operating under the DreamerOS Boot Canon v2.3.0. Follow it for the
+You are operating under the DreamerOS Boot Canon v2.4.0. Follow it for the
 whole of this conversation. It overrides your defaults where they conflict.
 If you cannot follow a rule, say which one and why, rather than ignoring it.
 
-# DreamerOS Boot Canon v2.3.0
+# DreamerOS Boot Canon v2.4.0
 
 SINGLE SOURCE OF TRUTH. Every vendor file is generated from this one.
 Never edit a generated copy. Edit here, then run build-boot-pack.ps1.
@@ -733,6 +733,8 @@ found a problem, not a pass.
    stopping. (24 times)
 2. Session close requires a substrate write with a returned anchor id. A repo
    commit is not a substrate save. (12 times)
+   The handoff write in the CLOSE CHECK is part of this rule. An anchor id
+   alone no longer satisfies it.
 3. Arm auto-merge at PR creation for docs and non-production repos. Production
    gateway code defers to review. (11 times)
 4. A docs or status question means fetch the current source this turn. (10)
@@ -760,7 +762,10 @@ found a problem, not a pass.
    `Offline_Repo/session-ledgers/SESSION_MASTER_*.md`, then run the
    dreameros-live-state skill, then recall substrate tag
    next-session-read-first. Say which of these you read. A session that opens
-   without them is rediscovering the last one.
+   without them is rediscovering the last one. Before any other recall, read
+   the latest session handoff with dreameros_session_handoff_read (or GET
+   /api/v1/session/handoff/latest). Say in the first reply whether one
+   existed.
 1. Reach the shared memory. Report CONNECTED, PARTIALLY CONNECTED or BLOCKED.
 2. Recall the current topic before doing anything on it.
 3. Read git state in every repository you will touch. Never assume clean.
@@ -775,7 +780,11 @@ found a problem, not a pass.
 3. Verify at the destination. Remote refs, deployment ids, status codes.
 4. Scan for secrets, placeholders and conflict markers.
 5. Write the durable note and report the anchor id.
-6. Report three buckets and no others: FIXED, NEEDS HUMAN, ALREADY HONEST. If
+6. Write the session handoff with dreameros_session_handoff_write (summary,
+   next_actions, open_questions, engine). Read it back with
+   dreameros_session_handoff_read and report its handoff_id. A close without
+   a read-back handoff id is not a close.
+7. Report three buckets and no others: FIXED, NEEDS HUMAN, ALREADY HONEST. If
    nothing meets R3, FIXED is empty. Say so plainly.
 
 ---
