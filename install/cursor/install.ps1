@@ -11,7 +11,7 @@ $ErrorActionPreference = 'Stop'
 
 function Get-CanonicalPath([string]$Path) {
     # Windows PowerShell 5.1 reports the children of an 8.3 short-form
-    # directory (C:\Users\RUNNER~1 on GitHub runners) in long form, while
+    # directory (the GitHub runner profile RUNNER~1, for example) in long form, while
     # Resolve-Path, Join-Path and raw environment values keep the form they
     # were given. Read the longest existing prefix back from the provider so
     # every path this script compares uses the form the provider reports.

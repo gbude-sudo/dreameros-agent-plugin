@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 
-# GitHub's windows runner exposes TEMP in 8.3 short form (C:\Users\RUNNER~1).
+# GitHub's windows runner exposes TEMP in 8.3 short form under RUNNER~1.
 # Windows PowerShell 5.1 expands that form when it reports children, so a
 # fixture path built from the raw value compares unequal to Get-ChildItem
 # output. Both engines must also receive identical fixture paths. Ask Win32
