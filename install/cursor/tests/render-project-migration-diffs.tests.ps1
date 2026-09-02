@@ -1,12 +1,31 @@
 $ErrorActionPreference = 'Stop'
 
+# GitHub's windows runner exposes TEMP in 8.3 short form (C:\Users\RUNNER~1).
+# Windows PowerShell 5.1 expands that form when it reports children, so a
+# fixture path built from the raw value compares unequal to Get-ChildItem
+# output. Both engines must also receive identical fixture paths. Ask Win32
+# for the long form once and build every fixture path from it.
+if (-not ('DreamerOS.Tests.Win32Path' -as [type])) {
+    Add-Type -Namespace DreamerOS.Tests -Name Win32Path -MemberDefinition @'
+[DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+public static extern uint GetLongPathNameW(string shortPath, System.Text.StringBuilder longPath, uint bufferLength);
+'@
+}
+
+function Get-LongPath([string]$Path) {
+    $buffer = New-Object Text.StringBuilder 32768
+    $length = [DreamerOS.Tests.Win32Path]::GetLongPathNameW($Path, $buffer, $buffer.Capacity)
+    if ($length -eq 0 -or $length -gt $buffer.Capacity) { throw "GetLongPathNameW failed for $Path" }
+    return $buffer.ToString()
+}
+
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
 $Planner = Join-Path $RepoRoot 'install\cursor\plan-project-migration.ps1'
 $Renderer = Join-Path $RepoRoot 'install\cursor\render-project-migration-diffs.ps1'
 $CurrentPowerShell = (Get-Process -Id $PID).Path
 $WindowsPowerShell = (Get-Command powershell.exe -ErrorAction SilentlyContinue).Source
 $PowerShellCore = (Get-Command pwsh.exe -ErrorAction SilentlyContinue).Source
-$TempRoot = Join-Path $env:TEMP ('dreameros migration diff tests-' + [guid]::NewGuid().ToString('N'))
+$TempRoot = Join-Path (Get-LongPath $env:TEMP) ('dreameros migration diff tests-' + [guid]::NewGuid().ToString('N'))
 $Estate = Join-Path $TempRoot 'estate with spaces'
 $TestHome = Join-Path $TempRoot 'home with spaces'
 $EnterpriseHooks = Join-Path $TestHome 'enterprise\Cursor\hooks.json'
