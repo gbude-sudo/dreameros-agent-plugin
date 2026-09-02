@@ -1,12 +1,31 @@
 $ErrorActionPreference = 'Stop'
 
+# GitHub's windows runner exposes TEMP in 8.3 short form under RUNNER~1.
+# Windows PowerShell 5.1 expands that form when it reports children, so a
+# fixture path built from the raw value compares unequal to Get-ChildItem
+# output. Both engines must also receive identical fixture paths. Ask Win32
+# for the long form once and build every fixture path from it.
+if (-not ('DreamerOS.Tests.Win32Path' -as [type])) {
+    Add-Type -Namespace DreamerOS.Tests -Name Win32Path -MemberDefinition @'
+[DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+public static extern uint GetLongPathNameW(string shortPath, System.Text.StringBuilder longPath, uint bufferLength);
+'@
+}
+
+function Get-LongPath([string]$Path) {
+    $buffer = New-Object Text.StringBuilder 32768
+    $length = [DreamerOS.Tests.Win32Path]::GetLongPathNameW($Path, $buffer, $buffer.Capacity)
+    if ($length -eq 0 -or $length -gt $buffer.Capacity) { throw "GetLongPathNameW failed for $Path" }
+    return $buffer.ToString()
+}
+
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
 $Planner = Join-Path $RepoRoot 'install\cursor\plan-project-migration.ps1'
 $Renderer = Join-Path $RepoRoot 'install\cursor\render-project-migration-diffs.ps1'
 $CurrentPowerShell = (Get-Process -Id $PID).Path
 $WindowsPowerShell = (Get-Command powershell.exe -ErrorAction SilentlyContinue).Source
 $PowerShellCore = (Get-Command pwsh.exe -ErrorAction SilentlyContinue).Source
-$TempRoot = Join-Path $env:TEMP ('dreameros migration diff tests-' + [guid]::NewGuid().ToString('N'))
+$TempRoot = Join-Path (Get-LongPath $env:TEMP) ('dreameros migration diff tests-' + [guid]::NewGuid().ToString('N'))
 $Estate = Join-Path $TempRoot 'estate with spaces'
 $TestHome = Join-Path $TempRoot 'home with spaces'
 $EnterpriseHooks = Join-Path $TestHome 'enterprise\Cursor\hooks.json'
@@ -147,7 +166,7 @@ $('legacy body ' * 520)
 <!-- BEGIN HC-DEFINITION-OF-DONE v1.0.0 -->
 customer usable boundary
 <!-- END HC-DEFINITION-OF-DONE v1.0.0 -->
-"@.TrimEnd("`r", "`n")
+"@.Replace("`r`n", "`n").TrimEnd("`r", "`n")
 $legacyRegion = @"
 <!-- BEGIN DREAMEROS-BOOT-CANON v2.1.0 -->
 # DreamerOS Boot Canon v2.1.0
@@ -157,12 +176,12 @@ SINGLE SOURCE OF TRUTH. Every vendor file is generated from this one.
 legacy region
 <!-- END HC-DEFINITION-OF-DONE v1.0.0 -->
 <!-- END DREAMEROS-BOOT-CANON v2.1.0 -->
-"@.TrimEnd("`r", "`n")
+"@.Replace("`r`n", "`n").TrimEnd("`r", "`n")
 $driftRegion = @"
 <!-- DREAMEROS-BOOT-CANON: NOT DUPLICATED HERE -->
 stale pointer content
 <!-- END DREAMEROS-BOOT-CANON POINTER -->
-"@.TrimEnd("`r", "`n")
+"@.Replace("`r`n", "`n").TrimEnd("`r", "`n")
 $claudeText = "repo-specific Claude prefix`r`n$($legacyRegion.Replace("`n", "`r`n"))`r`nrepo-specific Claude suffix`r`n"
 $agentsText = "repo-specific Codex prefix`n$driftRegion`nrepo-specific Codex suffix"
 $staleHook = "#!/usr/bin/env bash`n# Continuity is the Raison d'Etre`necho stale hook"
@@ -266,7 +285,9 @@ Assert-True ([string]::IsNullOrWhiteSpace($stdinResult.ErrorText)) 'standard-inp
 $stdinJson = $stdinResult.Text | ConvertFrom-Json
 Assert-True ($stdinJson.plan.path -eq '<standard-input>') 'standard-input renderer did not identify its input mode'
 Assert-True ($stdinJson.plan.sha256 -eq (Get-TextSha $plannerResult.Text)) 'standard-input renderer did not hash the parsed bytes'
-Assert-True ($stdinJson.summary.rendered_content_diffs -eq 6 -and $stdinJson.summary.withheld_actions -eq 1) 'standard-input renderer summary mismatch'
+$stdinStatuses = @($stdinJson.repositories | ForEach-Object { $_.actions } | ForEach-Object { $_.action + '=' + $_.status + ':' + $_.reason }) -join ' | '
+Assert-True ($stdinJson.summary.rendered_content_diffs -eq 6 -and $stdinJson.summary.withheld_actions -eq 1) "standard-input renderer summary mismatch: summary=$($stdinJson.summary | ConvertTo-Json -Compress) overall_state=$($stdinJson.overall_state) repositories=$(@($stdinJson.repositories).Count) actions=$stdinStatuses"
+
 Assert-True (-not $stdinResult.Text.Contains($secretSentinel)) 'standard-input renderer exposed the MCP sentinel'
 
 $result = $ps7Result.Text | ConvertFrom-Json
@@ -463,3 +484,9 @@ Write-Output (@{
     fixture_root = $TempRoot
     ps5_ps7_sha256 = Get-TextSha $ps5Result.Text
 } | ConvertTo-Json -Compress)
+
+# The last child process above may be a deliberate failure run that exits
+# non-zero. GitHub's powershell step wrapper ends with "exit $LASTEXITCODE",
+# so without this line a passing test reports failure. Every assertion
+# throws on failure, so reaching here means pass.
+exit 0

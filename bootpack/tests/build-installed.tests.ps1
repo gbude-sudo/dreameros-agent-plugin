@@ -62,3 +62,9 @@ Write-Output (@{
     assertions = $Cases
     fixture_root = $TempRoot
 } | ConvertTo-Json -Compress)
+
+# The last child process above is a deliberate drift run that exits 1.
+# GitHub's powershell step wrapper ends with "exit $LASTEXITCODE", so
+# without this line a passing test reports failure. Every assertion
+# throws on failure, so reaching here means pass.
+exit 0

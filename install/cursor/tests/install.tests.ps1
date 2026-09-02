@@ -1,11 +1,39 @@
 $ErrorActionPreference = 'Stop'
 
+# GitHub's windows runner exposes TEMP in 8.3 short form under RUNNER~1.
+# Windows PowerShell 5.1 expands that form when it reports children, so a
+# fixture path built from the raw value compares unequal to Get-ChildItem
+# output. Both engines must also receive identical fixture paths. Ask Win32
+# for the long form once and build every fixture path from it.
+if (-not ('DreamerOS.Tests.Win32Path' -as [type])) {
+    Add-Type -Namespace DreamerOS.Tests -Name Win32Path -MemberDefinition @'
+[DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+public static extern uint GetLongPathNameW(string shortPath, System.Text.StringBuilder longPath, uint bufferLength);
+[DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+public static extern uint GetShortPathNameW(string longPath, System.Text.StringBuilder shortPath, uint bufferLength);
+'@
+}
+
+function Get-LongPath([string]$Path) {
+    $buffer = New-Object Text.StringBuilder 32768
+    $length = [DreamerOS.Tests.Win32Path]::GetLongPathNameW($Path, $buffer, $buffer.Capacity)
+    if ($length -eq 0 -or $length -gt $buffer.Capacity) { throw "GetLongPathNameW failed for $Path" }
+    return $buffer.ToString()
+}
+
+function Get-ShortPath([string]$Path) {
+    $buffer = New-Object Text.StringBuilder 32768
+    $length = [DreamerOS.Tests.Win32Path]::GetShortPathNameW($Path, $buffer, $buffer.Capacity)
+    if ($length -eq 0 -or $length -gt $buffer.Capacity) { throw "GetShortPathNameW failed for $Path" }
+    return $buffer.ToString()
+}
+
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
 $Installer = Join-Path $RepoRoot 'install\cursor\install.ps1'
 $GlobalPointer = Join-Path $RepoRoot 'bootpack\out\cursor\dreameros-global-plugin-pointer.mdc'
 $ClaudeReviewCommand = Join-Path $RepoRoot 'cursor\commands\dreameros-claude-review.md'
 $PowerShellExe = (Get-Process -Id $PID).Path
-$TempRoot = Join-Path $env:TEMP ('dreameros-cursor-install-tests-' + [guid]::NewGuid().ToString('N'))
+$TempRoot = Join-Path (Get-LongPath $env:TEMP) ('dreameros-cursor-install-tests-' + [guid]::NewGuid().ToString('N'))
 $FakeHome = Join-Path $TempRoot 'home'
 $Target = Join-Path $FakeHome '.cursor\plugins\local\dreameros'
 $BackupRoot = Join-Path $FakeHome '.cursor\plugins\backups'
@@ -16,8 +44,8 @@ function Assert-True([bool]$Condition, [string]$Message) {
     if (-not $Condition) { throw "ASSERTION FAILED: $Message" }
 }
 
-function Invoke-Installer([string]$Arguments = '') {
-    $homeEscaped = $FakeHome.Replace("'", "''")
+function Invoke-Installer([string]$Arguments = '', [string]$UserProfile = $FakeHome) {
+    $homeEscaped = $UserProfile.Replace("'", "''")
     $installerEscaped = $Installer.Replace("'", "''")
     $command = "`$env:USERPROFILE='$homeEscaped'; & '$installerEscaped' $Arguments"
     $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($command))
@@ -120,6 +148,12 @@ Assert-True ($restoreCurrent.ExitCode -eq 0) "could not return to current exact 
 
 $finalVerify = Invoke-Installer '-VerifyOnly'
 Assert-True ($finalVerify.ExitCode -eq 0) "final VerifyOnly failed: $($finalVerify.Text)"
+
+# GitHub runners hand the installer USERPROFILE in 8.3 short form. Its own path
+# comparisons must still hold when the root arrives in that form.
+$shortHome = Get-ShortPath $FakeHome
+$shortHomeVerify = Invoke-Installer '-VerifyOnly' $shortHome
+Assert-True ($shortHomeVerify.ExitCode -eq 0 -and $shortHomeVerify.Text -match 'VERIFIED Cursor plugin bytes') "VerifyOnly failed with short-form USERPROFILE $shortHome : $($shortHomeVerify.Text)"
 
 Write-Output (@{
     status = 'pass'
