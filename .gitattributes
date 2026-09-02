@@ -1,4 +1,5 @@
 bootpack/** text eol=lf
+cursor/rules/dreameros-boot-canon.mdc text eol=lf
 skills/**/SKILL.md text eol=lf
 desktop/** text eol=lf
 release/** text eol=lf
