@@ -166,7 +166,7 @@ $('legacy body ' * 520)
 <!-- BEGIN HC-DEFINITION-OF-DONE v1.0.0 -->
 customer usable boundary
 <!-- END HC-DEFINITION-OF-DONE v1.0.0 -->
-"@.TrimEnd("`r", "`n")
+"@.Replace("`r`n", "`n").TrimEnd("`r", "`n")
 $legacyRegion = @"
 <!-- BEGIN DREAMEROS-BOOT-CANON v2.1.0 -->
 # DreamerOS Boot Canon v2.1.0
@@ -176,12 +176,12 @@ SINGLE SOURCE OF TRUTH. Every vendor file is generated from this one.
 legacy region
 <!-- END HC-DEFINITION-OF-DONE v1.0.0 -->
 <!-- END DREAMEROS-BOOT-CANON v2.1.0 -->
-"@.TrimEnd("`r", "`n")
+"@.Replace("`r`n", "`n").TrimEnd("`r", "`n")
 $driftRegion = @"
 <!-- DREAMEROS-BOOT-CANON: NOT DUPLICATED HERE -->
 stale pointer content
 <!-- END DREAMEROS-BOOT-CANON POINTER -->
-"@.TrimEnd("`r", "`n")
+"@.Replace("`r`n", "`n").TrimEnd("`r", "`n")
 $claudeText = "repo-specific Claude prefix`r`n$($legacyRegion.Replace("`n", "`r`n"))`r`nrepo-specific Claude suffix`r`n"
 $agentsText = "repo-specific Codex prefix`n$driftRegion`nrepo-specific Codex suffix"
 $staleHook = "#!/usr/bin/env bash`n# Continuity is the Raison d'Etre`necho stale hook"
