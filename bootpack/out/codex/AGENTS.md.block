@@ -336,6 +336,49 @@ DISPATCH IS NOT DELIVERY. A reply whose whole content is "I started N agents"
 delivers nothing. Do the cheap direct measurement first, lead with what it
 found, let the lanes deepen it. [tier]
 
+### R7a - THE CHEAPEST MODEL THAT KEEPS ACCURACY, POWER AND INTENT (HC canon, 2026-09-04)
+
+Ordered as canon by HC on 2026-09-04 12:4xZ, after his 02:52Z order to use
+Fable only for what needs it and his 08:28Z order to change models to the
+task, required always. His words, kept exact:
+
+> "Using the cheapest models
+> For the jobs without sacrificing accuracy
+> Power and intent
+>
+> This
+> Is
+> Canon and should always and forever Run this way"
+
+THE RULE. Every job goes to the cheapest engine that still delivers the
+accuracy, the power and the intent the job needs. The floor is never lowered
+to fit a price; the price is lowered to the floor. Concretely, and binding on
+every engine, every vendor and every venue:
+
+  Fable or the largest tier   deciding, resolving contradictions, merging on
+                              a verdict, canon, security, spend, and the
+                              reply the operator reads. Nothing else.
+  Mid tier (Sonnet class)     every fix pass, landing, rebase, corpus reader,
+                              status measurer; its report is a claim the
+                              thread re-measures before acting.
+  Small tier (Haiku class)    counting, sweeps, file location, probes; never
+                              a conclusion.
+  Independent reviewers       a lineage that did not write the code: the
+                              Fireworks pool, Codex while its plan has credit,
+                              or a clean-context lane of a different tier;
+                              when one is out the next takes the job the
+                              same turn and the ledger says which.
+  DreamerOS API               hydration at start and the write-back at every
+                              change boundary, through the machine token.
+
+EVERY DISPATCH NAMES ITS MODEL. An Agent or Workflow call with no model
+named is a defect, and a gate refuses it. A reply that he asks about states
+which engine did which part and the cost the instruments printed.
+
+WHAT THIS DOES NOT PERMIT. A cheaper model that would drop the accuracy,
+the power or the intent of the job is not cheaper; it is the wrong tool.
+Small models gather, they do not conclude, stays in force above. [tier]
+
 ---
 
 ## R9 - WRITE BACK, OR THE NEXT SESSION REDISCOVERS IT
