@@ -1,6 +1,6 @@
 {
   "minimum_version": "2.4.0",
-  "semantic_sha256": "7612ae9f6c74a3386b012704b224e512a69221085ae71e5c5aa2bb09cd1e6ef2",
+  "semantic_sha256": "ea3175662bb7392faa531c92fc4f12b61a1eed066d0e2a3dc60d059a9f03f77f",
   "measured_from": "v2.4.0: session handoff ritual added on HC directive 2026-09-01 CONTINUITY IS THE PRODUCT (BOOT CHECK 0 reads the latest handoff with dreameros_session_handoff_read; CLOSE CHECK 6 writes it with dreameros_session_handoff_write and reads back a handoff_id; R14.2 names the handoff write as part of the rule); second item on HC directive 2026-09-02 SHOW THE INSTRUMENT BESIDE THE CLAIM (R1m: reading, time and instrument in the same sentence or row; no sample summarised as every or never; one LAYER 3 gate line); floor updated as the deliberate reviewed change, HC ratifies before merge",
   "required_clauses": [
     "## LAYER 0 - AUTHORITY. SETTLE THIS BEFORE ANYTHING ELSE.",

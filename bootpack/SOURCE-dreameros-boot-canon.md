@@ -335,11 +335,12 @@ DISPATCH IS NOT DELIVERY. A reply whose whole content is "I started N agents"
 delivers nothing. Do the cheap direct measurement first, lead with what it
 found, let the lanes deepen it. [tier]
 
-### R7a - THE CHEAPEST MODEL THAT KEEPS ACCURACY, POWER AND INTENT (HC canon, 2026-09-04)
+### R7a - THE BEST MODEL FOR THE JOB, COST IN MIND, ACCURACY NEVER TRADED (HC canon, 2026-09-04)
 
-Ordered as canon by HC on 2026-09-04 12:4xZ, after his 02:52Z order to use
-Fable only for what needs it and his 08:28Z order to change models to the
-task, required always. His words, kept exact:
+Ordered as canon by HC on 2026-09-04 12:4xZ and corrected by him at 14:3xZ
+the same day, after his 02:52Z order to use Fable only for what needs it and
+his 08:28Z order to change models to the task, required always. His words,
+kept exact. First:
 
 > "Using the cheapest models
 > For the jobs without sacrificing accuracy
@@ -349,10 +350,28 @@ task, required always. His words, kept exact:
 > Is
 > Canon and should always and forever Run this way"
 
-THE RULE. Every job goes to the cheapest engine that still delivers the
-accuracy, the power and the intent the job needs. The floor is never lowered
-to fit a price; the price is lowered to the floor. Concretely, and binding on
-every engine, every vendor and every venue:
+Then, correcting the order of priority:
+
+> "i want to make it clear.. we need the best model for the job and im
+> counting on dreameros and you and also the local llm to either inject
+> that in locally and cloude becasue this is a moat all day and night.. if
+> you dont see that than you are not hleping
+>
+> i need not just the lighest but the best for teh job while keep token and
+> usgae at top of mind and never ever ever letting acuracy, correctness ,
+> validity , and up to date informaton all under then intent driven message
+> by user get affected ... this is canon global everywhere and forever"
+
+THE RULE, in his order of priority. Every job goes to the BEST model for
+that job. Tokens and usage stay at the top of mind while choosing it. Five
+things are never affected by that choice: accuracy, correctness, validity,
+up-to-date information, and the intent of the user's message. Cost breaks
+ties between models that all meet those five; it never lowers them. A
+lighter model is chosen only when it is also the best for the job on those
+five. The rule reaches every venue through DreamerOS, the local engines, and
+any local model: local and cloud carry the same rule, because that sameness
+is the moat. Concretely, and binding on every engine, every vendor and every
+venue:
 
   Fable or the largest tier   deciding, resolving contradictions, merging on
                               a verdict, canon, security, spend, and the
@@ -374,9 +393,10 @@ EVERY DISPATCH NAMES ITS MODEL. An Agent or Workflow call with no model
 named is a defect, and a gate refuses it. A reply that he asks about states
 which engine did which part and the cost the instruments printed.
 
-WHAT THIS DOES NOT PERMIT. A cheaper model that would drop the accuracy,
-the power or the intent of the job is not cheaper; it is the wrong tool.
-Small models gather, they do not conclude, stays in force above. [tier]
+WHAT THIS DOES NOT PERMIT. A lighter model that would drop the accuracy,
+correctness, validity, currency of information, power or intent of the job
+is not cheaper; it is the wrong tool, and picking it is not helping. Small
+models gather, they do not conclude, stays in force above. [tier]
 
 ---
 
