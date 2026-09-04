@@ -669,6 +669,33 @@ if ($Install) {
     }
 
     $repoRoot = Split-Path -Parent $Root
+
+    # The global pointer above satisfies the fail-closed pointer contract, but
+    # Cursor itself never reads that path for plugin content. It reads the
+    # plugin rule at wherever Customize > Plugins > local actually registered
+    # this plugin, which plugin.json alone can name. A path guessed here would
+    # drift the moment the plugin is reinstalled elsewhere, so this walks
+    # every local plugin's own plugin.json under the user's Cursor plugins
+    # root and matches it by repository, never by a hardcoded install path.
+    $RegisteredCursorPluginRuleDest = $null
+    $CursorPluginsLocalRoot = Join-Path $env:USERPROFILE '.cursor\plugins\local'
+    if (Test-Path $CursorPluginsLocalRoot) {
+        $pluginManifestFiles = Get-ChildItem -Path $CursorPluginsLocalRoot -Filter 'plugin.json' -Recurse -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -match '\.cursor-plugin[\\/]plugin\.json$' }
+        foreach ($pmFile in $pluginManifestFiles) {
+            $pluginManifest = $null
+            try { $pluginManifest = Get-Content -Raw -LiteralPath $pmFile.FullName | ConvertFrom-Json } catch { continue }
+            if ($pluginManifest.repository -and
+                ([string]$pluginManifest.repository) -match 'dreameros-agent-plugin(\.git)?/?$' -and
+                $pluginManifest.rules) {
+                $pluginRoot = Split-Path -Parent (Split-Path -Parent $pmFile.FullName)
+                $rulesRel = ([string]$pluginManifest.rules) -replace '^\.[\\/]', '' -replace '/', '\'
+                $RegisteredCursorPluginRuleDest = Join-Path (Join-Path $pluginRoot $rulesRel) 'dreameros-boot-canon.mdc'
+                break
+            }
+        }
+    }
+
     $fileInstalls = @(
         @{
             source = Join-Path $Out 'cursor\dreameros-global-plugin-pointer.mdc'
@@ -706,6 +733,16 @@ if ($Install) {
             engine = 'Claude DreamerOS SessionStart adapter'
         }
     )
+
+    if ($RegisteredCursorPluginRuleDest) {
+        $fileInstalls += @{
+            source = $CursorRuleTarget.Path
+            dest = $RegisteredCursorPluginRuleDest
+            engine = 'Cursor registered plugin rule (the file Cursor actually loads)'
+        }
+    } else {
+        Write-Host ("  SKIP   no local Cursor plugin registration under {0} names dreameros-agent-plugin; registered plugin rule not installed." -f $CursorPluginsLocalRoot) -ForegroundColor Yellow
+    }
 
     foreach ($i in $fileInstalls) {
         New-Dir (Split-Path -Parent $i.dest)
