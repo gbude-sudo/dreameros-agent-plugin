@@ -1,10 +1,11 @@
 {
     "minimum_version":  "2.6.0",
-    "semantic_sha256":  "02e7c5c2643070d0c16bcc86330ca3603cb607cd1e7fe4910d6eb979ff235250",
-    "measured_from":  "v2.6.0: offload-in-hydrate added on HC directive 2026-09-11 14:3xZ (always check against local offload; make this part of hydrate from here on, to preserve integrity wired up in runtime customer usable). BOOT CHECK 0 gains a local-offload read and reconcile step; R28 binding 2 gains one sentence binding the local offload to the gateway read. Floor updated as the deliberate reviewed change, HC ratified in chat on 2026-09-11",
+    "semantic_sha256":  "3fa61b2d3be67e2a433624f22b1ced3c16d5984119026ff27e99295d8c6f4050",
+    "measured_from":  "v2.6.0 at merged commit c065aae: R1n adds the HC-directed primary-source requirement to the existing offload-in-hydrate source. The source contains exactly one R1n heading. This floor repair changes no canonical source text; it makes the reviewed floor and generated outputs match the source already on origin/main.",
     "required_clauses":  [
                              "## LAYER 0 - AUTHORITY. SETTLE THIS BEFORE ANYTHING ELSE.",
                              "### R1g - An error is not an inventory",
+                             "### R1n - Open the primary source the operator named",
                              "### R1l - Prove every claim against the definition of done",
                              "## RULE ADDRESSES PRESERVED",
                              "## LAYER 3 - THE OUTPUT GATE. NOTHING SHIPS UNCHECKED.",
