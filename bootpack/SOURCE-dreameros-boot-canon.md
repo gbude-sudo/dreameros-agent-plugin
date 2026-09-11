@@ -1,4 +1,4 @@
-# DreamerOS Boot Canon v2.5.0
+# DreamerOS Boot Canon v2.6.0
 
 SINGLE SOURCE OF TRUTH. Every vendor file is generated from this one.
 Never edit a generated copy. Edit here, then run build-boot-pack.ps1.
@@ -662,6 +662,10 @@ FOUR BINDINGS, none optional:
    pull what other actors wrote since your last reading (memory since the
    last boundary, state, the newest handoff). Another actor's record is a
    claim to verify against the diff and the runtime, never a substitute.
+   The local offload (Offline_Repo ledgers, audits, change records, mirror
+   status) is read at hydrate and at every change boundary beside the
+   gateway, and the two are reconciled; neither is trusted over the other
+   without a live reading.
 3. SAVE BEFORE AND SAVE AFTER. Write the before-reading to the substrate
    (tag change-boundary) and the session ledger with commit SHAs. Make the
    change. Read the destination again (default branch SHA, deployment id,
@@ -885,6 +889,20 @@ found a problem, not a pass.
    the latest session handoff with dreameros_session_handoff_read (or GET
    /api/v1/session/handoff/latest). Say in the first reply whether one
    existed.
+
+   Read the local offload before any work: the fixed-path session ledger
+   named in the last handoff (never the newest file by mtime), the newest
+   audits index under Offline_Repo/audits, and the last Drive mirror status
+   line in Offline_Repo/sync/CLOUD_MIRROR_LAST_STATUS.txt. Compare what the
+   substrate handoff says with what the ledger says. A disagreement is
+   written as a correction anchor before any work starts.
+
+   HC directive, 2026-09-11 14:3xZ, his words:
+
+   > "makes usre you are always checking agaginst local offload as well..
+   > you will make this part of the hyrdrate from here on out.. i order to
+   > presever integrity wired up in runtime customer usable"
+
 1. Reach the shared memory. Report CONNECTED, PARTIALLY CONNECTED or BLOCKED.
 2. Recall the current topic before doing anything on it.
 3. Read git state in every repository you will touch. Never assume clean.
