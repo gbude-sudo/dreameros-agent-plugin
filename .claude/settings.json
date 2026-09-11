@@ -1,0 +1,17 @@
+{
+  "env": {
+    "MAX_MCP_OUTPUT_TOKENS": "30000"
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/dreameros-session-start.sh\""
+          }
+        ]
+      }
+    ]
+  }
+}

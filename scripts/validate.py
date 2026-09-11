@@ -27,6 +27,59 @@ SECRET_RE = re.compile(
     r"(dros_[A-Za-z0-9]{8,}|sk-[A-Za-z0-9_-]{20,}|Bearer\s+[A-Za-z0-9._-]{20,}"
     r"|BEGIN (RSA|OPENSSH|EC) PRIVATE KEY)"
 )
+CLAUDE_BOOTSTRAP_TOOLS = frozenset(
+    {
+        "mcp__dreameros__dreameros_session_package",
+        "mcp__dreameros__dreameros_session_handoff_read",
+        "mcp__dreameros__dreameros_context",
+        "mcp__dreameros__dreameros_recall",
+        "mcp__dreameros__dreameros_canon",
+    }
+)
+CLAUDE_AGENT_NON_MCP_TOOLS = {
+    "canon-citer.md": frozenset(),
+    "citation-verifier.md": frozenset({"Read", "Grep", "Glob", "Bash"}),
+    "contract-differ.md": frozenset({"Read", "Grep", "Glob", "Bash"}),
+    "count-verifier.md": frozenset({"Bash", "Grep", "Read"}),
+    "dreameros-operator.md": frozenset({"Bash", "Read", "Glob", "Grep"}),
+    "file-locator.md": frozenset({"Glob", "Bash", "Read"}),
+    "governance-node.md": frozenset({"Read", "Grep", "Glob", "Bash"}),
+    "grep-scout.md": frozenset({"Grep", "Glob", "Read"}),
+    "mind-eye-auditor.md": frozenset({"Bash", "Read"}),
+    "open-loop-auditor.md": frozenset({"Read", "Grep", "Glob", "Bash"}),
+    "plain-language-auditor.md": frozenset({"Read", "Grep", "Glob"}),
+    "probe-runner.md": frozenset({"Bash", "Read"}),
+    "queue-checker.md": frozenset({"Bash", "Read"}),
+    "web-operator.md": frozenset({"Bash", "Read", "Glob", "Grep"}),
+    "wolverine.md": frozenset({"Bash", "Read", "Edit", "Grep", "Glob"}),
+}
+CLAUDE_AGENT_ROLE_MCP_TOOLS = {
+    "governance-node.md": frozenset({"mcp__dreameros__dreameros_verify"}),
+    "dreameros-operator.md": frozenset(
+        {
+            "mcp__dreameros__dreameros_manifest",
+            "mcp__dreameros__dreameros_memory_full",
+            "mcp__dreameros__dreameros_route",
+            "mcp__dreameros__dreameros_chat",
+            "mcp__dreameros__dreameros_verify",
+            "mcp__dreameros__dreameros_govern",
+            "mcp__dreameros__dreameros_railway",
+            "mcp__dreameros__dreameros_remember",
+            "mcp__dreameros__dreameros_get_receipt",
+        }
+    ),
+    "web-operator.md": frozenset(
+        {
+            "mcp__dreameros__dreameros_remember",
+            "mcp__dreameros__dreameros_verify",
+            "mcp__dreameros__dreameros_govern",
+            "mcp__dreameros__dreameros_get_receipt",
+        }
+    ),
+}
+PORTABLE_DREAMEROS_TOOL_RE = re.compile(r"^mcp__dreameros__dreameros_[a-z0-9_]+$")
+UUID_MCP_ALIAS_RE = re.compile(r"mcp__[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}__", re.IGNORECASE)
+LIVE_MCP_ALIAS_RE = re.compile(r"mcp__DreamerOS_Live__", re.IGNORECASE)
 
 
 def fail(msg: str) -> None:
@@ -216,6 +269,111 @@ def _frontmatter(path: Path) -> str | None:
     return match.group(1)
 
 
+def check_claude_payload_agents() -> None:
+    """Statically validate every installed Claude agent before a loader sees it."""
+    agents_dir = ROOT / "install" / "claude-code" / "payload" / "agents"
+    if not agents_dir.is_dir():
+        fail("Claude payload agents: directory missing")
+        return
+
+    paths = sorted(agents_dir.glob("*.md"))
+    expected_names = set(CLAUDE_AGENT_NON_MCP_TOOLS)
+    actual_names = {path.name for path in paths}
+    if actual_names != expected_names:
+        fail("Claude payload agents: filename inventory differs from the reviewed role map")
+
+    unconditional = "`dreameros_session_package` is the only unconditional boot call. Call it first."
+    conditional = "When the package directs it or the assigned task needs read-only enrichment,"
+    enrichment = (
+        "1. Call `dreameros_session_handoff_read` for the full record when present.",
+        "2. Call `dreameros_context`. Use its SCS as the read-only current-state channel.",
+        "3. Call scoped `dreameros_recall`.",
+        "4. Call `dreameros_canon` when the task needs it.",
+    )
+
+    for path in paths:
+        relative = path.relative_to(ROOT)
+        frontmatter = _frontmatter(path)
+        if frontmatter is None:
+            continue
+        try:
+            text = path.read_text(encoding="utf-8").replace("\r\n", "\n").replace("\r", "\n")
+        except (OSError, UnicodeDecodeError) as exc:
+            fail(f"{relative}: unreadable ({exc})")
+            continue
+
+        fields = set(re.findall(r"(?m)^([A-Za-z][A-Za-z0-9_-]*):", frontmatter))
+        allowed_fields = {"name", "description", "tools", "model", "isolation"}
+        unexpected = fields - allowed_fields
+        if unexpected:
+            fail(f"{relative}: unsupported frontmatter field(s): {', '.join(sorted(unexpected))}")
+
+        name_match = re.search(r"(?m)^name:\s*([^\s]+)\s*$", frontmatter)
+        if name_match is None or name_match.group(1) != path.stem:
+            fail(f"{relative}: frontmatter name does not match filename")
+        if not re.search(r"(?m)^description:\s*\S", frontmatter):
+            fail(f"{relative}: frontmatter description missing")
+
+        tools_match = re.search(r"(?m)^tools:\s*\[([^\]\r\n]*)\]\s*$", frontmatter)
+        if tools_match is None:
+            fail(f"{relative}: tools must be one inline list")
+            continue
+        tools = [item.strip() for item in tools_match.group(1).split(",") if item.strip()]
+        if not tools or len(tools) != len(set(tools)):
+            fail(f"{relative}: tools list is empty or contains duplicates")
+            continue
+
+        mcp_tools = {tool for tool in tools if tool.startswith("mcp__")}
+        non_mcp_tools = set(tools) - mcp_tools
+        expected_mcp = CLAUDE_BOOTSTRAP_TOOLS | CLAUDE_AGENT_ROLE_MCP_TOOLS.get(path.name, frozenset())
+        if mcp_tools != expected_mcp:
+            fail(f"{relative}: MCP tool set differs from the reviewed portable role map")
+        if non_mcp_tools != CLAUDE_AGENT_NON_MCP_TOOLS.get(path.name, frozenset()):
+            fail(f"{relative}: non-MCP tool set differs from the reviewed role map")
+        for tool in mcp_tools:
+            if not PORTABLE_DREAMEROS_TOOL_RE.fullmatch(tool):
+                fail(f"{relative}: nonportable DreamerOS MCP tool id: {tool}")
+
+        if UUID_MCP_ALIAS_RE.search(text):
+            fail(f"{relative}: UUID-shaped MCP alias is forbidden")
+        if LIVE_MCP_ALIAS_RE.search(text):
+            fail(f"{relative}: DreamerOS_Live MCP alias is forbidden")
+        if "dreameros_state" in text:
+            fail(f"{relative}: mixed state tool must not appear in a generic agent")
+        if "PARTIALLY CONNECTED" in text:
+            fail(f"{relative}: absent mixed state tool must not degrade connectivity")
+        if text.count("DREAMEROS-READ-ONLY-BOOTSTRAP v1.1.0") != 1:
+            fail(f"{relative}: bootstrap marker missing or duplicated")
+        if text.count(unconditional) != 1:
+            fail(f"{relative}: unconditional package contract missing or duplicated")
+        if text.count(conditional) != 1:
+            fail(f"{relative}: conditional enrichment contract missing or duplicated")
+        ordered = (unconditional, conditional, *enrichment)
+        positions = [text.find(item) for item in ordered]
+        if any(position < 0 for position in positions) or positions != sorted(positions):
+            fail(f"{relative}: unconditional package and conditional enrichment order drifted")
+
+    settings_path = ROOT / "install" / "claude-code" / "payload" / "settings.fragment.json"
+    generated_hook = ROOT / "bootpack" / "out" / "claude" / "dreameros-session-start.sh"
+    payload_hook = ROOT / "install" / "claude-code" / "payload" / "hooks" / "dreameros-session-start.sh"
+    try:
+        settings = json.loads(settings_path.read_text(encoding="utf-8"))
+        session_groups = settings.get("hooks", {}).get("SessionStart", [])
+        session_commands = [hook.get("command", "") for group in session_groups for hook in group.get("hooks", [])]
+    except Exception as exc:
+        fail(f"Claude payload SessionStart registration: unreadable ({exc})")
+        return
+    bootstrap_commands = [command for command in session_commands if "dreameros-session-start.sh" in command]
+    competing = [command for command in session_commands if re.search(r"(?i)(operator-standing-orders|dreameros-agent-stack-session-start|dreameros_state|dreameros_recall)", command)]
+    if len(bootstrap_commands) != 1 or competing:
+        fail("Claude payload SessionStart registration: requires one generated bootstrap and no competing hydration hook")
+    try:
+        if payload_hook.read_bytes() != generated_hook.read_bytes():
+            fail("Claude payload SessionStart hook: generated payload copy differs from bootpack output")
+    except OSError as exc:
+        fail(f"Claude payload SessionStart hook: unreadable ({exc})")
+
+
 def _cursor_manifest_paths(data: dict, field: str) -> list[Path]:
     raw = data.get(field)
     values = raw if isinstance(raw, list) else [raw]
@@ -239,13 +397,17 @@ def check_cursor_project_pointer() -> None:
     cursor_path = ROOT / "bootpack" / "out" / "cursor" / "dreameros-project-pointer.mdc"
     global_path = ROOT / "bootpack" / "out" / "cursor" / "dreameros-global-plugin-pointer.mdc"
     embedded_path = ROOT / "bootpack" / "out" / "project" / "DREAMEROS_BOOT_CANON_POINTER.md.block"
+    source_path = ROOT / "bootpack" / "SOURCE-dreameros-boot-canon.md"
     try:
         cursor_text = cursor_path.read_text(encoding="utf-8").replace("\r\n", "\n").replace("\r", "\n")
         global_text = global_path.read_text(encoding="utf-8").replace("\r\n", "\n").replace("\r", "\n")
         embedded_text = embedded_path.read_text(encoding="utf-8").replace("\r\n", "\n").replace("\r", "\n")
+        source_text = source_path.read_text(encoding="utf-8").replace("\r\n", "\n").replace("\r", "\n")
     except Exception as exc:
         fail(f"project pointer: unreadable ({exc})")
         return
+
+    source_sha256 = hashlib.sha256(source_text.encode("utf-8")).hexdigest()
 
     if not 500 <= len(cursor_text.encode("utf-8")) <= 4096:
         fail("project pointer: Cursor artifact must remain between 500 and 4096 bytes")
@@ -260,22 +422,30 @@ def check_cursor_project_pointer() -> None:
     body = frontmatter.group(2).strip()
     if body != embedded_text.strip():
         fail("project pointer: Cursor and embedded pointer bodies differ")
-    if cursor_text.count("DREAMEROS-PROJECT-BOOT-POINTER v1.0.0") != 1:
+    if cursor_text.count("DREAMEROS-PROJECT-BOOT-POINTER v1.1.0") != 1:
         fail("project pointer: stable pointer marker missing or duplicated")
     for required_text in (
         "gbude-sudo/dreameros-agent-plugin:bootpack/SOURCE-dreameros-boot-canon.md",
+        "prove either carrier A or carrier B",
+        "Cloud carrier: a successful authenticated `dreameros_session_package`",
+        "`package_components.boot_canon`",
+        "Component and wrapper schema, version, SHA-256,",
+        "report CONFLICT",
         "report BLOCKED",
-        "Do not treat this pointer as a fallback canon.",
     ):
         if required_text not in cursor_text:
             fail(f"project pointer: required fail-closed text missing: {required_text}")
-    if re.search(r"\b[0-9a-fA-F]{64}\b", cursor_text):
-        fail("project pointer: source hash pin would recreate cross-repository fanout")
+    for pattern, label in (
+        (r"Do not\s+use this pointer as a fallback canon\.", "fail-closed pointer"),
+    ):
+        if not re.search(pattern, cursor_text):
+            fail(f"project pointer: required fail-closed text missing: {label}")
+    if source_sha256 in cursor_text or re.search(r"\b[0-9a-fA-F]{64}\b", cursor_text):
+        fail("project pointer: release-specific source hash pin is forbidden")
     forbidden = (
         r"(?m)^# DreamerOS Boot Canon v\d",
         r"(?m)^## R1\b",
         r"(?m)^## LAYER\b",
-        r"HC-DEFINITION-OF-DONE",
         r"(?m)^# THE DEFINITION OF DONE",
     )
     for pattern in forbidden:
@@ -302,7 +472,7 @@ def check_cursor_project_pointer() -> None:
         fail(f"project pointer: generated manifest unreadable ({exc})")
         return
     pointer_meta = generated_manifest.get("project_pointer", {})
-    if pointer_meta.get("version") != "v1.0.0":
+    if pointer_meta.get("version") != "v1.1.0":
         fail("project pointer: generated manifest version mismatch")
     if pointer_meta.get("cursor_path") != "cursor/dreameros-project-pointer.mdc":
         fail("project pointer: generated manifest Cursor path mismatch")
@@ -310,6 +480,23 @@ def check_cursor_project_pointer() -> None:
         fail("project pointer: generated manifest global Cursor pointer path mismatch")
     if pointer_meta.get("embedded_path") != "project/DREAMEROS_BOOT_CANON_POINTER.md.block":
         fail("project pointer: generated manifest embedded path mismatch")
+    cloud_meta = pointer_meta.get("cloud_session_package", {})
+    if cloud_meta.get("component") != "package_components.boot_canon":
+        fail("project pointer: generated manifest cloud package component mismatch")
+    if cloud_meta.get("proof") != "one complete wrapper with matching schema, version, sha256, provenance, full-body hash, canaries, and fresh metadata":
+        fail("project pointer: generated manifest cloud package proof mismatch")
+    required_canaries = ["R26", "R27", "HC-DEFINITION-OF-DONE"]
+    if cloud_meta.get("required_canary_ids") != required_canaries:
+        fail("project pointer: generated manifest cloud package required canary ids mismatch")
+    if "required_marker_ids" in cloud_meta:
+        fail("project pointer: generated manifest retains obsolete cloud package marker ids")
+    source_text = (ROOT / "bootpack" / "SOURCE-dreameros-boot-canon.md").read_text(encoding="utf-8")
+    for canary in required_canaries:
+        if canary not in source_text:
+            fail(f"project pointer: required canary no longer exists in source: {canary}")
+    oauth_meta = generated_manifest.get("project_oauth_onramp", {})
+    if oauth_meta.get("status") != "TEMPLATE_WRITTEN_NOT_REGISTERED":
+        fail("project pointer: generated OAuth on-ramp status must remain template-only")
 
 
 def check_project_adapters() -> None:
@@ -359,17 +546,21 @@ def check_project_adapters() -> None:
                 fail(f"project adapter {name}: duplicated canon marker matched {pattern}")
 
     hook = texts.get("claude_session_start", "")
-    if hook.count("DREAMEROS-CLAUDE-SESSION-START-ADAPTER v1.0.0") != 1:
+    if hook.count("DREAMEROS-CLAUDE-SESSION-START-ADAPTER v1.1.0") != 1:
         fail("Claude session-start adapter: stable marker missing or duplicated")
-    required_order = (
-        "dreameros_session_package",
-        "dreameros_context",
-        "dreameros_state",
-        "dreameros_recall",
+    adapter_unconditional = "Call dreameros_session_package first for the active Claude engine and current project. It is the only unconditional boot call"
+    adapter_conditional = "When the package directs it or the current task needs read-only enrichment, call in this order:"
+    adapter_enrichment = (
+        "dreameros_session_handoff_read for the full record when present",
+        "dreameros_context and use its SCS as the read-only current-state channel",
+        "a scoped dreameros_recall for the current topic",
+        "relevant dreameros_canon",
     )
-    positions = [hook.find(token) for token in required_order]
+    positions = [hook.find(token) for token in (adapter_unconditional, adapter_conditional, *adapter_enrichment)]
     if any(position < 0 for position in positions) or positions != sorted(positions):
-        fail("Claude session-start adapter: required hydration order missing or drifted")
+        fail("Claude session-start adapter: unconditional package and conditional enrichment order drifted")
+    if "dreameros_state" in hook:
+        fail("Claude session-start adapter: mixed state tool leaked into generic bootstrap")
     if re.search(r"mcp__[0-9a-f-]{20,}__", hook, re.IGNORECASE):
         fail("Claude session-start adapter: hardcoded MCP server id leaked")
     if "hookEventName\": \"SessionStart" not in hook or "set -euo pipefail" not in hook:
@@ -389,7 +580,7 @@ def check_project_adapters() -> None:
     except Exception as exc:
         fail(f"project adapters: generated manifest unreadable ({exc})")
         return
-    if meta.get("version") != "v1.0.0":
+    if meta.get("version") != "v1.1.0":
         fail("project adapters: generated manifest version mismatch")
     expected = {
         "measurement": "cursor/answer-from-measurement.adapter.mdc",
@@ -402,6 +593,30 @@ def check_project_adapters() -> None:
     for key, value in expected.items():
         if meta.get(key) != value:
             fail(f"project adapters: generated manifest path mismatch for {key}")
+
+    oauth_root = ROOT / "bootpack" / "out" / "project-oauth"
+    expected_oauth = {
+        "claude.mcp.json": ("dreameros", {"type": "streamable-http", "url": "https://mcp.dreameros.app/mcp"}),
+        "cursor.mcp.json": ("dreameros-platform", {"url": "https://mcp.dreameros.app/mcp"}),
+    }
+    for filename, (server_name, expected_server) in expected_oauth.items():
+        try:
+            payload = json.loads((oauth_root / filename).read_text(encoding="utf-8"))
+            server = payload.get("mcpServers", {}).get(server_name, {})
+        except Exception as exc:
+            fail(f"project OAuth on-ramp: unreadable {filename} ({exc})")
+            continue
+        if server != expected_server:
+            fail(f"project OAuth on-ramp: invalid credential-free {filename}")
+    try:
+        codex_onramp = (oauth_root / "codex.config.toml").read_text(encoding="utf-8")
+    except OSError as exc:
+        fail(f"project OAuth on-ramp: unreadable codex.config.toml ({exc})")
+    else:
+        if "[mcp_servers.dreameros]" not in codex_onramp or 'url = "https://mcp.dreameros.app/mcp"' not in codex_onramp or "[mcp_servers.dreameros.tools.dreameros_session_package]" not in codex_onramp or "output_token_limit = 30000" not in codex_onramp:
+            fail("project OAuth on-ramp: invalid credential-free codex.config.toml")
+        if re.search(r"(?i)authorization|bearer|api[_-]?key|env", codex_onramp):
+            fail("project OAuth on-ramp: Codex template has a credential dependency")
 
 
 def check_cursor_plugin() -> None:
@@ -948,25 +1163,66 @@ def check_customer_copy_vocabulary() -> None:
 
 
 def check_hydration_preconditions() -> None:
-    paths = list((ROOT / "skills").glob("*/SKILL.md"))
-    paths += list((ROOT / "cursor" / "agents").glob("*.md"))
-    paths += list((ROOT / "cursor" / "commands").glob("*.md"))
-    sequence = ("dreameros_session_package", "dreameros_context", "dreameros_state", "dreameros_recall")
+    paths = (
+        ROOT / "cursor" / "agents" / "canon-citer.md",
+        ROOT / "cursor" / "agents" / "dreameros-operator.md",
+        ROOT / "cursor" / "commands" / "dreameros-hydrate.md",
+        ROOT / "cursor" / "commands" / "dreameros-parity-check.md",
+        ROOT / "cursor" / "commands" / "dreameros-verify.md",
+        ROOT / "cursor" / "rules" / "dreameros-runtime.mdc",
+        ROOT / "skills" / "dreameros-continuity" / "SKILL.md",
+        ROOT / "skills" / "dreameros-verified-answers" / "SKILL.md",
+        ROOT / "skills" / "dreameros-verified-routing" / "SKILL.md",
+    )
+    marker = "DREAMEROS-BOOT-PRECONDITION v1.1.0"
+    required_order = (
+        "dreameros_session_package",
+        "dreameros_session_handoff_read",
+        "dreameros_context",
+        "dreameros_recall",
+        "dreameros_canon",
+    )
     for path in paths:
-        text = path.read_text(encoding="utf-8")
-        if not re.search(r"dreameros_(?:session_package|context|state|recall|remember|verify|route|canon|memory_full|manifest|web_login|web_act)\b", text):
+        try:
+            text = path.read_text(encoding="utf-8").replace("\r\n", "\n").replace("\r", "\n")
+        except (OSError, UnicodeDecodeError) as exc:
+            fail(f"hydration precondition: unreadable {path.relative_to(ROOT)} ({exc})")
             continue
-        if path == ROOT / "skills" / "dreameros-boot" / "SKILL.md":
-            continue
-        if "DREAMEROS-BOOT-PRECONDITION v1.0.0" not in text:
+        if marker not in text or "DREAMEROS-BOOT-PRECONDITION v1.0.0" in text:
             fail(f"hydration precondition: marker missing in {path.relative_to(ROOT)}")
             continue
-        required = sequence[:3]
-        positions = [text.find(token) for token in required]
+        if not re.search(r"`dreameros_session_package`\s+is the only\s+required boot call\.\s+Call it first", text):
+            fail(f"hydration precondition: unconditional package contract missing in {path.relative_to(ROOT)}")
+        if not re.search(r"When the package directs it or the assigned\s+task needs read-only enrichment,\s+use this order", text):
+            fail(f"hydration precondition: conditional enrichment contract missing in {path.relative_to(ROOT)}")
+        positions = [text.find(token) for token in required_order]
         if any(position < 0 for position in positions) or positions != sorted(positions):
-            fail(f"hydration precondition: mandatory order missing in {path.relative_to(ROOT)}")
+            fail(f"hydration precondition: v1.1 order missing in {path.relative_to(ROOT)}")
+        if path.name != "dreameros-operator.md" and "dreameros_state" in text:
+            fail(f"hydration precondition: mixed state tool leaked into generic bootstrap {path.relative_to(ROOT)}")
         if re.search(r"(?i)\brecall\s+FIRST\b|\brecall\s+first\b", text):
             fail(f"hydration precondition: recall-first directive remains in {path.relative_to(ROOT)}")
+
+    hook_path = ROOT / "cursor" / "hooks" / "dreameros_cursor_hook.py"
+    try:
+        hook = hook_path.read_text(encoding="utf-8").replace("\r\n", "\n").replace("\r", "\n")
+    except (OSError, UnicodeDecodeError) as exc:
+        fail(f"hydration precondition: unreadable {hook_path.relative_to(ROOT)} ({exc})")
+        return
+    if 'BOOT_SEQUENCE = ("dreameros_session_package",)' not in hook:
+        fail("Cursor hook: session package must be the only mandatory boot gate")
+    context_match = re.search(r'BOOT_CONTEXT = """([\s\S]*?)"""', hook)
+    if context_match is None:
+        fail("Cursor hook: boot context missing")
+    else:
+        context = context_match.group(1)
+        if "dreameros_state" in context:
+            fail("Cursor hook: mixed state tool remains in universal boot context")
+        positions = [context.find(token) for token in required_order]
+        if any(position < 0 for position in positions) or positions != sorted(positions):
+            fail("Cursor hook: v1.1 package and conditional enrichment order drifted")
+    if '"dreameros_session_handoff_read",' not in hook:
+        fail("Cursor hook: handoff read is not classified as a safe optional enrichment call")
 
 
 def check_house_rules() -> None:
@@ -994,6 +1250,7 @@ def main() -> int:
     check_cursor_project_pointer()
     check_project_adapters()
     check_skills()
+    check_claude_payload_agents()
     check_cursor_plugin()
     check_cursor_component_name_uniqueness()
     check_cursor_portability()

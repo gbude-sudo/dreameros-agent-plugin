@@ -11,11 +11,12 @@ discussed in an earlier session on any AI surface.
 
 ## Before starting substantive work
 
-<!-- DREAMEROS-BOOT-PRECONDITION v1.0.0 -->
-This skill runs after the native session boot. First require returned proof for
-`dreameros_session_package`, then `dreameros_context`, then `dreameros_state`.
-If the current chat has no such proof, perform those calls in that order before
-continuity recall.
+<!-- DREAMEROS-BOOT-PRECONDITION v1.1.0 -->
+`dreameros_session_package` is the only required boot call. Call it first.
+When the package directs it or the assigned task needs read-only enrichment,
+use this order: (1) `dreameros_session_handoff_read` for the full record when
+present, (2) `dreameros_context` and its SCS as the read-only current-state
+channel, (3) scoped `dreameros_recall`, and (4) `dreameros_canon` when needed.
 
 1. Call the `dreameros_recall` tool with a short query describing the topic
    at hand. If the user references past work ("continue the pricing doc",

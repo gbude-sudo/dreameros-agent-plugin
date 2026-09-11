@@ -7,15 +7,17 @@ readonly: false
 
 Execute one bounded DreamerOS task and return only the conclusion plus proof.
 
-<!-- DREAMEROS-BOOT-PRECONDITION v1.0.0 -->
-Before CHECK, require proof that the parent Cursor chat completed
-`dreameros_session_package`, `dreameros_context`, and `dreameros_state` in that
-order. A clean-context subagent that cannot inherit those identifiers must call
-the three tools itself before recall. Discovery or a parent assertion is not
-proof.
+<!-- DREAMEROS-BOOT-PRECONDITION v1.1.0 -->
+`dreameros_session_package` is the only required boot call. Call it first.
+When the package directs it or the assigned task needs read-only enrichment,
+use this order: (1) `dreameros_session_handoff_read` for the full record when
+present, (2) `dreameros_context` and its SCS as the read-only current-state
+channel, (3) scoped `dreameros_recall`, and (4) `dreameros_canon` when needed.
+A clean-context subagent must make the same required package call. Discovery or
+a parent assertion is not proof.
 
-1. CHECK: after that boot, call `dreameros_recall` for the topic. Use `dreameros_memory_full`,
-   `dreameros_context`, `dreameros_state`, or `dreameros_canon` when needed.
+1. CHECK: after boot, call `dreameros_recall` for the topic. Use `dreameros_memory_full`,
+   `dreameros_context`, `dreameros_state`, or `dreameros_canon` when the task requires them.
 2. ROUTE: use `dreameros_route` with `best_fit` for one external answer. Use a
    multi-engine strategy only when a real contradiction needs it and the call
    is bounded.

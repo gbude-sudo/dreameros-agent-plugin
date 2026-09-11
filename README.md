@@ -35,6 +35,11 @@ reads:
 - Codex `AGENTS.md` block and discoverable skill
 - Cursor global `alwaysApply` rule
 - stable fail-closed project pointer blocks for Claude, Codex, and Cursor repositories
+- credential-free project OAuth on-ramp templates for Claude, Cursor, and Codex;
+  these register an endpoint only and require client OAuth approval before CONNECTED
+- Claude users can set `MAX_MCP_OUTPUT_TOKENS=30000` as a non-secret
+  user or project setting when full package output is needed. This is not a
+  connection proof and no Cursor output limit is configured here.
 - thin project coordination, handoff, and Claude SessionStart adapters that
   preserve tracked paths without duplicating canon or hardcoding an MCP id
 - Agent Plugin skill
@@ -72,8 +77,9 @@ Use `-VerifyInstalled` for a read-only exact block and file check across those
 installed destinations.
 
 Run `install/cursor/sync-project-rules.ps1` without switches to inventory tracked
-Cursor project rules. A measured `GLOBAL_ONLY` estate or
-`POINTER_ALIGNED FILE-CLEAN` is non-conflicting. Each repository's instruction
+Cursor project rules. `GLOBAL_ONLY` is a `CLOUD_BOOT_GAP`. A project pointer
+is required for universal cloud parity. `POINTER_ALIGNED FILE-CLEAN` is the
+portable default. Each repository's instruction
 and ownership review must approve migration separately because tracked files
 can have active owners and companion registries.
 

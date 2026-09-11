@@ -60,11 +60,13 @@ jobs:
           [void][ScriptBlock]::Create((Get-Content -Raw -LiteralPath './install/cursor/sync-project-rules.ps1'))
           [void][ScriptBlock]::Create((Get-Content -Raw -LiteralPath './install/cursor/restore-project-rules.ps1'))
           [void][ScriptBlock]::Create((Get-Content -Raw -LiteralPath './install/cursor/audit-project-boot-surfaces.ps1'))
+          [void][ScriptBlock]::Create((Get-Content -Raw -LiteralPath './install/cursor/audit-project-client-oauth.ps1'))
           [void][ScriptBlock]::Create((Get-Content -Raw -LiteralPath './install/cursor/plan-project-migration.ps1'))
           [void][ScriptBlock]::Create((Get-Content -Raw -LiteralPath './install/cursor/render-project-migration-diffs.ps1'))
           [void][ScriptBlock]::Create((Get-Content -Raw -LiteralPath './install/cursor/tests/install.tests.ps1'))
           [void][ScriptBlock]::Create((Get-Content -Raw -LiteralPath './install/cursor/tests/sync-project-rules.tests.ps1'))
           [void][ScriptBlock]::Create((Get-Content -Raw -LiteralPath './install/cursor/tests/audit-project-boot-surfaces.tests.ps1'))
+          [void][ScriptBlock]::Create((Get-Content -Raw -LiteralPath './install/cursor/tests/audit-project-client-oauth.tests.ps1'))
           [void][ScriptBlock]::Create((Get-Content -Raw -LiteralPath './install/cursor/tests/plan-project-migration.tests.ps1'))
           [void][ScriptBlock]::Create((Get-Content -Raw -LiteralPath './install/cursor/tests/render-project-migration-diffs.tests.ps1'))
           [void][ScriptBlock]::Create((Get-Content -Raw -LiteralPath './bootpack/tests/build-installed.tests.ps1'))
@@ -74,10 +76,16 @@ jobs:
         run: ./install/cursor/tests/install.tests.ps1
       - shell: powershell
         run: ./install/cursor/tests/sync-project-rules.tests.ps1
+      - shell: pwsh
+        run: ./install/cursor/tests/sync-project-rules.tests.ps1
       - shell: powershell
         run: ./install/cursor/tests/audit-project-boot-surfaces.tests.ps1
       - shell: pwsh
         run: ./install/cursor/tests/audit-project-boot-surfaces.tests.ps1
+      - shell: powershell
+        run: ./install/cursor/tests/audit-project-client-oauth.tests.ps1
+      - shell: pwsh
+        run: ./install/cursor/tests/audit-project-client-oauth.tests.ps1
       - shell: powershell
         run: ./install/cursor/tests/plan-project-migration.tests.ps1
       - shell: pwsh

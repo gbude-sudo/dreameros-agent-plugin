@@ -5,11 +5,14 @@ description: Prove whether this Cursor session is fully plugged into DreamerOS a
 
 # Cursor to DreamerOS parity check
 
-<!-- DREAMEROS-BOOT-PRECONDITION v1.0.0 -->
-This command proves its own boot. Before any non-boot DreamerOS call, obtain
-returned identifiers from `dreameros_session_package`, then
-`dreameros_context`, then `dreameros_state`; use those identifiers for the
-remaining recall, receipt, and component checks.
+<!-- DREAMEROS-BOOT-PRECONDITION v1.1.0 -->
+This command proves its own boot. `dreameros_session_package` is the only
+required boot call. Call it first. When the package directs it or the assigned
+task needs read-only enrichment, use this order: (1)
+`dreameros_session_handoff_read` for the full record when present, (2)
+`dreameros_context` and its SCS as the read-only current-state channel, (3)
+scoped `dreameros_recall`, and (4) `dreameros_canon` when needed. Use returned
+identifiers for the remaining receipt and component checks.
 
 Run this as an audit. Do not branch, commit, push, merge, deploy, publish,
 change credentials, or approve a paid action.
