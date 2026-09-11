@@ -1,3 +1,5 @@
+param([switch]$ForceFailure)
+
 $ErrorActionPreference = 'Stop'
 
 $BootRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
@@ -11,6 +13,10 @@ $Cases = 0
 function Assert-True([bool]$Condition, [string]$Message) {
     $script:Cases++
     if (-not $Condition) { throw "ASSERTION FAILED: $Message" }
+}
+
+if ($ForceFailure) {
+    Assert-True $false 'forced assertion negative control'
 }
 
 function Get-RawSha([string]$Path) {
@@ -164,8 +170,24 @@ finally {
 }
 Assert-True (Test-ExactBytes ([IO.File]::ReadAllBytes($HooksDestination)) $ownerHooksBytes) 'locked hooks.json owner bytes were overwritten'
 
+$priorPreference = $ErrorActionPreference
+try {
+    $ErrorActionPreference = 'Continue'
+    $forcedOutput = @(& $PowerShellExe -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath -ForceFailure 2>&1)
+    $forcedExit = $LASTEXITCODE
+}
+finally {
+    $ErrorActionPreference = $priorPreference
+}
+Assert-True ($forcedExit -ne 0) 'forced assertion negative control returned success'
+Assert-True (($forcedOutput -join "`n") -match 'forced assertion negative control') 'forced assertion failure was not observable'
+
 Write-Output (@{
     status = 'pass'
     assertions = $Cases
     fixture_root = $TempRoot
 } | ConvertTo-Json -Compress)
+
+# The final installer child is expected to exit 1 for the locked-owner case.
+# Every real test failure throws before this point, so reaching here is PASS.
+exit 0
