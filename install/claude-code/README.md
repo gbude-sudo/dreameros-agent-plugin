@@ -4,9 +4,10 @@
 Claude Code home directory on a Windows machine. It is the packaged form of an
 environment that was previously assembled by hand, file by file.
 
-The installer merges. It does not replace. That is the single most important
-property in this folder. A customer who already runs Claude Code keeps every
-permission, hook, and MCP server they had before.
+The installer merges settings and managed regions. It does not replace whole
+existing configuration files. It preserves existing MCP servers, each unique
+permission, and each unique nonretired hook. It removes duplicate and named
+retired lifecycle registrations.
 
 ## What it installs
 
@@ -16,7 +17,7 @@ install/claude-code/
   README.md                      this file
   payload/
     agents/       15 subagent definitions
-    hooks/        12 hook scripts, 11 bash and 1 python
+    hooks/        18 hook scripts, 13 bash and 5 python
     skills/       18 skill definitions
     CLAUDE.md     the canon file
     settings.fragment.json  permissions and hook registrations to merge
@@ -28,6 +29,12 @@ expands `__DREAMEROS_CLAUDE_HOME__` and `__DREAMEROS_REPO_ROOT__` from the
 specific path, no token, and no API key.
 
 ### Agents
+
+For the 15 named managed agents, the installer owns only the `tools` line and
+the `DREAMEROS-READ-ONLY-BOOTSTRAP v1.1.0` block. It merges those two regions
+into an existing file. It preserves every other local frontmatter field and
+body sequence, and backs up the original file before writing. A malformed or
+ambiguous managed region fails closed instead of requiring `-Force`.
 
 | Agent | Job |
 | --- | --- |
@@ -51,8 +58,7 @@ specific path, no token, and no API key.
 
 | Hook | Event | Job |
 | --- | --- | --- |
-| operator-standing-orders.sh | SessionStart | states the boot contract every session |
-| dreameros-agent-stack-session-start.sh | SessionStart | loads the DreamerOS agent stack |
+| dreameros-session-start.sh | SessionStart | loads the portable session package contract |
 | open-loop-surface.sh | SessionStart | surfaces uncommitted and unmerged work |
 | gate-local-merge-first.sh | PreToolUse Bash | refuses a push that skips local main |
 | gate-destructive-write.sh | PreToolUse Write | refuses a write that erases most of a file |
@@ -63,8 +69,14 @@ specific path, no token, and no API key.
 | dreameros-agent-stack-stop.sh | Stop | pre-close checklist when repositories are dirty |
 | model-phase-boundary.sh | Stop | wrapper for the python hook |
 | model-phase-boundary.py | Stop | names the model to use at a phase boundary |
-| model-switch-ack.sh | Stop | wrapper for the python hook |
-| model-switch-ack.py | Stop | names the engine out loud the turn after it changes |
+| model-switch-ack.sh | Unregistered compatibility file | retained on disk but never registered beside the direct hook |
+| model-switch-ack.py | Stop | direct hook that names the engine after it changes |
+
+SessionStart and Stop commands are unique across matcher groups. The installer
+keeps the first command object and every nonduplicate hook or matcher. It does
+not apply cross-group deduplication to `PreToolUse`, where matcher scope changes
+meaning. It also removes the retired SessionStart auto-install command. It
+preserves `build-boot-pack.ps1 -VerifyInstalled`.
 
 ### Skills
 
@@ -97,12 +109,12 @@ satisfies each one. It names gaps instead of hiding them.
 | # | Requirement | Satisfied by | State |
 | --- | --- | --- | --- |
 | 1 | Tell me which model to use | `payload/hooks/model-phase-boundary.py` and `.sh` | PRESENT |
-| 1b | Tell me WHEN the engine changed, without being asked | `payload/hooks/model-switch-ack.py` and `.sh`, boot canon R17 | PRESENT for Claude Code; PROSE ONLY on vendors with no hook surface |
+| 1b | Tell me WHEN the engine changed, without being asked | direct `payload/hooks/model-switch-ack.py`, boot canon R17 | PRESENT for Claude Code; PROSE ONLY on vendors with no hook surface |
 | 2 | Drift detection | `payload/agents/open-loop-auditor.md`, `payload/agents/citation-verifier.md`, `payload/skills/self-catch/SKILL.md` | PRESENT |
 | 3 | No skipped inputs, no hallucinations | `payload/hooks/gate-claim-verification.sh`, `payload/hooks/gate-stop-no-half-states.sh`, the agent hook in `payload/settings.fragment.json` | PRESENT |
 | 4 | Know what the gateway enforces | `payload/hooks/operator-standing-orders.sh`, `payload/agents/governance-node.md`, `payload/agents/canon-citer.md` | PARTIAL |
 | 5 | Do not archive without asking | `payload/hooks/gate-no-archive-without-asking.sh` plus the deny entry in `payload/settings.fragment.json` | PRESENT |
-| 6 | Repeatedly available inline | the three SessionStart hooks above | PRESENT |
+| 6 | Repeatedly available inline | the two registered SessionStart hooks above | PRESENT |
 | 7 | Vendor agnostic | repository root `plugin.json`, `mcp.json`, `skills/` in Agent Plugins v1.0 format | PARTIAL |
 | 8 | Sellable and distributable | this folder: `dreameros-global-setup.ps1` and its payload | PRESENT |
 | 9 | Life-hack moats versus peers and competitors | no dedicated artifact. `payload/skills/reachability-audit/SKILL.md` carries "moat scour" as a trigger phrase only | MISSING |
@@ -148,7 +160,7 @@ Custom locations:
 | `-RepoRoot` | `$env:USERPROFILE\Documents\DreamerOS` | where your repositories live |
 | `-PayloadPath` | `payload` next to the script | the payload directory |
 | `-DryRun` | off | print actions, change nothing |
-| `-Force` | off | overwrite files that differ, including CLAUDE.md |
+| `-Force` | off | overwrite differing hook, skill, and canon payload files; managed agent files still merge only their two owned regions |
 | `-SkipCanon` | off | do not install CLAUDE.md |
 
 ### After the install
@@ -166,14 +178,19 @@ either is missing, and still installs the rest.
 | --- | --- | --- |
 | Idempotent | run twice against the same home | `settings.json` byte-identical, SHA256 unchanged, every file reported SKIP |
 | Merges, never clobbers | run against a copy of a 142-entry live settings.json | `additionalDirectories`, `enabledPlugins`, `extraKnownMarketplaces` and every other key preserved |
+| Lifecycle commands stay unique | seed duplicates across SessionStart and Stop matcher groups | first command kept, four later duplicates removed, PreToolUse matcher groups preserved |
+| Retired auto-install removed | seed SessionStart `build-boot-pack.ps1 -Install` beside `-VerifyInstalled` | install command removed, verify command and session package kept |
+| Managed agent hydration merges | seed old UUID tools, local frontmatter, and local body text | portable tools and one bootstrap block installed; every unrelated field and body sequence preserved |
 | Backs up before writing | any run that changes a file | timestamped copy under `<ClaudeHome>\backups\dreameros-install-<stamp>\` |
 | Refuses a corrupt settings.json | seed an unparseable file, run | merge refused, file untouched, exit code 1 |
 | Dry run changes nothing | `-DryRun` against a seeded home | every action printed, no write |
 | Fails loudly | any failure | named in the FAILED block, exit code 1 |
 
-A file the customer edited is left alone. The installer reports it as
-`present with local changes, left alone`. Pass `-Force` to overwrite, and the
-previous version still goes to the backup folder first.
+A customer-edited payload hook, skill, or canon file is left alone unless
+`-Force` is used. Unrelated customer files are not targets. Managed DreamerOS
+agent files use a narrower rule without `-Force`: the installer locks and
+backs up each file, updates only `tools` and the bootstrap block, and preserves
+the other frontmatter and body content.
 
 ## How to roll back
 

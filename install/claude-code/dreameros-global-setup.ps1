@@ -103,6 +103,66 @@ function Read-TextFile {
     return [System.IO.File]::ReadAllText($Path, (New-Object System.Text.UTF8Encoding($false)))
 }
 
+function Read-LockedBytes {
+    param([Parameter(Mandatory)][System.IO.FileStream] $Stream)
+    $Stream.Position = 0
+    [byte[]]$bytes = New-Object byte[] ([int]$Stream.Length)
+    $offset = 0
+    while ($offset -lt $bytes.Length) {
+        $read = $Stream.Read($bytes, $offset, $bytes.Length - $offset)
+        if ($read -eq 0) { break }
+        $offset += $read
+    }
+    if ($offset -ne $bytes.Length) {
+        throw "short locked-file read: expected $($bytes.Length) bytes and read $offset."
+    }
+    return ,$bytes
+}
+
+function Decode-Utf8Bytes {
+    param([Parameter(Mandatory)][AllowEmptyCollection()][byte[]] $Bytes)
+    $offset = 0
+    if ($Bytes.Length -ge 3 -and $Bytes[0] -eq 0xEF -and $Bytes[1] -eq 0xBB -and $Bytes[2] -eq 0xBF) {
+        $offset = 3
+    }
+    return (Get-Utf8NoBom).GetString($Bytes, $offset, $Bytes.Length - $offset)
+}
+
+function Backup-LockedBytes {
+    param(
+        [Parameter(Mandatory)][string] $Path,
+        [Parameter(Mandatory)][AllowEmptyCollection()][byte[]] $Bytes
+    )
+    $backupDir = Join-Path $ClaudeHome ('backups\dreameros-install-' + $script:Stamp)
+    $target = Join-Path $backupDir (Split-Path -Leaf $Path)
+    $n = 1
+    while (Test-Path -LiteralPath $target) {
+        $target = Join-Path $backupDir ((Split-Path -Leaf $Path) + ".$n")
+        $n++
+    }
+    if (-not (Test-Path -LiteralPath $backupDir)) {
+        New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
+    }
+    $backupStream = $null
+    try {
+        $backupStream = [System.IO.File]::Open(
+            $target,
+            [System.IO.FileMode]::CreateNew,
+            [System.IO.FileAccess]::Write,
+            [System.IO.FileShare]::None)
+        $backupStream.Write($Bytes, 0, $Bytes.Length)
+        $backupStream.Flush($true)
+    }
+    finally {
+        if ($null -ne $backupStream) { $backupStream.Dispose() }
+    }
+    if ([Convert]::ToBase64String([System.IO.File]::ReadAllBytes($target)) -cne [Convert]::ToBase64String($Bytes)) {
+        throw "managed backup verification failed for $Path."
+    }
+    Write-Step "backed up to $target"
+    return $target
+}
+
 function Write-TextFile {
     param(
         [Parameter(Mandatory)][string] $Path,
@@ -181,6 +241,180 @@ function Install-TemplatedFile {
     }
 }
 
+function Split-ManagedAgentMarkdown {
+    param(
+        [Parameter(Mandatory)][string] $Text,
+        [Parameter(Mandatory)][string] $Label
+    )
+    $pattern = '\A---(?<open>\r?\n)(?<front>[\s\S]*?)(?<close>\r?\n---)(?<after>\r?\n)(?<body>[\s\S]*)\z'
+    $match = [regex]::Match($Text, $pattern)
+    if (-not $match.Success) {
+        throw "$Label does not have one readable leading YAML frontmatter block."
+    }
+    return [pscustomobject]@{
+        Open = $match.Groups['open'].Value
+        Front = $match.Groups['front'].Value
+        Close = $match.Groups['close'].Value
+        After = $match.Groups['after'].Value
+        Body = $match.Groups['body'].Value
+    }
+}
+
+function Merge-ManagedAgentContent {
+    param(
+        [Parameter(Mandatory)][string] $Current,
+        [Parameter(Mandatory)][string] $Source,
+        [Parameter(Mandatory)][string] $Label
+    )
+    $currentParts = Split-ManagedAgentMarkdown -Text $Current -Label "$Label destination"
+    $sourceParts = Split-ManagedAgentMarkdown -Text $Source -Label "$Label payload"
+    $toolsPattern = '(?m)^tools:[^\r\n]*(?=\r?$)'
+    $sourceTools = [regex]::Matches($sourceParts.Front, $toolsPattern)
+    $currentTools = [regex]::Matches($currentParts.Front, $toolsPattern)
+    if ($sourceTools.Count -ne 1) { throw "$Label payload must contain exactly one tools line." }
+    if ($currentTools.Count -gt 1) { throw "$Label destination contains more than one tools line." }
+    $wantedTools = $sourceTools[0].Value
+    if ($wantedTools -match '(?i)mcp__(?:DreamerOS_Live|[0-9a-f]{8}-[0-9a-f-]{27})__') {
+        throw "$Label payload tools include a nonportable MCP alias."
+    }
+    if ($currentTools.Count -eq 1) {
+        $newFront = [regex]::Replace(
+            $currentParts.Front,
+            $toolsPattern,
+            [System.Text.RegularExpressions.MatchEvaluator]{ param($m) $wantedTools })
+    }
+    else {
+        $newFront = $currentParts.Front + $currentParts.Open + $wantedTools
+    }
+
+    $sourceBodyLf = $sourceParts.Body.Replace("`r`n", "`n").Replace("`r", "`n")
+    $sourceHeader = "## DREAMEROS-READ-ONLY-BOOTSTRAP v1.1.0`n"
+    $sourceEnd = "Do not call bootstrap tools that write, route, govern, administer, or change`nexternal state.`n`n"
+    $headerIndex = $sourceBodyLf.IndexOf($sourceHeader, [StringComparison]::Ordinal)
+    $endIndex = $sourceBodyLf.IndexOf($sourceEnd, [Math]::Max(0, $headerIndex), [StringComparison]::Ordinal)
+    if ($headerIndex -lt 0 -or $sourceBodyLf.Substring(0, $headerIndex).Trim().Length -ne 0 -or $endIndex -lt $headerIndex) {
+        throw "$Label payload does not have the exact managed v1.1.0 bootstrap structure."
+    }
+    $sourceBlockLf = $sourceBodyLf.Substring($headerIndex, $endIndex + $sourceEnd.Length - $headerIndex)
+    $sourceNewline = if ($sourceParts.Body.Contains("`r`n")) { "`r`n" } else { "`n" }
+    $wantedBlock = $sourceBlockLf.Replace("`n", $sourceNewline)
+    $compatiblePattern = [regex]::Escape($sourceBlockLf)
+    $compatiblePattern = $compatiblePattern.Replace('v1\.1\.0', 'v[0-9]+\.[0-9]+\.[0-9]+')
+    $compatiblePattern = '(?m)^' + $compatiblePattern.Replace('\n', '\r?\n')
+    $currentHeaders = [regex]::Matches($currentParts.Body, '(?m)^## DREAMEROS-READ-ONLY-BOOTSTRAP v')
+    $currentBlocks = [regex]::Matches($currentParts.Body, $compatiblePattern)
+    if ($currentHeaders.Count -gt 1 -or $currentHeaders.Count -ne $currentBlocks.Count) {
+        throw "$Label destination has an ambiguous or malformed managed bootstrap block."
+    }
+    if ($currentBlocks.Count -eq 1) {
+        $newBody = [regex]::Replace(
+            $currentParts.Body,
+            $compatiblePattern,
+            [System.Text.RegularExpressions.MatchEvaluator]{ param($m) $wantedBlock })
+    }
+    else {
+        $newBody = $wantedBlock + $currentParts.Body
+    }
+
+    $merged = '---' + $currentParts.Open + $newFront + $currentParts.Close + $currentParts.After + $newBody
+    $mergedParts = Split-ManagedAgentMarkdown -Text $merged -Label "$Label merged result"
+    if ([regex]::Matches($mergedParts.Front, $toolsPattern).Count -ne 1) {
+        throw "$Label merged result does not contain exactly one tools line."
+    }
+    if ([regex]::Matches($mergedParts.Body, '(?m)^## DREAMEROS-READ-ONLY-BOOTSTRAP v').Count -ne 1 -or
+        [regex]::Matches($mergedParts.Body, [regex]::Escape($wantedBlock)).Count -ne 1) {
+        throw "$Label merged result does not contain exactly one v1.1.0 bootstrap block."
+    }
+    return $merged
+}
+
+function Merge-ManagedAgentFile {
+    param(
+        [Parameter(Mandatory)][string] $Source,
+        [Parameter(Mandatory)][string] $Destination,
+        [Parameter(Mandatory)][string] $Label
+    )
+    $destinationStream = $null
+    try {
+        $wanted = Expand-Tokens (Read-TextFile $Source)
+        [byte[]]$wantedBytes = (Get-Utf8NoBom).GetBytes($wanted)
+        $dryMode = $DryRun -or [bool]$WhatIfPreference
+        if (-not (Test-Path -LiteralPath $Destination)) {
+            if ($dryMode) {
+                Write-Step "DRYRUN would add $Label"
+                Add-Installed $Label 'new'
+                return
+            }
+            $dir = Split-Path -Parent $Destination
+            if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+            $destinationStream = [System.IO.File]::Open(
+                $Destination,
+                [System.IO.FileMode]::CreateNew,
+                [System.IO.FileAccess]::Write,
+                [System.IO.FileShare]::None)
+            $destinationStream.Write($wantedBytes, 0, $wantedBytes.Length)
+            $destinationStream.Flush($true)
+            $destinationStream.Dispose()
+            $destinationStream = $null
+            if ([Convert]::ToBase64String([System.IO.File]::ReadAllBytes($Destination)) -cne [Convert]::ToBase64String($wantedBytes)) {
+                throw "$Label exclusive-create verification failed."
+            }
+            Add-Installed $Label 'new'
+            Write-Step "ADD   $Label"
+            return
+        }
+
+        $access = if ($dryMode) { [System.IO.FileAccess]::Read } else { [System.IO.FileAccess]::ReadWrite }
+        $destinationStream = [System.IO.File]::Open(
+            $Destination,
+            [System.IO.FileMode]::Open,
+            $access,
+            [System.IO.FileShare]::None)
+        [byte[]]$currentBytes = Read-LockedBytes $destinationStream
+        $current = Decode-Utf8Bytes $currentBytes
+        if ($current -eq $wanted) {
+            Add-Skipped $Label 'already present and identical'
+            Write-Step "SKIP  $Label (identical)"
+            return
+        }
+        $merged = Merge-ManagedAgentContent -Current $current -Source $wanted -Label $Label
+        if ($merged -eq $current) {
+            Add-Skipped $Label 'managed tools and bootstrap already aligned; local content kept'
+            Write-Step "SKIP  $Label (managed regions aligned, local content kept)"
+            return
+        }
+        if ($dryMode) {
+            Add-Installed $Label 'managed tools and bootstrap would merge; local fields and body stay'
+            Write-Step "MERGE $Label (managed regions only)"
+            return
+        }
+
+        Backup-LockedBytes -Path $Destination -Bytes $currentBytes | Out-Null
+        [byte[]]$immediateBytes = Read-LockedBytes $destinationStream
+        if ([Convert]::ToBase64String($immediateBytes) -cne [Convert]::ToBase64String($currentBytes)) {
+            throw "$Label changed after read and before write."
+        }
+        [byte[]]$mergedBytes = (Get-Utf8NoBom).GetBytes($merged)
+        $destinationStream.Position = 0
+        $destinationStream.SetLength(0)
+        $destinationStream.Write($mergedBytes, 0, $mergedBytes.Length)
+        $destinationStream.Flush($true)
+        [byte[]]$verifiedBytes = Read-LockedBytes $destinationStream
+        if ([Convert]::ToBase64String($verifiedBytes) -cne [Convert]::ToBase64String($mergedBytes)) {
+            throw "$Label locked-write verification failed."
+        }
+        Add-Installed $Label 'managed tools and bootstrap merged; local fields and body kept'
+        Write-Step "MERGE $Label (managed regions only)"
+    }
+    catch {
+        Add-Failed $Label $_.Exception.Message
+        Write-Host "  FAIL  $Label : $($_.Exception.Message)" -ForegroundColor Red
+    }
+    finally {
+        if ($null -ne $destinationStream) { $destinationStream.Dispose() }
+    }
+}
+
 # ---------------------------------------------------------------------------
 # JSON helpers. PowerShell 5.1 has no ConvertFrom-Json -AsHashtable, so build
 # ordered hashtables by hand. Ordered keeps a merged file readable.
@@ -246,6 +480,14 @@ function Merge-StringList {
     return [pscustomobject]@{ List = $result; Added = $added }
 }
 
+function Get-HookSemanticKey {
+    param($Hook)
+    $hookHash = ConvertTo-OrderedHash $Hook
+    if ($hookHash.Contains('command')) { return 'cmd:' + [string]$hookHash['command'] }
+    if ($hookHash.Contains('prompt')) { return 'agent:' + [string]$hookHash['prompt'] }
+    return 'raw:' + (Get-CanonicalJson $hookHash)
+}
+
 function Merge-HookEvent {
     <#
       Merge one hook event, for example PreToolUse.
@@ -261,13 +503,6 @@ function Merge-HookEvent {
     $added = 0
     $result = New-Object System.Collections.ArrayList
     if ($null -ne $Existing) { foreach ($g in $Existing) { [void] $result.Add($g) } }
-
-    function Get-HookKey($h) {
-        $hh = ConvertTo-OrderedHash $h
-        if ($hh.Contains('command')) { return 'cmd:' + [string] $hh['command'] }
-        if ($hh.Contains('prompt')) { return 'agent:' + [string] $hh['prompt'] }
-        return 'raw:' + (Get-CanonicalJson $hh)
-    }
 
     function Get-Matcher($g) {
         $gg = ConvertTo-OrderedHash $g
@@ -293,14 +528,14 @@ function Merge-HookEvent {
         $mergedHooks = New-Object System.Collections.ArrayList
         if ($targetH.Contains('hooks') -and $null -ne $targetH['hooks']) {
             foreach ($h in @($targetH['hooks'])) {
-                [void] $have.Add((Get-HookKey $h))
+                [void] $have.Add((Get-HookSemanticKey $h))
                 [void] $mergedHooks.Add((ConvertTo-OrderedHash $h))
             }
         }
         $inH = ConvertTo-OrderedHash $inGroup
         if ($inH.Contains('hooks') -and $null -ne $inH['hooks']) {
             foreach ($h in @($inH['hooks'])) {
-                if ($have.Add((Get-HookKey $h))) {
+                if ($have.Add((Get-HookSemanticKey $h))) {
                     [void] $mergedHooks.Add((ConvertTo-OrderedHash $h))
                     $added++
                 }
@@ -315,30 +550,104 @@ function Merge-HookEvent {
     return [pscustomobject]@{ List = $result; Added = $added }
 }
 
-function Remove-RetiredSessionStartHydrationHooks {
-    param($Hooks)
-    if (-not $Hooks.Contains('SessionStart')) { return 0 }
+function Remove-DuplicateLifecycleHooksAcrossGroups {
+    param($Groups)
+    $seen = New-Object 'System.Collections.Generic.HashSet[string]'
+    $result = New-Object System.Collections.ArrayList
     $removed = 0
-    $updatedGroups = New-Object System.Collections.ArrayList
-    foreach ($group in @($Hooks['SessionStart'])) {
+    foreach ($group in @($Groups)) {
         $groupHash = ConvertTo-OrderedHash $group
+        if (-not $groupHash.Contains('hooks') -or $null -eq $groupHash['hooks']) {
+            [void]$result.Add($groupHash)
+            continue
+        }
         $kept = New-Object System.Collections.ArrayList
         foreach ($hook in @($groupHash['hooks'])) {
             $hookHash = ConvertTo-OrderedHash $hook
-            $command = if ($hookHash.Contains('command')) { [string]$hookHash['command'] } else { '' }
-            if ($command -match '(?i)(?:operator-standing-orders|dreameros-agent-stack-session-start)\.sh') {
-                $removed++
+            # Lifecycle cross-group dedupe is intentionally command-only.
+            # Agent prompts and unknown hook types can have matcher semantics.
+            if (-not $hookHash.Contains('command')) {
+                [void]$kept.Add($hookHash)
                 continue
             }
-            [void]$kept.Add($hookHash)
+            if ($seen.Add(('cmd:' + [string]$hookHash['command']))) {
+                [void]$kept.Add($hookHash)
+            }
+            else {
+                $removed++
+            }
         }
         if ($kept.Count -gt 0) {
             $groupHash['hooks'] = $kept
-            [void]$updatedGroups.Add($groupHash)
+            [void]$result.Add($groupHash)
         }
     }
-    $Hooks['SessionStart'] = $updatedGroups
-    return $removed
+    return [pscustomobject]@{ List = $result; Removed = $removed }
+}
+
+function Remove-RetiredLifecycleHooks {
+    param($Hooks)
+    $sessionRemoved = 0
+    $stopRemoved = 0
+
+    if ($Hooks.Contains('SessionStart')) {
+        $updatedGroups = New-Object System.Collections.ArrayList
+        foreach ($group in @($Hooks['SessionStart'])) {
+            $groupHash = ConvertTo-OrderedHash $group
+            $kept = New-Object System.Collections.ArrayList
+            foreach ($hook in @($groupHash['hooks'])) {
+                $hookHash = ConvertTo-OrderedHash $hook
+                $command = if ($hookHash.Contains('command')) { [string]$hookHash['command'] } else { '' }
+                $retiredHydration = $command -match '(?i)(?:^|[\s\\/"''])(?:operator-standing-orders|dreameros-agent-stack-session-start)\.sh(?:["'']|\s|$)'
+                $retiredAutoInstall = $command -match '(?i)(?:^|[\s\\/"''])build-boot-pack\.ps1["'']?\s+-Install(?:\s|$)'
+                if ($retiredHydration -or $retiredAutoInstall) {
+                    $sessionRemoved++
+                    continue
+                }
+                [void]$kept.Add($hookHash)
+            }
+            if ($kept.Count -gt 0) {
+                $groupHash['hooks'] = $kept
+                [void]$updatedGroups.Add($groupHash)
+            }
+        }
+        $Hooks['SessionStart'] = $updatedGroups
+    }
+
+    $directSwitchPresent = $false
+    if ($Hooks.Contains('Stop')) {
+        foreach ($group in @($Hooks['Stop'])) {
+            foreach ($hook in @((ConvertTo-OrderedHash $group)['hooks'])) {
+                $hookHash = ConvertTo-OrderedHash $hook
+                $command = if ($hookHash.Contains('command')) { [string]$hookHash['command'] } else { '' }
+                if ($command -match '(?i)(?:^|\s)python(?:3|\.exe)?\s+["'']?(?:[^"'']*[\\/])?model-switch-ack\.py(?:["'']|\s|$)') {
+                    $directSwitchPresent = $true
+                }
+            }
+        }
+    }
+    if ($directSwitchPresent) {
+        $updatedStopGroups = New-Object System.Collections.ArrayList
+        foreach ($group in @($Hooks['Stop'])) {
+            $groupHash = ConvertTo-OrderedHash $group
+            $kept = New-Object System.Collections.ArrayList
+            foreach ($hook in @($groupHash['hooks'])) {
+                $hookHash = ConvertTo-OrderedHash $hook
+                $command = if ($hookHash.Contains('command')) { [string]$hookHash['command'] } else { '' }
+                if ($command -match '(?i)(?:^|[\s\\/"''])model-switch-ack\.sh(?:["'']|\s|$)') {
+                    $stopRemoved++
+                    continue
+                }
+                [void]$kept.Add($hookHash)
+            }
+            if ($kept.Count -gt 0) {
+                $groupHash['hooks'] = $kept
+                [void]$updatedStopGroups.Add($groupHash)
+            }
+        }
+        $Hooks['Stop'] = $updatedStopGroups
+    }
+    return [pscustomobject]@{ SessionStart = $sessionRemoved; Stop = $stopRemoved }
 }
 
 function Merge-Settings {
@@ -388,9 +697,19 @@ function Merge-Settings {
             if ($m.Added -gt 0) { [void] $changes.Add("hooks.$evt gained $($m.Added) hooks") }
         }
     }
-    $removedHydrationHooks = Remove-RetiredSessionStartHydrationHooks -Hooks $hooks
-    if ($removedHydrationHooks -gt 0) {
-        [void]$changes.Add("hooks.SessionStart removed $removedHydrationHooks retired hydration hook(s)")
+    $retiredHooks = Remove-RetiredLifecycleHooks -Hooks $hooks
+    foreach ($evt in @('SessionStart', 'Stop')) {
+        $retiredCount = [int]$retiredHooks.$evt
+        if ($retiredCount -gt 0) {
+            [void]$changes.Add("hooks.$evt removed $retiredCount retired hook(s)")
+        }
+        if ($hooks.Contains($evt)) {
+            $deduped = Remove-DuplicateLifecycleHooksAcrossGroups -Groups $hooks[$evt]
+            $hooks[$evt] = $deduped.List
+            if ($deduped.Removed -gt 0) {
+                [void]$changes.Add("hooks.$evt removed $($deduped.Removed) duplicate hook(s) across matcher groups")
+            }
+        }
     }
 
     # Every other key the operator already had stays untouched. That includes
@@ -467,10 +786,9 @@ Write-Head 'Agents'
 $agentSrc = Join-Path $PayloadPath 'agents'
 if (Test-Path -LiteralPath $agentSrc) {
     foreach ($f in (Get-ChildItem -LiteralPath $agentSrc -Filter '*.md' -File)) {
-        Install-TemplatedFile -Source $f.FullName `
+        Merge-ManagedAgentFile -Source $f.FullName `
             -Destination (Join-Path $ClaudeHome ('agents\' + $f.Name)) `
-            -Label ('agent ' + $f.BaseName) `
-            -OverwriteWhenDifferent:$Force
+            -Label ('agent ' + $f.BaseName)
     }
 }
 else {

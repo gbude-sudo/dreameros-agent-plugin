@@ -72,12 +72,22 @@ jobs:
           [void][ScriptBlock]::Create((Get-Content -Raw -LiteralPath './install/cursor/tests/render-project-migration-diffs.tests.ps1'))
           [void][ScriptBlock]::Create((Get-Content -Raw -LiteralPath './bootpack/tests/build-installed.tests.ps1'))
           [void][ScriptBlock]::Create((Get-Content -Raw -LiteralPath './bootpack/tests/codex-hook-install.tests.ps1'))
+          [void][ScriptBlock]::Create((Get-Content -Raw -LiteralPath './install/claude-code/tests/settings-merge.tests.ps1'))
+          [void][ScriptBlock]::Create((Get-Content -Raw -LiteralPath './install/claude-code/tests/managed-agent-merge.tests.ps1'))
       - shell: powershell
         run: ./bootpack/tests/build-installed.tests.ps1
       - shell: powershell
         run: ./bootpack/tests/codex-hook-install.tests.ps1
       - shell: pwsh
         run: ./bootpack/tests/codex-hook-install.tests.ps1
+      - shell: powershell
+        run: ./install/claude-code/tests/settings-merge.tests.ps1
+      - shell: pwsh
+        run: ./install/claude-code/tests/settings-merge.tests.ps1
+      - shell: powershell
+        run: ./install/claude-code/tests/managed-agent-merge.tests.ps1
+      - shell: pwsh
+        run: ./install/claude-code/tests/managed-agent-merge.tests.ps1
       - shell: powershell
         run: ./install/cursor/tests/install.tests.ps1
       - shell: powershell
