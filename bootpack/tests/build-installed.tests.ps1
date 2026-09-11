@@ -73,6 +73,8 @@ $sourceVersion = 'v' + ([regex]::Match($sourceText, '(?m)^# DreamerOS Boot Canon
 $sourceHash = Get-SemanticSha $sourceText
 $projectPointer = Get-Content -Raw -LiteralPath (Join-Path $BootRoot 'out\project\DREAMEROS_BOOT_CANON_POINTER.md.block')
 $cursorProjectPointer = Get-Content -Raw -LiteralPath (Join-Path $BootRoot 'out\cursor\dreameros-project-pointer.mdc')
+$codexGlobalBlock = Get-Content -Raw -LiteralPath (Join-Path $BootRoot 'out\codex\AGENTS.md.block')
+$claudeGlobalBlock = Get-Content -Raw -LiteralPath (Join-Path $BootRoot 'out\claude\CLAUDE.md.block')
 $bootManifest = Get-Content -Raw -LiteralPath (Join-Path $BootRoot 'out\manifest\dreameros-boot-canon.json') | ConvertFrom-Json
 Assert-True ($projectPointer.Contains('DREAMEROS-PROJECT-BOOT-POINTER v1.1.0')) 'project pointer v1.1 marker missing'
 Assert-True ($projectPointer.Contains('Cloud carrier: a successful authenticated `dreameros_session_package`')) 'project pointer cloud carrier missing'
@@ -84,6 +86,38 @@ Assert-True ($bootManifest.project_pointer.cloud_session_package.proof -ceq 'one
 Assert-True ((@($bootManifest.project_pointer.cloud_session_package.required_canary_ids) -join ',') -ceq 'R26,R27,HC-DEFINITION-OF-DONE') 'manifest cloud package required canary ids mismatch'
 Assert-True ($null -eq $bootManifest.project_pointer.cloud_session_package.required_marker_ids) 'manifest retains obsolete cloud package marker ids'
 Assert-True ($bootManifest.project_oauth_onramp.status -ceq 'TEMPLATE_WRITTEN_NOT_REGISTERED') 'OAuth on-ramp manifest status mismatch'
+Assert-True ([regex]::Matches($codexGlobalBlock, '<dreameros_codex_client_adapter version="v1\.0\.0">').Count -eq 1) 'Codex client adapter marker missing or duplicated'
+Assert-True ([regex]::Matches($codexGlobalBlock, 'When calling dreameros_session_package from Codex, pass engine: "chatgpt"\.').Count -eq 1) 'Codex package engine mapping missing or duplicated'
+Assert-True ($codexGlobalBlock.IndexOf('<dreameros_codex_client_adapter') -lt $codexGlobalBlock.IndexOf('# DreamerOS Boot Canon')) 'Codex client adapter must load before the portable canon'
+Assert-True ($codexGlobalBlock.IndexOf($sourceText) -ge 0 -and $codexGlobalBlock.IndexOf($sourceText) -eq $codexGlobalBlock.LastIndexOf($sourceText)) 'Codex global block must carry the portable canon exactly once'
+Assert-True (-not $sourceText.Contains('dreameros_codex_client_adapter')) 'Codex client adapter leaked into the vendor-neutral source'
+Assert-True (-not $claudeGlobalBlock.Contains('dreameros_codex_client_adapter')) 'Codex client adapter leaked into Claude output'
+Assert-True ($bootManifest.client_adapters.codex.version -ceq 'v1.0.0') 'Codex client adapter manifest version mismatch'
+Assert-True ($bootManifest.client_adapters.codex.package_engine -ceq 'chatgpt') 'Codex client adapter manifest engine mismatch'
+Assert-True ($bootManifest.client_adapters.codex.source -ceq 'codex/AGENTS.md.block') 'Codex client adapter manifest source mismatch'
+
+$freshHome = Join-Path $TempRoot 'fresh-install-home'
+New-Item -ItemType Directory -Path $freshHome -Force | Out-Null
+$freshInstallCommand = "`$env:USERPROFILE='$freshHome'; & '$Builder' -Install"
+$freshInstallEncoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($freshInstallCommand))
+$priorPreference = $ErrorActionPreference
+try {
+    $ErrorActionPreference = 'Continue'
+    $freshInstallOutput = @(& $PowerShellExe -NoProfile -ExecutionPolicy Bypass -EncodedCommand $freshInstallEncoded 2>&1)
+    $freshInstallExitCode = $LASTEXITCODE
+} finally {
+    $ErrorActionPreference = $priorPreference
+}
+$freshInstallText = $freshInstallOutput -join [Environment]::NewLine
+Assert-True ($freshInstallExitCode -eq 0) ("fresh empty-home install failed: {0}" -f $freshInstallText)
+$freshCodexPath = Join-Path $freshHome '.codex\AGENTS.md'
+$freshClaudePath = Join-Path $freshHome '.claude\CLAUDE.md'
+Assert-True (Test-Path -LiteralPath $freshCodexPath -PathType Leaf) 'fresh install did not create Codex AGENTS.md'
+Assert-True (Test-Path -LiteralPath $freshClaudePath -PathType Leaf) 'fresh install did not create Claude CLAUDE.md'
+$freshCodexText = [IO.File]::ReadAllText($freshCodexPath)
+Assert-True ([regex]::Matches($freshCodexText, '<dreameros_codex_client_adapter version="v1\.0\.0">').Count -eq 1) 'fresh Codex install lacks exactly one client adapter'
+Assert-True ([regex]::Matches($freshCodexText, 'When calling dreameros_session_package from Codex, pass engine: "chatgpt"\.').Count -eq 1) 'fresh Codex install lacks exactly one package-engine mapping'
+Assert-True ($freshCodexText.IndexOf($sourceText) -ge 0 -and $freshCodexText.IndexOf($sourceText) -eq $freshCodexText.LastIndexOf($sourceText)) 'fresh Codex install lacks exactly one portable canon'
 
 $agentFiles = @(Get-ChildItem -LiteralPath (Join-Path $RepoRoot 'install\claude-code\payload\agents') -Filter '*.md' -File)
 Assert-True ($agentFiles.Count -eq 15) 'Claude agent inventory changed; review bootstrap coverage'
