@@ -62,7 +62,7 @@ Assert-True (Test-ExactBytes $runtimeRawBytes $runtimeExpectedBytes) 'runtime ex
 $runtimeExport = Get-Content -Raw -LiteralPath $runtimeExportPath | ConvertFrom-Json
 $sourceText = Get-Content -Raw -LiteralPath (Join-Path $BootRoot 'SOURCE-dreameros-boot-canon.md')
 Assert-True ($runtimeExport.schema_version -ceq 'dreameros-session-package-stable-prefix-v1') 'runtime export schema mismatch'
-Assert-True ($runtimeExport.version -ceq 'v2.4.0') 'runtime export version mismatch'
+Assert-True ($runtimeExport.version -ceq 'v2.5.0') 'runtime export version mismatch'
 Assert-True ($runtimeExport.sha256 -ceq (Get-SemanticSha $sourceText)) 'runtime export source hash mismatch'
 Assert-True ($runtimeExport.source_provenance.repository -ceq 'gbude-sudo/dreameros-agent-plugin') 'runtime export repository provenance mismatch'
 Assert-True ($runtimeExport.source_provenance.path -ceq 'bootpack/SOURCE-dreameros-boot-canon.md') 'runtime export source path mismatch'
@@ -234,7 +234,7 @@ Assert-True ($pass.Text -match '"schema_version":"dreameros-verify-installed-v1"
 $receiptLine = @($pass.Text -split "`n" | Where-Object { $_ -like 'DREAMEROS_VERIFY_INSTALLED_JSON=*' })[0]
 $receipt = ($receiptLine.Substring('DREAMEROS_VERIFY_INSTALLED_JSON='.Length) | ConvertFrom-Json)
 $carrierIds = @('claude_global_boot','codex_global_boot','cursor_global_pointer','cursor_registered_plugin_rule','claude_boot_skill','codex_boot_skill','shared_boot_skill','agent_plugin_boot_skill','shared_quote_evidence','claude_session_start_hook','claude_session_start_registration') | Sort-Object
-Assert-True ($receipt.ok -eq $true -and $receipt.boot_canon.version -ceq 'v2.4.0' -and $receipt.boot_canon.sha256 -match '^[0-9a-f]{64}$') 'installed verification receipt boot metadata invalid'
+Assert-True ($receipt.ok -eq $true -and $receipt.boot_canon.version -ceq 'v2.5.0' -and $receipt.boot_canon.sha256 -match '^[0-9a-f]{64}$') 'installed verification receipt boot metadata invalid'
 Assert-True ((@($receipt.required_carriers | Sort-Object) -join ',') -ceq ($carrierIds -join ',') -and (@($receipt.verified_carriers | Sort-Object) -join ',') -ceq ($carrierIds -join ',')) 'installed verification receipt carrier ids invalid'
 Write-Output $receiptLine
 if ($KeepGreenFixture) {

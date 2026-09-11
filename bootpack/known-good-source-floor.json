@@ -1,17 +1,18 @@
 {
-  "minimum_version": "2.4.0",
-  "semantic_sha256": "ea3175662bb7392faa531c92fc4f12b61a1eed066d0e2a3dc60d059a9f03f77f",
-  "measured_from": "v2.4.0: session handoff ritual added on HC directive 2026-09-01 CONTINUITY IS THE PRODUCT (BOOT CHECK 0 reads the latest handoff with dreameros_session_handoff_read; CLOSE CHECK 6 writes it with dreameros_session_handoff_write and reads back a handoff_id; R14.2 names the handoff write as part of the rule); second item on HC directive 2026-09-02 SHOW THE INSTRUMENT BESIDE THE CLAIM (R1m: reading, time and instrument in the same sentence or row; no sample summarised as every or never; one LAYER 3 gate line); floor updated as the deliberate reviewed change, HC ratifies before merge",
-  "required_clauses": [
-    "## LAYER 0 - AUTHORITY. SETTLE THIS BEFORE ANYTHING ELSE.",
-    "### R1g - An error is not an inventory",
-    "### R1l - Prove every claim against the definition of done",
-    "## RULE ADDRESSES PRESERVED",
-    "## LAYER 3 - THE OUTPUT GATE. NOTHING SHIPS UNCHECKED.",
-    "## LAYER 3b - MAXIMUM COGNITIVE LOAD. MULTI-PASS OR DO NOT ANSWER.",
-    "## R26 - THE CORNERSTONE: SAME POWER EVERYWHERE, THE GATEWAY IN BETWEEN",
-    "## R27 - A MERGED BRANCH DIES AT MERGE TIME. BRANCH HYGIENE IS PART OF SHIPPED.",
-    "Write the session handoff with dreameros_session_handoff_write",
-    "Show the instrument beside the claim"
-  ]
+    "minimum_version":  "2.5.0",
+    "semantic_sha256":  "d7b8b9171824a07fe6d75e60f34970da68490c97c2a4eb5a1e462fdf25aece67",
+    "measured_from":  "v2.5.0: R28 READ EVERY VENUE IN FULL BEFORE AND AFTER EACH CHANGE added on HC directive 2026-09-11 09:4xZ and 09:5xZ (canon in gateway, runtime, desktop, clouds, every session, always and forever: read local and cloud repos, the offload and the DreamerOS gateway in full before and after every change; save before and after); rule floor raised 37 to 38; floor updated as the deliberate reviewed change, HC ratified in chat on 2026-09-11",
+    "required_clauses":  [
+                             "## LAYER 0 - AUTHORITY. SETTLE THIS BEFORE ANYTHING ELSE.",
+                             "### R1g - An error is not an inventory",
+                             "### R1l - Prove every claim against the definition of done",
+                             "## RULE ADDRESSES PRESERVED",
+                             "## LAYER 3 - THE OUTPUT GATE. NOTHING SHIPS UNCHECKED.",
+                             "## LAYER 3b - MAXIMUM COGNITIVE LOAD. MULTI-PASS OR DO NOT ANSWER.",
+                             "## R26 - THE CORNERSTONE: SAME POWER EVERYWHERE, THE GATEWAY IN BETWEEN",
+                             "## R27 - A MERGED BRANCH DIES AT MERGE TIME. BRANCH HYGIENE IS PART OF SHIPPED.",
+                             "Write the session handoff with dreameros_session_handoff_write",
+                             "Show the instrument beside the claim",
+                             "## R28 - READ EVERY VENUE IN FULL BEFORE AND AFTER EACH CHANGE"
+                         ]
 }

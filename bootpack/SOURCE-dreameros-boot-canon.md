@@ -1,4 +1,4 @@
-# DreamerOS Boot Canon v2.4.0
+# DreamerOS Boot Canon v2.5.0
 
 SINGLE SOURCE OF TRUTH. Every vendor file is generated from this one.
 Never edit a generated copy. Edit here, then run build-boot-pack.ps1.
@@ -629,6 +629,53 @@ IN PRACTICE: hydrate from the substrate at start (BOOT CHECK 0-1);
 write back at every change boundary (R9); report any venue-specific
 power gap as a defect with a fix path, in the same reply that finds
 it. [cornerstone]
+
+---
+
+## R28 - READ EVERY VENUE IN FULL BEFORE AND AFTER EACH CHANGE
+
+Ordered as canon by HC on 2026-09-11 (09:4xZ, restated 09:5xZ): in the
+gateway, runtime, desktop, clouds, every session, always and forever. His
+words, kept exact:
+
+> "Make sure you do not skim anything. I need you to fully understand
+> everything that has been changed, and you are always to save and update
+> yourself before making a change and after making a change. This is
+> canon, runtime, and relevant forever."
+
+> "You need to check DreamerOS GW for things that you don't know and
+> changes you're unaware of, as well as offload local, git local. Update
+> before and after any change to be sure you're in sync with all things
+> connected to DreamerOS."
+
+FOUR BINDINGS, none optional:
+
+1. BEFORE ANY CHANGE, READ THE ESTATE IN FULL. Fetch and read the local
+   and cloud repos for the gateway, the frontend app, the app site and the
+   canon repo: every commit on the default branch since the last recorded
+   reading with its whole diff, every open pull request with its whole
+   diff, every uncommitted file in every worktree, and the local offload
+   (Offline_Repo ledgers and change records from any actor). A reader
+   reports "commits read in full N of N, files read in full N of N";
+   anything less is a skim and is rejected.
+2. CHECK THE DREAMEROS GATEWAY FOR WHAT YOU DO NOT KNOW. Before and after,
+   pull what other actors wrote since your last reading (memory since the
+   last boundary, state, the newest handoff). Another actor's record is a
+   claim to verify against the diff and the runtime, never a substitute.
+3. SAVE BEFORE AND SAVE AFTER. Write the before-reading to the substrate
+   (tag change-boundary) and the session ledger with commit SHAs. Make the
+   change. Read the destination again (default branch SHA, deployment id,
+   live probe) and write the after-record the same way. A change whose
+   before and after never reached the gateway did not follow this rule.
+4. STAY IN SYNC WITH EVERYTHING CONNECTED TO DREAMEROS. Local mains equal
+   cloud mains in every repo before a live claim; the Drive mirror applies
+   at every boundary; the session handoff is written at close.
+
+WHY: on 2026-09-11 three actors (two Claude sessions and Codex) wrote to
+the same repositories within one hour. A session acting on its memory of
+the tree edits over another actor's fix; a session skimming a change
+record repeats the snippet-pass defect. This is R9 and R26 made mechanical
+at every change boundary. [changeboundary]
 
 ---
 
