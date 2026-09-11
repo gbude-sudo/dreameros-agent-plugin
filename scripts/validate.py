@@ -382,6 +382,20 @@ def check_claude_payload_agents() -> None:
     shell_switch = [command for command in stop_commands if "model-switch-ack.sh" in command]
     if len(direct_switch) != 1 or shell_switch:
         fail("Claude payload Stop registration: requires one direct Python model-switch hook and no shell wrapper")
+    all_commands = [
+        hook.get("command", "")
+        for groups in settings.get("hooks", {}).values()
+        for group in groups
+        for hook in group.get("hooks", [])
+        if hook.get("type") == "command"
+    ]
+    bash_hooks = [command for command in all_commands if re.search(r"(?i)\.sh(?:[\"']|\s|$)", command)]
+    if len(bash_hooks) != 10 or any(
+        not command.startswith("__DREAMEROS_BASH_COMMAND__ ") for command in bash_hooks
+    ):
+        fail("Claude payload Bash registration: every managed shell hook must use the portable launcher token")
+    if any(re.match(r"(?i)^bash(?:\.exe)?\s", command) for command in bash_hooks):
+        fail("Claude payload Bash registration: bare launcher bypasses installer rendering")
     try:
         if payload_hook.read_bytes() != generated_hook.read_bytes():
             fail("Claude payload SessionStart hook: generated payload copy differs from bootpack output")
@@ -405,6 +419,13 @@ def check_claude_payload_agents() -> None:
         r"\$currentHeaders\.Count\s+-ne\s+\$currentBlocks\.Count",
         r"Backup-LockedBytes\s+-Path\s+\$Destination",
         r"\$destinationStream\.SetLength\(0\)",
+        r"function\s+Resolve-BashLauncher",
+        r"function\s+Test-BashExecutable",
+        r"function\s+Render-FragmentBashCommands",
+        r"function\s+Get-ManagedBashRegistrationKey",
+        r"function\s+Update-ClaudeHomeBashHookLaunchers",
+        r"Get-ManagedBashRegistrationKey\s+-EventName\s+\$eventName",
+        r"CommandPrefix\s*=\s*'bash'",
     )
     for pattern in managed_merge_guards:
         if not re.search(pattern, installer_text):
