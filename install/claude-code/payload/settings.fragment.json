@@ -51,7 +51,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"__DREAMEROS_CLAUDE_HOME__/hooks/gate-local-merge-first.sh\"",
+            "command": "__DREAMEROS_BASH_COMMAND__ \"__DREAMEROS_CLAUDE_HOME__/hooks/gate-local-merge-first.sh\"",
             "timeout": 20
           }
         ]
@@ -61,7 +61,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"__DREAMEROS_CLAUDE_HOME__/hooks/gate-anchor-size.sh\"",
+            "command": "__DREAMEROS_BASH_COMMAND__ \"__DREAMEROS_CLAUDE_HOME__/hooks/gate-anchor-size.sh\"",
             "timeout": 20
           },
           {
@@ -75,7 +75,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"__DREAMEROS_CLAUDE_HOME__/hooks/gate-destructive-write.sh\"",
+            "command": "__DREAMEROS_BASH_COMMAND__ \"__DREAMEROS_CLAUDE_HOME__/hooks/gate-destructive-write.sh\"",
             "timeout": 20
           }
         ]
@@ -85,7 +85,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"__DREAMEROS_CLAUDE_HOME__/hooks/gate-no-archive-without-asking.sh\"",
+            "command": "__DREAMEROS_BASH_COMMAND__ \"__DREAMEROS_CLAUDE_HOME__/hooks/gate-no-archive-without-asking.sh\"",
             "timeout": 20
           }
         ]
@@ -96,7 +96,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"__DREAMEROS_CLAUDE_HOME__/hooks/dreameros-session-start.sh\""
+            "command": "__DREAMEROS_BASH_COMMAND__ \"__DREAMEROS_CLAUDE_HOME__/hooks/dreameros-session-start.sh\""
           }
         ]
       },
@@ -104,7 +104,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"__DREAMEROS_CLAUDE_HOME__/hooks/open-loop-surface.sh\"",
+            "command": "__DREAMEROS_BASH_COMMAND__ \"__DREAMEROS_CLAUDE_HOME__/hooks/open-loop-surface.sh\"",
             "timeout": 45
           }
         ]
@@ -115,7 +115,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"__DREAMEROS_CLAUDE_HOME__/hooks/gate-stop-no-half-states.sh\"",
+            "command": "__DREAMEROS_BASH_COMMAND__ \"__DREAMEROS_CLAUDE_HOME__/hooks/gate-stop-no-half-states.sh\"",
             "timeout": 45
           }
         ]
@@ -124,7 +124,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"__DREAMEROS_CLAUDE_HOME__/hooks/gate-claim-verification.sh\"",
+            "command": "__DREAMEROS_BASH_COMMAND__ \"__DREAMEROS_CLAUDE_HOME__/hooks/gate-claim-verification.sh\"",
             "timeout": 45
           }
         ]
@@ -133,7 +133,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"__DREAMEROS_CLAUDE_HOME__/hooks/dreameros-agent-stack-stop.sh\""
+            "command": "__DREAMEROS_BASH_COMMAND__ \"__DREAMEROS_CLAUDE_HOME__/hooks/dreameros-agent-stack-stop.sh\""
           }
         ]
       },
@@ -141,7 +141,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"__DREAMEROS_CLAUDE_HOME__/hooks/model-phase-boundary.sh\""
+            "command": "__DREAMEROS_BASH_COMMAND__ \"__DREAMEROS_CLAUDE_HOME__/hooks/model-phase-boundary.sh\""
           }
         ]
       },

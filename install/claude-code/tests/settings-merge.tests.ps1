@@ -4,10 +4,21 @@ $InstallRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $Installer = Join-Path $InstallRoot 'dreameros-global-setup.ps1'
 $Payload = Join-Path $InstallRoot 'payload'
 $PowerShellExe = (Get-Process -Id $PID).Path
-$TempRoot = Join-Path $env:TEMP ('dreameros-claude-settings-merge-' + [guid]::NewGuid().ToString('N'))
+$TempRoot = Join-Path $env:TEMP ('dreameros & claude settings merge ' + [guid]::NewGuid().ToString('N'))
 $ClaudeHome = Join-Path $TempRoot 'home\.claude'
 $FixtureRepoRoot = Join-Path $TempRoot 'repos'
 $SettingsPath = Join-Path $ClaudeHome 'settings.json'
+$GitExe = Join-Path $env:ProgramFiles 'Git\cmd\git.exe'
+if (-not (Test-Path -LiteralPath $GitExe -PathType Leaf)) {
+    throw "Git for Windows application fixture is unavailable at $GitExe"
+}
+$GitCommandDirectory = Split-Path -Parent $GitExe
+$ProgramFilesBash = Join-Path (Split-Path -Parent $GitCommandDirectory) 'bin\bash.exe'
+if (-not (Test-Path -LiteralPath $ProgramFilesBash -PathType Leaf)) {
+    throw "Git Bash fixture with a spaced path is unavailable at $ProgramFilesBash"
+}
+$VerifiedBashPath = (Resolve-Path -LiteralPath $ProgramFilesBash).Path
+$BashCommandPrefix = '"' + $VerifiedBashPath.Replace('\', '/') + '"'
 $Cases = 0
 
 function Assert-True([bool]$Condition, [string]$Message) {
@@ -55,12 +66,28 @@ function Find-CommandHook($Root, [string]$Event, [string]$Pattern) {
     return $null
 }
 
+function Render-BashCommand([string]$Command) {
+    if (-not $Command.StartsWith('bash ', [StringComparison]::Ordinal)) {
+        throw "test command does not start with bare bash: $Command"
+    }
+    return $BashCommandPrefix + $Command.Substring(4)
+}
+
 function Invoke-Installer {
+    param(
+        [string] $TargetClaudeHome = $ClaudeHome,
+        [string] $BashPathOverride
+    )
     $installerEscaped = $Installer.Replace("'", "''")
-    $homeEscaped = $ClaudeHome.Replace("'", "''")
+    $homeEscaped = $TargetClaudeHome.Replace("'", "''")
     $repoEscaped = $FixtureRepoRoot.Replace("'", "''")
     $payloadEscaped = $Payload.Replace("'", "''")
-    $command = "& '$installerEscaped' -ClaudeHome '$homeEscaped' -RepoRoot '$repoEscaped' -PayloadPath '$payloadEscaped' -SkipCanon"
+    $gitPathEscaped = $GitCommandDirectory.Replace("'", "''")
+    $bashArgument = ''
+    if (-not [string]::IsNullOrWhiteSpace($BashPathOverride)) {
+        $bashArgument = " -BashPath '" + $BashPathOverride.Replace("'", "''") + "'"
+    }
+    $command = "`$env:Path = '$gitPathEscaped'; if (Get-Command bash -CommandType Application -ErrorAction SilentlyContinue) { throw 'test PATH unexpectedly resolves bash' }; & '$installerEscaped' -ClaudeHome '$homeEscaped' -RepoRoot '$repoEscaped' -PayloadPath '$payloadEscaped'$bashArgument -SkipCanon"
     $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($command))
     $priorPreference = $ErrorActionPreference
     try {
@@ -76,7 +103,16 @@ function Invoke-Installer {
 
 New-Item -ItemType Directory -Path $ClaudeHome -Force | Out-Null
 New-Item -ItemType Directory -Path $FixtureRepoRoot -Force | Out-Null
+$FixtureHookDir = Join-Path $ClaudeHome 'hooks'
+New-Item -ItemType Directory -Path $FixtureHookDir -Force | Out-Null
 $homeUnix = $ClaudeHome.Replace('\', '/')
+$renderMarker = Join-Path $TempRoot 'rendered hook fired.txt'
+$renderMarkerUnix = $renderMarker.Replace('\', '/')
+$ownerHookPath = Join-Path $FixtureHookDir 'owner hook fires.sh'
+$ownerHookText = "#!/usr/bin/env bash`nprintf 'fired\n' > '$renderMarkerUnix'`n"
+[IO.File]::WriteAllText($ownerHookPath, $ownerHookText, (New-Object Text.UTF8Encoding($false)))
+$ownerHomeBash = "bash `"$homeUnix/hooks/owner hook fires.sh`""
+$ownerOutsideBash = 'bash "C:/owner/outside hook.sh"'
 $sessionPackage = "bash `"$homeUnix/hooks/dreameros-session-start.sh`""
 $openLoop = "bash `"$homeUnix/hooks/open-loop-surface.sh`""
 $verifyOnly = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:/Users/PC/Documents/Codex/dreameros-agent-plugin/bootpack/build-boot-pack.ps1" -VerifyInstalled'
@@ -88,6 +124,7 @@ $ownerNearStandingOrders = "bash `"$homeUnix/hooks/owner-operator-standing-order
 $ownerNearStackSession = "bash `"$homeUnix/hooks/owner-dreameros-agent-stack-session-start.sh`""
 $gateStop = "bash `"$homeUnix/hooks/gate-stop-no-half-states.sh`""
 $claim = "bash `"$homeUnix/hooks/gate-claim-verification.sh`""
+$oldClaim = '"C:/Old Git/bin/bash.exe"' + $claim.Substring(4)
 $stackStop = "bash `"$homeUnix/hooks/dreameros-agent-stack-stop.sh`""
 $phase = "bash `"$homeUnix/hooks/model-phase-boundary.sh`""
 $switchShell = "bash `"$homeUnix/hooks/model-switch-ack.sh`""
@@ -95,6 +132,12 @@ $switchPython = "python `"$homeUnix/hooks/model-switch-ack.py`""
 $ownerNearSwitch = "bash `"$homeUnix/hooks/owner-model-switch-ack.sh`""
 $sharedPreTool = "python `"$homeUnix/hooks/shared-pretool.py`""
 $sharedAgentPrompt = 'Same owner prompt under two lifecycle matchers must remain twice.'
+$renderedSessionPackage = Render-BashCommand $sessionPackage
+$renderedOpenLoop = Render-BashCommand $openLoop
+$renderedGateStop = Render-BashCommand $gateStop
+$renderedClaim = Render-BashCommand $claim
+$renderedStackStop = Render-BashCommand $stackStop
+$renderedPhase = Render-BashCommand $phase
 
 $fixture = [ordered]@{
     permissions = [ordered]@{ defaultMode = 'auto'; deny = @('OwnerDeny'); allow = @('OwnerAllow') }
@@ -134,7 +177,7 @@ $fixture = [ordered]@{
                 [ordered]@{ type = 'command'; command = "python `"$homeUnix/hooks/owner-stop-a.py`""; owner = 'unique-base' }
             ) },
             [ordered]@{ matcher = '*'; label = 'keep-star-group'; hooks = @(
-                [ordered]@{ type = 'command'; command = $claim; timeout = 45; owner = 'claim-duplicate' },
+                [ordered]@{ type = 'command'; command = $oldClaim; timeout = 45; owner = 'claim-old-launcher' },
                 [ordered]@{ type = 'command'; command = $switchPython; owner = 'direct-switch' },
                 [ordered]@{ type = 'command'; command = "python `"$homeUnix/hooks/owner-stop-b.py`""; owner = 'unique-star' }
             ) },
@@ -155,6 +198,13 @@ $fixture = [ordered]@{
             [ordered]@{ matcher = 'Bash'; label = 'keep-bash'; hooks = @([ordered]@{ type = 'command'; command = $sharedPreTool; owner = 'bash-copy' }) },
             [ordered]@{ matcher = 'Write'; label = 'keep-write'; hooks = @([ordered]@{ type = 'command'; command = $sharedPreTool; owner = 'write-copy' }) }
         )
+        PostToolUse = @(
+            [ordered]@{ matcher = 'owner'; label = 'keep-owner-shells'; hooks = @(
+                [ordered]@{ type = 'command'; command = $ownerHomeBash; timeout = 17; owner = 'home-bash' },
+                [ordered]@{ type = 'command'; command = $ownerOutsideBash; timeout = 18; owner = 'outside-bash' },
+                [ordered]@{ type = 'command'; command = $openLoop; timeout = 19; owner = 'same-tail-different-event' }
+            ) }
+        )
         Notification = @(
             [ordered]@{ matcher = 'idle'; label = 'keep-notification'; hooks = @([ordered]@{ type = 'command'; command = "python `"$homeUnix/hooks/owner-notify.py`""; owner = 'notification' }) }
         )
@@ -170,10 +220,17 @@ $beforeEnabledPlugins = Get-CanonicalJson $before.enabledPlugins
 $beforeMcpServers = Get-CanonicalJson $before.mcpServers
 $beforeEnv = Get-CanonicalJson $before.env
 $beforeNotification = Get-CanonicalJson $before.hooks.Notification
-$beforeFirstOpenLoop = Get-CanonicalJson (Find-CommandHook $before 'SessionStart' 'open-loop-surface\.sh')
-$beforeFirstClaim = Get-CanonicalJson (Find-CommandHook $before 'Stop' 'gate-claim-verification\.sh')
+$beforePostToolUse = Get-CanonicalJson $before.hooks.PostToolUse
+$expectedFirstOpenLoop = Get-CanonicalJson (Find-CommandHook $before 'SessionStart' 'open-loop-surface\.sh') | ConvertFrom-Json
+$expectedFirstOpenLoop.command = $renderedOpenLoop
+$expectedFirstClaim = Get-CanonicalJson (Find-CommandHook $before 'Stop' 'gate-claim-verification\.sh') | ConvertFrom-Json
+$expectedFirstClaim.command = $renderedClaim
 
-Assert-True ($beforeDuplicateCount -eq 4) 'fixture must start with exactly four cross-group duplicate commands'
+Assert-True ($VerifiedBashPath -match '\s') 'verified Git Bash fixture path must contain a space'
+Assert-True ($TempRoot -match '\s') 'Claude home fixture path must contain a space'
+Assert-True ($TempRoot -match '&') 'Claude home fixture path must contain an ampersand'
+Assert-True ($beforeDuplicateCount -eq 3) 'fixture must start with three exact duplicates before launcher normalization'
+Assert-True (@(Get-HookCommands $before 'Stop' | Where-Object { $_ -ceq $oldClaim }).Count -eq 1) 'fixture old absolute Bash launcher control missing'
 Assert-True (@(Get-HookCommands $before 'SessionStart' | Where-Object { $_ -ceq $retiredInstall }).Count -eq 1) 'fixture retired auto-install control missing'
 Assert-True (@(Get-HookCommands $before 'SessionStart' | Where-Object { $_ -ceq $retiredStandingOrders -or $_ -ceq $retiredStackSession }).Count -eq 2) 'fixture exact retired hydration controls missing'
 Assert-True (@(Get-HookCommands $before 'Stop' | Where-Object { $_ -ceq $switchShell }).Count -eq 1) 'fixture retired model-switch wrapper control missing'
@@ -185,9 +242,24 @@ $afterLifecycleCount = (Get-HookCount $after 'SessionStart') + (Get-HookCount $a
 $afterDuplicateCount = Get-DuplicateCommandCount $after @('SessionStart', 'Stop')
 $sessionCommands = @(Get-HookCommands $after 'SessionStart')
 $stopCommands = @(Get-HookCommands $after 'Stop')
+$managedShellPattern = '(?i)/hooks/(?:gate-local-merge-first|gate-destructive-write|gate-anchor-size|gate-no-archive-without-asking|dreameros-session-start|open-loop-surface|gate-stop-no-half-states|gate-claim-verification|dreameros-agent-stack-stop|model-phase-boundary)\.sh(?:["'']|\s|$)'
+$managedShellCommands = New-Object System.Collections.ArrayList
+foreach ($eventName in @('PreToolUse', 'SessionStart', 'Stop')) {
+    foreach ($command in @(Get-HookCommands $after $eventName)) {
+        if ($command -match $managedShellPattern) { [void]$managedShellCommands.Add($command) }
+    }
+}
 
 Assert-True ($afterLifecycleCount -eq ($beforeLifecycleCount - 8)) 'lifecycle hook count did not decrease by exactly eight'
 Assert-True ($afterDuplicateCount -eq 0) 'cross-group lifecycle duplicates remain'
+Assert-True (@($sessionCommands | Where-Object { $_ -ceq $renderedSessionPackage }).Count -eq 1) 'session package launcher is not the quoted Git Bash path'
+Assert-True (@($sessionCommands | Where-Object { $_ -ceq $renderedOpenLoop }).Count -eq 1) 'open-loop launcher is not the quoted Git Bash path'
+Assert-True (@($stopCommands | Where-Object { $_ -ceq $renderedGateStop }).Count -eq 1) 'stop gate launcher is not the quoted Git Bash path'
+Assert-True (@($stopCommands | Where-Object { $_ -ceq $renderedClaim }).Count -eq 1) 'claim launcher is not the quoted Git Bash path'
+Assert-True (@($stopCommands | Where-Object { $_ -ceq $renderedStackStop }).Count -eq 1) 'stack stop launcher is not the quoted Git Bash path'
+Assert-True (@($stopCommands | Where-Object { $_ -ceq $renderedPhase }).Count -eq 1) 'phase launcher is not the quoted Git Bash path'
+Assert-True ($managedShellCommands.Count -eq 10) 'managed shell registration count is not ten'
+Assert-True (@($managedShellCommands | Where-Object { -not $_.StartsWith($BashCommandPrefix + ' ', [StringComparison]::Ordinal) }).Count -eq 0) 'a managed shell registration did not use the one quoted Git Bash launcher'
 Assert-True (@($sessionCommands | Where-Object { $_ -match 'open-loop-surface\.sh' }).Count -eq 1) 'open-loop SessionStart count is not one'
 Assert-True (@($stopCommands | Where-Object { $_ -match 'gate-claim-verification\.sh' }).Count -eq 1) 'claim verification Stop count is not one'
 Assert-True (@($stopCommands | Where-Object { $_ -match 'dreameros-agent-stack-stop\.sh' }).Count -eq 1) 'agent stack Stop count is not one'
@@ -206,13 +278,14 @@ $samePromptHooks = @($after.hooks.Stop | ForEach-Object { $_.hooks } | Where-Obj
 Assert-True ($samePromptHooks.Count -eq 2) 'same-prompt agent hooks were deduped across lifecycle matcher groups'
 $secondAgentGroup = @($after.hooks.Stop | Where-Object { [string]$_.matcher -eq 'agent-two' })
 Assert-True ($secondAgentGroup.Count -eq 1 -and [string]$secondAgentGroup[0].label -eq 'keep-second-agent-group') 'second same-prompt agent matcher group was removed'
-Assert-True ((Get-CanonicalJson (Find-CommandHook $after 'SessionStart' 'open-loop-surface\.sh')) -ceq $beforeFirstOpenLoop) 'first open-loop hook was not preserved exactly'
-Assert-True ((Get-CanonicalJson (Find-CommandHook $after 'Stop' 'gate-claim-verification\.sh')) -ceq $beforeFirstClaim) 'first claim hook was not preserved exactly'
+Assert-True ((Get-CanonicalJson (Find-CommandHook $after 'SessionStart' 'open-loop-surface\.sh')) -ceq (Get-CanonicalJson $expectedFirstOpenLoop)) 'first open-loop hook changed beyond its Bash launcher'
+Assert-True ((Get-CanonicalJson (Find-CommandHook $after 'Stop' 'gate-claim-verification\.sh')) -ceq (Get-CanonicalJson $expectedFirstClaim)) 'first claim hook changed beyond its Bash launcher'
 Assert-True ((Get-CanonicalJson $after.ownerMetadata) -ceq $beforeOwnerMetadata) 'unrelated owner metadata changed'
 Assert-True ((Get-CanonicalJson $after.enabledPlugins) -ceq $beforeEnabledPlugins) 'enabledPlugins changed'
 Assert-True ((Get-CanonicalJson $after.mcpServers) -ceq $beforeMcpServers) 'mcpServers changed'
 Assert-True ((Get-CanonicalJson $after.env) -ceq $beforeEnv) 'env changed'
 Assert-True ((Get-CanonicalJson $after.hooks.Notification) -ceq $beforeNotification) 'unrelated hook event changed'
+Assert-True ((Get-CanonicalJson $after.hooks.PostToolUse) -ceq $beforePostToolUse) 'unmanaged Bash hook event changed'
 Assert-True (@(Get-HookCommands $after 'PreToolUse' | Where-Object { $_ -eq $sharedPreTool }).Count -eq 2) 'PreToolUse hooks were deduped across matcher groups'
 $cloudGroup = @($after.hooks.SessionStart | Where-Object { [string]$_.matcher -eq 'cloud' })
 Assert-True ($cloudGroup.Count -eq 1 -and [string]$cloudGroup[0].label -eq 'keep-cloud-group') 'nonduplicate SessionStart matcher group was not preserved'
@@ -222,6 +295,33 @@ Assert-True ($first.Text -match 'hooks.SessionStart removed 1 duplicate hook') '
 Assert-True ($first.Text -match 'hooks.Stop removed 3 duplicate hook') 'Stop duplicate receipt missing'
 Assert-True ($first.Text -match 'hooks.SessionStart removed 3 retired hook') 'retired SessionStart receipt missing'
 Assert-True ($first.Text -match 'hooks.Stop removed 1 retired hook') 'retired shell-wrapper receipt missing'
+Assert-True ($first.Text -match 'hooks updated 10 Claude-home Bash launcher') 'managed Bash launcher update receipt missing'
+Assert-True ($first.Text -match [regex]::Escape("Git Bash verified at $VerifiedBashPath")) 'verified Git Bash preflight receipt missing'
+
+$sessionStartAfter = Find-CommandHook $after 'SessionStart' 'dreameros-session-start\.sh'
+$sessionStartProbe = @'
+#!/usr/bin/env bash
+printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"SessionStart","permissionDecision":"allow"}}'
+'@
+[IO.File]::WriteAllText((Join-Path $FixtureHookDir 'dreameros-session-start.sh'), $sessionStartProbe, (New-Object Text.UTF8Encoding($false)))
+$priorPreference = $ErrorActionPreference
+try {
+    $ErrorActionPreference = 'Continue'
+    $probeOutput = @(& $env:ComSpec /d /s /c ([string]$sessionStartAfter.command) 2>&1)
+    $probeExit = $LASTEXITCODE
+}
+finally {
+    $ErrorActionPreference = $priorPreference
+}
+Assert-True ($probeExit -eq 0) "rendered SessionStart command failed: $($probeOutput -join ' | ')"
+$sessionStartJson = ($probeOutput -join "`n").Trim() | ConvertFrom-Json -ErrorAction Stop
+Assert-True ([string]$sessionStartJson.hookSpecificOutput.hookEventName -ceq 'SessionStart') 'rendered SessionStart command did not emit valid SessionStart JSON'
+Assert-True ([string]$sessionStartJson.hookSpecificOutput.permissionDecision -ceq 'allow') 'rendered SessionStart command did not allow the session'
+$missingClaudeHome = Join-Path $TempRoot 'missing launcher home\.claude'
+$missing = Invoke-Installer -TargetClaudeHome $missingClaudeHome -BashPathOverride 'C:\definitely-missing\Git\bin\bash.exe'
+Assert-True ($missing.ExitCode -ne 0) "missing Git Bash launcher did not fail visibly: $($missing.Text)"
+Assert-True ($missing.Text -match 'requested Git Bash executable was not found or failed verification') 'missing Git Bash launcher did not name the preflight failure'
+Assert-True (-not (Test-Path -LiteralPath $missingClaudeHome)) 'missing Git Bash launcher created Claude files before failing'
 
 $firstHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $SettingsPath).Hash
 $second = Invoke-Installer

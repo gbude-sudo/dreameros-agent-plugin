@@ -24,9 +24,9 @@ install/claude-code/
 ```
 
 Every path inside the payload is a token, not a real path. The installer
-expands `__DREAMEROS_CLAUDE_HOME__` and `__DREAMEROS_REPO_ROOT__` from the
-`-ClaudeHome` and `-RepoRoot` parameters. The package holds no operator
-specific path, no token, and no API key.
+expands `__DREAMEROS_CLAUDE_HOME__`, `__DREAMEROS_REPO_ROOT__`, and
+`__DREAMEROS_BASH_COMMAND__` after it reads the local machine. The package
+holds no operator-specific path, no credential, and no API key.
 
 ### Agents
 
@@ -77,6 +77,13 @@ keeps the first command object and every nonduplicate hook or matcher. It does
 not apply cross-group deduplication to `PreToolUse`, where matcher scope changes
 meaning. It also removes the retired SessionStart auto-install command. It
 preserves `build-boot-pack.ps1 -VerifyInstalled`.
+
+On Windows, the installer resolves and runs Git for Windows `bash.exe` before
+it writes settings. It registers the quoted absolute executable path, so a
+Claude process does not depend on a later PATH broadcast. During an upgrade it
+changes only payload-managed Bash registrations; unrelated owner Bash hooks
+stay unchanged. On non-Windows systems, registrations keep the portable
+`bash` command name.
 
 ### Skills
 
@@ -159,6 +166,7 @@ Custom locations:
 | `-ClaudeHome` | `$env:USERPROFILE\.claude` | where Claude Code reads its config |
 | `-RepoRoot` | `$env:USERPROFILE\Documents\DreamerOS` | where your repositories live |
 | `-PayloadPath` | `payload` next to the script | the payload directory |
+| `-BashPath` | auto-detected | optional absolute Git Bash path on Windows; the executable must identify itself as GNU bash |
 | `-DryRun` | off | print actions, change nothing |
 | `-Force` | off | overwrite differing hook, skill, and canon payload files; managed agent files still merge only their two owned regions |
 | `-SkipCanon` | off | do not install CLAUDE.md |
@@ -168,9 +176,10 @@ Custom locations:
 Set `DREAMEROS_MCP_TOKEN` in your own user environment, then start a new
 Claude Code session. The installer never reads, writes, or stores a token.
 
-The hook gates are bash scripts. Install Git for Windows so `bash` is on PATH.
-The model phase boundary hook needs `python` on PATH. The installer warns when
-either is missing, and still installs the rest.
+The hook gates are Bash scripts. On Windows the installer verifies Git Bash and
+stops before any write when it cannot find a working executable. The model
+phase boundary hook needs `python` on PATH; a missing Python command remains a
+warning because the other gates do not depend on it.
 
 ## Safety properties, and how each one was tested
 
@@ -179,12 +188,13 @@ either is missing, and still installs the rest.
 | Idempotent | run twice against the same home | `settings.json` byte-identical, SHA256 unchanged, every file reported SKIP |
 | Merges, never clobbers | run against a copy of a 142-entry live settings.json | `additionalDirectories`, `enabledPlugins`, `extraKnownMarketplaces` and every other key preserved |
 | Lifecycle commands stay unique | seed duplicates across SessionStart and Stop matcher groups | first command kept, four later duplicates removed, PreToolUse matcher groups preserved |
+| Windows Bash path executes | render a Git Bash path and Claude home that contain spaces, then run the exact command through `cmd.exe` | hook writes its expected marker; a nonexistent launcher exits nonzero and cannot emit a valid hook result |
 | Retired auto-install removed | seed SessionStart `build-boot-pack.ps1 -Install` beside `-VerifyInstalled` | install command removed, verify command and session package kept |
 | Managed agent hydration merges | seed old UUID tools, local frontmatter, and local body text | portable tools and one bootstrap block installed; every unrelated field and body sequence preserved |
 | Backs up before writing | any run that changes a file | timestamped copy under `<ClaudeHome>\backups\dreameros-install-<stamp>\` |
 | Refuses a corrupt settings.json | seed an unparseable file, run | merge refused, file untouched, exit code 1 |
 | Dry run changes nothing | `-DryRun` against a seeded home | every action printed, no write |
-| Fails loudly | any failure | named in the FAILED block, exit code 1 |
+| Fails loudly | any failure | named at the failing boundary, nonzero exit code |
 
 A customer-edited payload hook, skill, or canon file is left alone unless
 `-Force` is used. Unrelated customer files are not targets. Managed DreamerOS

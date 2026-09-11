@@ -26,6 +26,11 @@
 .PARAMETER PayloadPath
   The payload directory. Default: the payload folder next to this script.
 
+.PARAMETER BashPath
+  Optional absolute path to bash. On Windows the installer otherwise resolves
+  and verifies Git for Windows bash.exe. On other systems it keeps the portable
+  bash command name.
+
 .PARAMETER DryRun
   Print every action and change nothing.
 
@@ -51,6 +56,7 @@ param(
     [string] $ClaudeHome = (Join-Path $env:USERPROFILE '.claude'),
     [string] $RepoRoot = (Join-Path $env:USERPROFILE 'Documents\DreamerOS'),
     [string] $PayloadPath,
+    [string] $BashPath,
     [switch] $DryRun,
     [switch] $Force,
     [switch] $SkipCanon
@@ -68,6 +74,7 @@ $script:Failed    = New-Object System.Collections.ArrayList
 $script:Warnings  = New-Object System.Collections.ArrayList
 
 $script:Stamp = (Get-Date).ToString('yyyyMMdd-HHmmss')
+$script:BashCommandPrefix = 'bash'
 
 function Write-Step {
     param([string] $Message)
@@ -202,6 +209,77 @@ function Expand-Tokens {
     $out = $Text.Replace('__DREAMEROS_CLAUDE_HOME__', $home1)
     $out = $out.Replace('__DREAMEROS_REPO_ROOT__', $root1)
     return $out
+}
+
+function Test-WindowsHost {
+    return [System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT
+}
+
+function Test-BashExecutable {
+    param([Parameter(Mandatory)][string] $Path)
+    $priorPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        $output = @(& $Path --version 2>&1)
+        $code = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $priorPreference
+    }
+    return $code -eq 0 -and (($output -join "`n") -match '(?m)^GNU bash, version ')
+}
+
+function Resolve-BashLauncher {
+    param([string] $RequestedPath)
+
+    if (-not (Test-WindowsHost)) {
+        return [pscustomobject]@{
+            Executable = 'bash'
+            CommandPrefix = 'bash'
+        }
+    }
+
+    $candidates = New-Object System.Collections.ArrayList
+    if (-not [string]::IsNullOrWhiteSpace($RequestedPath)) {
+        if (-not [System.IO.Path]::IsPathRooted($RequestedPath)) {
+            throw '-BashPath must be an absolute path.'
+        }
+        [void]$candidates.Add($RequestedPath)
+    }
+    else {
+        foreach ($git in @(Get-Command git.exe -CommandType Application -ErrorAction SilentlyContinue)) {
+            $gitSource = [string]$git.Source
+            if ([string]::IsNullOrWhiteSpace($gitSource)) { continue }
+            $gitRoot = Split-Path -Parent (Split-Path -Parent $gitSource)
+            [void]$candidates.Add((Join-Path $gitRoot 'bin\bash.exe'))
+        }
+        foreach ($base in @($env:ProgramFiles, ${env:ProgramFiles(x86)})) {
+            if (-not [string]::IsNullOrWhiteSpace($base)) {
+                [void]$candidates.Add((Join-Path $base 'Git\bin\bash.exe'))
+            }
+        }
+        if (-not [string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) {
+            [void]$candidates.Add((Join-Path $env:LOCALAPPDATA 'Programs\Git\bin\bash.exe'))
+        }
+    }
+
+    $seen = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($candidate in $candidates) {
+        if ([string]::IsNullOrWhiteSpace([string]$candidate) -or -not $seen.Add([string]$candidate)) { continue }
+        if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) { continue }
+        $resolved = (Resolve-Path -LiteralPath $candidate).Path
+        if ((Split-Path -Leaf $resolved) -ine 'bash.exe') { continue }
+        if (-not (Test-BashExecutable -Path $resolved)) { continue }
+        $portable = $resolved.Replace('\', '/')
+        return [pscustomobject]@{
+            Executable = $resolved
+            CommandPrefix = '"' + $portable + '"'
+        }
+    }
+    if (-not [string]::IsNullOrWhiteSpace($RequestedPath)) {
+        throw "The requested Git Bash executable was not found or failed verification: $RequestedPath"
+    }
+    throw 'Git for Windows bash.exe was not found or failed GNU bash verification.'
 }
 
 function Install-TemplatedFile {
@@ -488,6 +566,122 @@ function Get-HookSemanticKey {
     return 'raw:' + (Get-CanonicalJson $hookHash)
 }
 
+function Get-ClaudeHomeBashInvocation {
+    param([Parameter(Mandatory)][string] $Command)
+
+    $invocation = [regex]::Match(
+        $Command,
+        '(?i)^(?<launcher>bash(?:\.exe)?|"[^"]*[\\/]bash(?:\.exe)?"|''[^'']*[\\/]bash(?:\.exe)?''|[^\s"'']*[\\/]bash(?:\.exe)?)\s+(?<rest>[\s\S]+)$')
+    if (-not $invocation.Success) { return $null }
+
+    $rest = $invocation.Groups['rest'].Value
+    $scriptMatch = [regex]::Match(
+        $rest,
+        '^(?:"(?<double>[^"]+\.sh)"|''(?<single>[^'']+\.sh)''|(?<bare>\S+\.sh))(?=$|\s)')
+    if (-not $scriptMatch.Success) { return $null }
+    $scriptPath = $scriptMatch.Groups['double'].Value
+    if ([string]::IsNullOrEmpty($scriptPath)) { $scriptPath = $scriptMatch.Groups['single'].Value }
+    if ([string]::IsNullOrEmpty($scriptPath)) { $scriptPath = $scriptMatch.Groups['bare'].Value }
+
+    try {
+        $hooksRoot = [System.IO.Path]::GetFullPath((Join-Path $ClaudeHome 'hooks')).TrimEnd([char[]]@('\', '/'))
+        $fullScript = [System.IO.Path]::GetFullPath($scriptPath)
+    }
+    catch {
+        return $null
+    }
+    $boundary = $hooksRoot + [System.IO.Path]::DirectorySeparatorChar
+    if (-not $fullScript.StartsWith($boundary, [System.StringComparison]::OrdinalIgnoreCase)) {
+        return $null
+    }
+    return [pscustomobject]@{
+        Launcher = $invocation.Groups['launcher'].Value
+        Rest = $rest
+    }
+}
+
+function Render-FragmentBashCommands {
+    param($FragmentHooks)
+
+    $rendered = 0
+    foreach ($eventName in @($FragmentHooks.Keys)) {
+        foreach ($group in @($FragmentHooks[$eventName])) {
+            if ($group -isnot [System.Collections.IDictionary] -or -not $group.Contains('hooks') -or $null -eq $group['hooks']) { continue }
+            foreach ($hook in @($group['hooks'])) {
+                if ($hook -isnot [System.Collections.IDictionary] -or -not $hook.Contains('command')) { continue }
+                $command = [string]$hook['command']
+                $token = '__DREAMEROS_BASH_COMMAND__ '
+                if (-not $command.StartsWith($token, [System.StringComparison]::Ordinal)) { continue }
+                $hook['command'] = $script:BashCommandPrefix + ' ' + $command.Substring($token.Length)
+                $rendered++
+            }
+        }
+    }
+    return $rendered
+}
+
+function Get-ManagedBashRegistrationKey {
+    param(
+        [Parameter(Mandatory)][string] $EventName,
+        [Parameter(Mandatory)][string] $CommandTail
+    )
+    return $EventName + [string][char]0 + $CommandTail
+}
+
+function Update-ClaudeHomeBashHookLaunchers {
+    param($Hooks, $FragmentHooks)
+
+    if ($script:BashCommandPrefix -ceq 'bash') { return 0 }
+    $managedCommands = New-Object 'System.Collections.Generic.Dictionary[string,string]' ([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($eventName in @($FragmentHooks.Keys)) {
+        foreach ($group in @($FragmentHooks[$eventName])) {
+            $groupHash = ConvertTo-OrderedHash $group
+            if (-not $groupHash.Contains('hooks') -or $null -eq $groupHash['hooks']) { continue }
+            foreach ($hook in @($groupHash['hooks'])) {
+                $hookHash = ConvertTo-OrderedHash $hook
+                if (-not $hookHash.Contains('command')) { continue }
+                $wanted = [string]$hookHash['command']
+                $wantedParts = Get-ClaudeHomeBashInvocation -Command $wanted
+                if ($null -ne $wantedParts) {
+                    $managedCommands[(Get-ManagedBashRegistrationKey -EventName $eventName -CommandTail $wantedParts.Rest)] = $wanted
+                }
+            }
+        }
+    }
+    $updated = 0
+    foreach ($eventName in @($Hooks.Keys)) {
+        $updatedGroups = New-Object System.Collections.ArrayList
+        foreach ($group in @($Hooks[$eventName])) {
+            $groupHash = ConvertTo-OrderedHash $group
+            if (-not $groupHash.Contains('hooks') -or $null -eq $groupHash['hooks']) {
+                [void]$updatedGroups.Add($groupHash)
+                continue
+            }
+            $updatedHooks = New-Object System.Collections.ArrayList
+            foreach ($hook in @($groupHash['hooks'])) {
+                $hookHash = ConvertTo-OrderedHash $hook
+                if ($hookHash.Contains('command')) {
+                    $command = [string]$hookHash['command']
+                    $parts = Get-ClaudeHomeBashInvocation -Command $command
+                    $managedKey = if ($null -ne $parts) { Get-ManagedBashRegistrationKey -EventName $eventName -CommandTail $parts.Rest } else { $null }
+                    if ($null -ne $managedKey -and $managedCommands.ContainsKey($managedKey)) {
+                        $wanted = $managedCommands[$managedKey]
+                        if ($wanted -cne $command) {
+                            $hookHash['command'] = $wanted
+                            $updated++
+                        }
+                    }
+                }
+                [void]$updatedHooks.Add($hookHash)
+            }
+            $groupHash['hooks'] = $updatedHooks
+            [void]$updatedGroups.Add($groupHash)
+        }
+        $Hooks[$eventName] = $updatedGroups
+    }
+    return $updated
+}
+
 function Merge-HookEvent {
     <#
       Merge one hook event, for example PreToolUse.
@@ -689,6 +883,10 @@ function Merge-Settings {
     if ($Fragment.Contains('hooks')) {
         if (-not $out.Contains('hooks')) { $out['hooks'] = [ordered]@{} }
         $hooks = $out['hooks']
+        $updatedLaunchers = Update-ClaudeHomeBashHookLaunchers -Hooks $hooks -FragmentHooks $Fragment['hooks']
+        if ($updatedLaunchers -gt 0) {
+            [void]$changes.Add("hooks updated $updatedLaunchers Claude-home Bash launcher(s)")
+        }
         foreach ($evt in $Fragment['hooks'].Keys) {
             $cur = $null
             if ($hooks.Contains($evt)) { $cur = $hooks[$evt] }
@@ -746,13 +944,20 @@ if (-not (Test-Path -LiteralPath $PayloadPath)) {
 }
 Write-Step "payload found"
 
-$bash = Get-Command bash -ErrorAction SilentlyContinue
-if ($null -eq $bash) {
-    Add-Warning 'bash was not found on PATH. The hook gates are bash scripts and will not run. Install Git for Windows.'
-    Write-Step "WARN  bash not on PATH"
+try {
+    $bashLauncher = Resolve-BashLauncher -RequestedPath $BashPath
+    $script:BashCommandPrefix = $bashLauncher.CommandPrefix
+    if (Test-WindowsHost) {
+        Write-Step "Git Bash verified at $($bashLauncher.Executable)"
+    }
+    else {
+        Write-Step "bash verified at $($bashLauncher.Executable)"
+    }
 }
-else {
-    Write-Step "bash found at $($bash.Source)"
+catch {
+    Write-Host "FATAL: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host 'No Claude files were changed.' -ForegroundColor Red
+    exit 2
 }
 
 $py = Get-Command python -ErrorAction SilentlyContinue
@@ -872,6 +1077,10 @@ try {
 
     $fragRaw = Expand-Tokens (Read-TextFile $fragPath)
     $fragment = ConvertTo-OrderedHash (ConvertFrom-Json $fragRaw)
+    $renderedBashCommands = Render-FragmentBashCommands -FragmentHooks $fragment['hooks']
+    if ($renderedBashCommands -ne 10 -or (Get-CanonicalJson $fragment).Contains('__DREAMEROS_BASH_COMMAND__')) {
+        throw 'settings fragment Bash command rendering was incomplete.'
+    }
 
     $existing = [ordered]@{}
     if (Test-Path -LiteralPath $settingsPath) {
