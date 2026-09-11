@@ -37,6 +37,8 @@ if (-not $VersionMatch.Success) { throw 'boot canon source has no semantic versi
 $VersionNumber = $VersionMatch.Groups[1].Value
 $Version = 'v' + $VersionNumber
 $Marker  = 'DREAMEROS-BOOT-CANON'
+$CodexClientAdapterVersion = 'v1.0.0'
+$CodexPackageEngine = 'chatgpt'
 $VerifyGenerated = $Verify -or $VerifyInstalled
 
 function New-Dir([string]$p) { if (-not (Test-Path $p)) { New-Item -ItemType Directory -Path $p -Force | Out-Null } }
@@ -416,6 +418,12 @@ $Targets += @{
     Path = Join-Path $Out 'codex\AGENTS.md.block'
     Text = @"
 <!-- BEGIN $Marker $Version - GENERATED, DO NOT EDIT. Source: SOURCE-dreameros-boot-canon.md -->
+<dreameros_codex_client_adapter version="$CodexClientAdapterVersion">
+Codex is a client surface for the DreamerOS $CodexPackageEngine engine family.
+When calling dreameros_session_package from Codex, pass engine: "$CodexPackageEngine".
+Do not pass engine: "codex"; that is a client name, not a package engine.
+</dreameros_codex_client_adapter>
+
 $Payload
 <!-- END $Marker $Version -->
 "@
@@ -850,6 +858,14 @@ $manifest.project_oauth_onramp = [ordered]@{
     codex = 'project-oauth/codex.config.toml'
     requirement = 'Client OAuth approval is required before connection proof.'
 }
+$manifest.client_adapters = [ordered]@{
+    codex = [ordered]@{
+        version = $CodexClientAdapterVersion
+        package_engine = $CodexPackageEngine
+        source = 'codex/AGENTS.md.block'
+        purpose = 'Map the Codex client name to the live DreamerOS package engine enum.'
+    }
+}
 $Targets += @{
     Path = Join-Path $Out 'manifest\dreameros-boot-canon.json'
     Text = ($manifest | ConvertTo-Json -Depth 6 -Compress)
@@ -1016,8 +1032,30 @@ if ($Install) {
     )
 
     foreach ($i in $installs) {
-        if (-not (Test-Path $i.f)) { Write-Host ("  SKIP   {0} does not exist ({1})" -f $i.f, $i.engine) -ForegroundColor Yellow; continue }
         $block = Get-Content $i.block -Raw
+        if (-not (Test-Path -LiteralPath $i.f -PathType Leaf)) {
+            New-Dir (Split-Path -Parent $i.f)
+            [byte[]]$blockBytes = Get-Utf8NoBomBytes $block
+            $createStream = $null
+            try {
+                $createStream = [System.IO.File]::Open(
+                    $i.f,
+                    [System.IO.FileMode]::CreateNew,
+                    [System.IO.FileAccess]::Write,
+                    [System.IO.FileShare]::None)
+                $createStream.Write($blockBytes, 0, $blockBytes.Length)
+                $createStream.Flush($true)
+            } catch {
+                throw "MERGE NEEDED: $($i.engine) global instruction file appeared during exclusive creation; no owner bytes were overwritten."
+            } finally {
+                if ($null -ne $createStream) { $createStream.Dispose() }
+            }
+            if ((Get-RawFileSha $i.f) -cne (Get-RawShaBytes $blockBytes)) {
+                throw "destination verification failed after exclusive create: $($i.f)"
+            }
+            Write-Host ("  HEALED  {0}  ({1})" -f $i.f, $i.engine) -ForegroundColor Green
+            continue
+        }
         $cur = Get-Content $i.f -Raw
         $beginCount = ([regex]::Matches($cur, [regex]::Escape($begin))).Count
         if ($beginCount -gt 1) {
