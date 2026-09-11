@@ -146,10 +146,11 @@
         ]
       },
       {
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"__DREAMEROS_CLAUDE_HOME__/hooks/model-switch-ack.sh\""
+            "command": "python \"__DREAMEROS_CLAUDE_HOME__/hooks/model-switch-ack.py\""
           }
         ]
       }

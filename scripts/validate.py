@@ -376,11 +376,39 @@ def check_claude_payload_agents() -> None:
     competing = [command for command in session_commands if re.search(r"(?i)(operator-standing-orders|dreameros-agent-stack-session-start|dreameros_state|dreameros_recall)", command)]
     if len(bootstrap_commands) != 1 or competing:
         fail("Claude payload SessionStart registration: requires one generated bootstrap and no competing hydration hook")
+    stop_groups = settings.get("hooks", {}).get("Stop", [])
+    stop_commands = [hook.get("command", "") for group in stop_groups for hook in group.get("hooks", [])]
+    direct_switch = [command for command in stop_commands if re.search(r"(?i)python(?:3|\.exe)?\s+.*model-switch-ack\.py", command)]
+    shell_switch = [command for command in stop_commands if "model-switch-ack.sh" in command]
+    if len(direct_switch) != 1 or shell_switch:
+        fail("Claude payload Stop registration: requires one direct Python model-switch hook and no shell wrapper")
     try:
         if payload_hook.read_bytes() != generated_hook.read_bytes():
             fail("Claude payload SessionStart hook: generated payload copy differs from bootpack output")
     except OSError as exc:
         fail(f"Claude payload SessionStart hook: unreadable ({exc})")
+
+    installer_path = ROOT / "install" / "claude-code" / "dreameros-global-setup.ps1"
+    try:
+        installer_text = installer_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        fail(f"Claude installer managed merge: unreadable ({exc})")
+        installer_text = ""
+    managed_merge_guards = (
+        r"Merge-ManagedAgentFile\s+-Source\s+\$f\.FullName",
+        r"Remove-DuplicateLifecycleHooksAcrossGroups",
+        r"foreach\s*\(\$evt\s+in\s+@\('SessionStart',\s*'Stop'\)\)",
+        r"retiredAutoInstall",
+        r"model-switch-ack\\\.sh",
+        r"if\s*\(-not\s+\$hookHash\.Contains\('command'\)\)",
+        r"\$sourceBlockLf",
+        r"\$currentHeaders\.Count\s+-ne\s+\$currentBlocks\.Count",
+        r"Backup-LockedBytes\s+-Path\s+\$Destination",
+        r"\$destinationStream\.SetLength\(0\)",
+    )
+    for pattern in managed_merge_guards:
+        if not re.search(pattern, installer_text):
+            fail("Claude installer managed merge: lifecycle or agent merge guard missing")
 
 
 def _cursor_manifest_paths(data: dict, field: str) -> list[Path]:
