@@ -670,6 +670,9 @@ if (-not [string]::IsNullOrWhiteSpace($EnterpriseCursorHooksPath) -and (Test-Pat
 foreach ($record in ($records | Sort-Object Repo, Surface)) {
     $ownership = if ($record.Dirty) { "DIRTY $($record.Status)" } else { 'FILE-CLEAN' }
     Write-Output ("{0} {1} {2} {3}" -f $record.State, $ownership, $record.Surface, $record.Path)
+    if ($record.State -eq 'GLOBAL_ONLY') {
+        Write-Output ("CLOUD_BOOT_GAP {0} {1} {2}" -f $record.Surface, $record.Path, 'ADD_PROJECT_BOOT_POINTER')
+    }
 }
 foreach ($record in ($generatorRecords | Sort-Object Repo)) {
     $ownership = if ($record.Dirty) { "DIRTY $($record.Status)" } else { 'FILE-CLEAN' }
@@ -711,7 +714,7 @@ foreach ($record in ($reparseChildRecords | Sort-Object PathDigest)) {
 Write-Output 'CURSOR_TEAM_HOOK_POLICY=UNVERIFIED_LIVE verify the effective Hooks list in Cursor Customize; team hooks can be cloud-distributed.'
 
 $blocking = @($records | Where-Object {
-    $_.State -in @('LEGACY_FULL_COPY', 'POINTER_DRIFT', 'UNKNOWN') -or
+    $_.State -in @('GLOBAL_ONLY', 'LEGACY_FULL_COPY', 'POINTER_DRIFT', 'UNKNOWN') -or
     ($_.State -eq 'POINTER_ALIGNED' -and $_.Dirty)
 })
 $generatorBlocking = @($generatorRecords | Where-Object {

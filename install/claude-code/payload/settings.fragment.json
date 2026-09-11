@@ -96,15 +96,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"__DREAMEROS_CLAUDE_HOME__/hooks/operator-standing-orders.sh\""
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"__DREAMEROS_CLAUDE_HOME__/hooks/dreameros-agent-stack-session-start.sh\""
+            "command": "bash \"__DREAMEROS_CLAUDE_HOME__/hooks/dreameros-session-start.sh\""
           }
         ]
       },

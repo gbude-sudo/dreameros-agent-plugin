@@ -66,6 +66,53 @@ function Assert-ChildPath([string]$Path, [string]$Parent, [string]$Label) {
     }
 }
 
+function Get-MissingManagedParentDirectories([string]$Target, [string]$Root) {
+    # Record only parent directories this transaction must create. Restore can
+    # later remove these exact empty directories without touching user-owned
+    # paths or walking above the approved Git root.
+    $rootFull = [IO.Path]::GetFullPath($Root).TrimEnd('\')
+    $candidate = [IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($Target))
+    $missing = [Collections.Generic.List[string]]::new()
+    while ($candidate -and -not [string]::Equals($candidate.TrimEnd('\'), $rootFull, [StringComparison]::OrdinalIgnoreCase)) {
+        Assert-ChildPath -Path $candidate -Parent $rootFull -Label 'Project rule parent'
+        if (Test-Path -LiteralPath $candidate) {
+            $item = Get-Item -LiteralPath $candidate -Force
+            if (-not $item.PSIsContainer -or ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+                throw "Project rule parent must be a real directory, not a file or reparse point: $candidate"
+            }
+            break
+        }
+        $missing.Add($candidate)
+        $candidate = [IO.Path]::GetDirectoryName($candidate)
+    }
+    if (-not $candidate) { throw "Project rule parent escaped its Git root: $Target" }
+    $relative = @()
+    for ($index = $missing.Count - 1; $index -ge 0; $index--) {
+        $relative += $missing[$index].Substring($rootFull.Length).TrimStart('\').Replace('\', '/')
+    }
+    return @($relative)
+}
+
+function Remove-EmptyCreatedParentDirectories([string]$Root, [string[]]$RelativeDirectories) {
+    $rootFull = [IO.Path]::GetFullPath($Root).TrimEnd('\')
+    foreach ($relative in @($RelativeDirectories | Sort-Object Length -Descending)) {
+        if ([string]::IsNullOrWhiteSpace($relative) -or [IO.Path]::IsPathRooted($relative) -or
+            $relative.StartsWith('/') -or $relative -match '(?:^|/)\.\.(?:/|$)') {
+            throw "Created parent directory is unsafe: $relative"
+        }
+        $directory = [IO.Path]::GetFullPath((Join-Path $rootFull $relative.Replace('/', '\')))
+        Assert-ChildPath -Path $directory -Parent $rootFull -Label 'Created project rule parent'
+        if (-not (Test-Path -LiteralPath $directory -PathType Container)) { continue }
+        $item = Get-Item -LiteralPath $directory -Force
+        if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+            throw "Created project rule parent became a reparse point: $directory"
+        }
+        if ((Get-ChildItem -LiteralPath $directory -Force | Measure-Object).Count -eq 0) {
+            [IO.Directory]::Delete($directory, $false)
+        }
+    }
+}
+
 function Get-CanonicalPath([string]$Path) {
     # Windows PowerShell 5.1 reports the children of an 8.3 short-form
     # directory (the GitHub runner profile RUNNER~1, for example) in long form, while
@@ -87,7 +134,13 @@ function Get-CanonicalPath([string]$Path) {
 }
 
 function Find-GitRoot([string]$Path) {
-    $current = Get-Item -LiteralPath (Split-Path -Parent $Path)
+    $candidate = Split-Path -Parent $Path
+    while (-not (Test-Path -LiteralPath $candidate)) {
+        $parent = Split-Path -Parent $candidate
+        if ([string]::IsNullOrWhiteSpace($parent) -or $parent -eq $candidate) { return $null }
+        $candidate = $parent
+    }
+    $current = Get-Item -LiteralPath $candidate
     while ($current) {
         if (Test-Path -LiteralPath (Join-Path $current.FullName '.git')) {
             return $current.FullName
@@ -140,7 +193,7 @@ function Get-ProjectRuleState([string]$Path, [string]$ExpectedHash) {
         return 'UNKNOWN'
     }
     if ((Get-SemanticSha $Path) -eq $ExpectedHash) { return 'POINTER_ALIGNED' }
-    if ($text.Contains('DREAMEROS-PROJECT-BOOT-POINTER')) { return 'UNKNOWN' }
+    if ($text.Contains('DREAMEROS-PROJECT-BOOT-POINTER')) { return 'POINTER_DRIFT' }
     $legacy =
         $text.Length -ge 5000 -and
         $text -match '(?m)^alwaysApply:\s*true\s*$' -and
@@ -199,17 +252,10 @@ if ($gitRepos.Count -eq 0) { throw 'No Git repositories were discovered at the r
 $targets = @()
 foreach ($root in $resolvedRoots) {
     $targets += Get-ChildItem -LiteralPath $root -Filter 'dreameros-boot-canon.mdc' -File -Recurse -Force |
-        Where-Object {
-            $_.FullName -match '\\.cursor\\rules\\dreameros-boot-canon\.mdc$' -and
-            $_.FullName -notmatch '\\(?:\.git|node_modules|\.claude\\worktrees|\.codex\\worktrees)\\'
-        }
+        Where-Object { $_.FullName -match '\\.cursor\\rules\\dreameros-boot-canon\.mdc$' -and $_.FullName -notmatch '\\(?:\.git|node_modules|\.claude\\worktrees|\.codex\\worktrees)\\' }
 }
+$targets += $gitRepos | ForEach-Object { [pscustomobject]@{ FullName = (Join-Path $_ '.cursor\rules\dreameros-boot-canon.mdc') } }
 $targets = @($targets | Sort-Object FullName -Unique)
-if ($targets.Count -eq 0) {
-    if ($Apply) { throw 'No per-repository Cursor boot rules were discovered for Apply.' }
-    Write-Output ("VERIFIED GLOBAL_ONLY across {0} Git repository/repositories; no per-repository Cursor boot rule exists." -f $gitRepos.Count)
-    exit 0
-}
 
 $pointerHash = Get-SemanticSha $PointerSource
 $records = @()
@@ -223,19 +269,22 @@ foreach ($target in $targets) {
     $gitRoot = Find-GitRoot $target.FullName
     if (-not $gitRoot) { throw "Project rule is not inside a Git repository: $($target.FullName)" }
     $relative = $target.FullName.Substring($gitRoot.Length).TrimStart([char[]]@('\', '/'))
-    $status = @(& git -c "safe.directory=$gitRoot" -C $gitRoot status --porcelain=v1 -- $relative)
-    if ($LASTEXITCODE -ne 0) { throw "Git status failed for $($target.FullName)" }
+    $exists = Test-Path -LiteralPath $target.FullName -PathType Leaf
+    $status = if ($exists) { @(& git -c "safe.directory=$gitRoot" -C $gitRoot status --porcelain=v1 -- $relative) } else { @() }
+    if ($exists -and $LASTEXITCODE -ne 0) { throw "Git status failed for $($target.FullName)" }
 
-    $state = Get-ProjectRuleState -Path $target.FullName -ExpectedHash $pointerHash
+    $state = if ($exists) { Get-ProjectRuleState -Path $target.FullName -ExpectedHash $pointerHash } else { 'GLOBAL_ONLY' }
     $records += [pscustomobject]@{
         EstateRoot = $estateRoot
         GitRoot = $gitRoot
         Relative = $relative
         Path = $target.FullName
-        OriginalHash = Get-SemanticSha $target.FullName
+        OriginalHash = if ($exists) { Get-SemanticSha $target.FullName } else { '' }
+        Exists = $exists
         Dirty = $status.Count -gt 0
         Status = ($status -join ' ')
         State = $state
+        CreatedParentDirs = @()
     }
 }
 
@@ -248,9 +297,11 @@ if (-not $Apply) {
     $notAligned = @($records | Where-Object { $_.State -ne 'POINTER_ALIGNED' -or $_.Dirty })
     if ($notAligned.Count -gt 0) {
         $legacyCount = @($notAligned | Where-Object { $_.State -eq 'LEGACY_FULL_COPY' }).Count
+        $globalOnlyCount = @($notAligned | Where-Object { $_.State -eq 'GLOBAL_ONLY' }).Count
         $unknownCount = @($notAligned | Where-Object { $_.State -eq 'UNKNOWN' }).Count
         $dirtyCount = @($notAligned | Where-Object { $_.Dirty }).Count
-        throw "$($notAligned.Count) project Cursor pointer(s) are not aligned and file-clean: LEGACY_FULL_COPY=$legacyCount UNKNOWN=$unknownCount DIRTY=$dirtyCount."
+        if ($globalOnlyCount -gt 0) { Write-Output "CLOUD_BOOT_GAP=$globalOnlyCount ADD_PROJECT_BOOT_POINTER" }
+        throw "$($notAligned.Count) project Cursor pointer(s) are not aligned and file-clean: CLOUD_BOOT_GAP=$globalOnlyCount LEGACY_FULL_COPY=$legacyCount UNKNOWN=$unknownCount DIRTY=$dirtyCount."
     }
     Write-Output ("VERIFIED {0} POINTER_ALIGNED FILE-CLEAN project Cursor rule(s)" -f $records.Count)
     exit 0
@@ -283,8 +334,8 @@ foreach ($root in $approved) {
     }
 }
 
-$workRecords = @($approvedRecords | Where-Object { $_.State -eq 'LEGACY_FULL_COPY' })
-if ($workRecords.Count -eq 0) { throw 'No approved LEGACY_FULL_COPY project rules require migration.' }
+$workRecords = @($approvedRecords | Where-Object { $_.State -in @('LEGACY_FULL_COPY', 'POINTER_DRIFT', 'GLOBAL_ONLY') })
+if ($workRecords.Count -eq 0) { throw 'No approved project rules require pointer migration or refresh.' }
 
 $blocked = @($workRecords | Where-Object { $_.Dirty })
 if ($blocked.Count -gt 0) {
@@ -324,18 +375,24 @@ foreach ($record in $workRecords) {
     if ($repoStatusNow.Count -gt 0) {
         throw "Repository changed after approval preflight. No project file was written: $($record.GitRoot) status=$($repoStatusNow -join ' | ')"
     }
-    $statusNow = @(& git -c "safe.directory=$($record.GitRoot)" -C $record.GitRoot status --porcelain=v1 -- $record.Relative)
-    if ($LASTEXITCODE -ne 0) { throw "Git recheck failed for $($record.Path)" }
-    $stateNow = Get-ProjectRuleState -Path $record.Path -ExpectedHash $pointerHash
-    if ($statusNow.Count -gt 0 -or (Get-SemanticSha $record.Path) -ne $record.OriginalHash -or $stateNow -ne 'LEGACY_FULL_COPY') {
+    $statusNow = if ($record.Exists) { @(& git -c "safe.directory=$($record.GitRoot)" -C $record.GitRoot status --porcelain=v1 -- $record.Relative) } else { @() }
+    if ($record.Exists -and $LASTEXITCODE -ne 0) { throw "Git recheck failed for $($record.Path)" }
+    $existsNow = Test-Path -LiteralPath $record.Path -PathType Leaf
+    $stateNow = if ($existsNow) { Get-ProjectRuleState -Path $record.Path -ExpectedHash $pointerHash } else { 'GLOBAL_ONLY' }
+    $hashNow = if ($existsNow) { Get-SemanticSha $record.Path } else { '' }
+    if ($statusNow.Count -gt 0 -or $hashNow -ne $record.OriginalHash -or $stateNow -ne $record.State) {
         throw "Project rule changed after preflight. No project file was written: $($record.Path)"
+    }
+    if (-not $record.Exists) {
+        $record.CreatedParentDirs = @(Get-MissingManagedParentDirectories -Target $record.Path -Root $record.GitRoot)
     }
 
     $pathKey = (Get-StringSha $record.Path.ToLowerInvariant()).Substring(0, 20)
     $backup = Join-Path $backupSet (Join-Path $pathKey 'dreameros-boot-canon.mdc')
     Assert-ChildPath -Path $backup -Parent $backupSet -Label 'Project rule backup'
     New-Item -ItemType Directory -Path (Split-Path -Parent $backup) -Force | Out-Null
-    Copy-Item -LiteralPath $record.Path -Destination $backup
+    if ($record.Exists) { Copy-Item -LiteralPath $record.Path -Destination $backup }
+    else { [IO.File]::WriteAllText($backup, '', $encoding) }
     $work += [pscustomobject]@{ Record = $record; Backup = $backup }
 }
 
@@ -352,6 +409,8 @@ $manifest = [ordered]@{
             git_root = $_.Record.GitRoot
             git_relative = $_.Record.Relative.Replace('\', '/')
             original_sha256 = $_.Record.OriginalHash
+            existed = $_.Record.Exists
+            created_parent_dirs = @($_.Record.CreatedParentDirs)
             backup_relative = $_.Backup.Substring($backupSet.Length).TrimStart('\').Replace('\', '/')
         }
     })
@@ -369,14 +428,17 @@ try {
         $record = $item.Record
         Assert-CurrentMain $record.GitRoot
         Assert-OnlyTransactionChanges -Root $record.GitRoot -ChangedItems @($changed)
-        $statusNow = @(& git -c "safe.directory=$($record.GitRoot)" -C $record.GitRoot status --porcelain=v1 -- $record.Relative)
-        if ($LASTEXITCODE -ne 0) { throw "Git write-time recheck failed for $($record.Path)" }
-        $stateNow = Get-ProjectRuleState -Path $record.Path -ExpectedHash $pointerHash
-        if ($statusNow.Count -gt 0 -or (Get-SemanticSha $record.Path) -ne $record.OriginalHash -or $stateNow -ne 'LEGACY_FULL_COPY') {
+        $statusNow = if ($record.Exists) { @(& git -c "safe.directory=$($record.GitRoot)" -C $record.GitRoot status --porcelain=v1 -- $record.Relative) } else { @() }
+        if ($record.Exists -and $LASTEXITCODE -ne 0) { throw "Git write-time recheck failed for $($record.Path)" }
+        $existsNow = Test-Path -LiteralPath $record.Path -PathType Leaf
+        $stateNow = if ($existsNow) { Get-ProjectRuleState -Path $record.Path -ExpectedHash $pointerHash } else { 'GLOBAL_ONLY' }
+        $hashNow = if ($existsNow) { Get-SemanticSha $record.Path } else { '' }
+        if ($statusNow.Count -gt 0 -or $hashNow -ne $record.OriginalHash -or $stateNow -ne $record.State) {
             throw "Project rule changed before write: $($record.Path)"
         }
 
         [void]$changed.Add($item)
+        New-Item -ItemType Directory -Path (Split-Path -Parent $record.Path) -Force | Out-Null
         [IO.File]::WriteAllText($record.Path, $pointerText, $encoding)
         if ((Get-SemanticSha $record.Path) -ne $pointerHash -or
             (Get-ProjectRuleState -Path $record.Path -ExpectedHash $pointerHash) -ne 'POINTER_ALIGNED') {
@@ -401,6 +463,16 @@ try {
         if ($currentHash -eq $record.OriginalHash) { continue }
         if ($currentHash -ne $pointerHash) {
             $rollbackErrors += "concurrent change prevented rollback: $($record.Path)"
+            continue
+        }
+        if (-not $record.Exists) {
+            [IO.File]::Delete($record.Path)
+            if (Test-Path -LiteralPath $record.Path) { $rollbackErrors += "created pointer removal failed: $($record.Path)" }
+            try {
+                Remove-EmptyCreatedParentDirectories -Root $record.GitRoot -RelativeDirectories @($record.CreatedParentDirs)
+            } catch {
+                $rollbackErrors += "created pointer parent cleanup failed: $($_.Exception.Message)"
+            }
             continue
         }
         Copy-Item -LiteralPath $item.Backup -Destination $record.Path -Force

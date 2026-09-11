@@ -9,8 +9,7 @@
             "command": "python3 \"__DREAMEROS_CODEX_HOME__/hooks/model-switch-ack-codex.py\"",
             "commandWindows": "python \"__DREAMEROS_CODEX_HOME__/hooks/model-switch-ack-codex.py\"",
             "timeout": 10,
-            "statusMessage": "Checking whether the engine changed",
-            "additionalContextLimit": 2000
+            "statusMessage": "Checking whether the engine changed"
           }
         ]
       }

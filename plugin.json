@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "dreameros",
-  "version": "0.3.15",
+  "version": "0.4.0",
   "description": "DreamerOS starts agents with shared rules, verifies intent, carries memory across sessions, checks claims, and routes work through one gateway with vendor-native adapters.",
   "author": {
     "name": "DreamerOS",

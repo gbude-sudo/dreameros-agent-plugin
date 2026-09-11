@@ -315,6 +315,32 @@ function Merge-HookEvent {
     return [pscustomobject]@{ List = $result; Added = $added }
 }
 
+function Remove-RetiredSessionStartHydrationHooks {
+    param($Hooks)
+    if (-not $Hooks.Contains('SessionStart')) { return 0 }
+    $removed = 0
+    $updatedGroups = New-Object System.Collections.ArrayList
+    foreach ($group in @($Hooks['SessionStart'])) {
+        $groupHash = ConvertTo-OrderedHash $group
+        $kept = New-Object System.Collections.ArrayList
+        foreach ($hook in @($groupHash['hooks'])) {
+            $hookHash = ConvertTo-OrderedHash $hook
+            $command = if ($hookHash.Contains('command')) { [string]$hookHash['command'] } else { '' }
+            if ($command -match '(?i)(?:operator-standing-orders|dreameros-agent-stack-session-start)\.sh') {
+                $removed++
+                continue
+            }
+            [void]$kept.Add($hookHash)
+        }
+        if ($kept.Count -gt 0) {
+            $groupHash['hooks'] = $kept
+            [void]$updatedGroups.Add($groupHash)
+        }
+    }
+    $Hooks['SessionStart'] = $updatedGroups
+    return $removed
+}
+
 function Merge-Settings {
     param(
         [Parameter(Mandatory)] $Existing,
@@ -361,6 +387,10 @@ function Merge-Settings {
             $hooks[$evt] = $m.List
             if ($m.Added -gt 0) { [void] $changes.Add("hooks.$evt gained $($m.Added) hooks") }
         }
+    }
+    $removedHydrationHooks = Remove-RetiredSessionStartHydrationHooks -Hooks $hooks
+    if ($removedHydrationHooks -gt 0) {
+        [void]$changes.Add("hooks.SessionStart removed $removedHydrationHooks retired hydration hook(s)")
     }
 
     # Every other key the operator already had stays untouched. That includes

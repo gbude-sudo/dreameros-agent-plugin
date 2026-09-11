@@ -140,12 +140,7 @@ def _emit(previous_model: str, current_model: str) -> None:
         "unannounced switch means he is reasoning about output from a model he "
         "did not know he was talking to."
     )
-    print(json.dumps({
-        "hookSpecificOutput": {
-            "hookEventName": "Stop",
-            "additionalContext": message,
-        }
-    }))
+    print(json.dumps({"decision": "block", "reason": message}))
 
 
 def _already_announced(key: str) -> bool:
@@ -172,6 +167,11 @@ def main() -> int:
     except Exception:
         return 0
     if not isinstance(hook_input, dict):
+        return 0
+
+    # Codex sets this when a Stop hook already blocked the same turn. Blocking
+    # again would recurse instead of letting the required follow-up ship.
+    if hook_input.get("stop_hook_active") is True:
         return 0
 
     session_id = hook_input.get("session_id") or hook_input.get("sessionId")

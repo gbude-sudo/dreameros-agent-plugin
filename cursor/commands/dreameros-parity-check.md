@@ -5,11 +5,14 @@ description: Prove whether this Cursor session is fully plugged into DreamerOS a
 
 # Cursor to DreamerOS parity check
 
-<!-- DREAMEROS-BOOT-PRECONDITION v1.0.0 -->
-This command proves its own boot. Before any non-boot DreamerOS call, obtain
-returned identifiers from `dreameros_session_package`, then
-`dreameros_context`, then `dreameros_state`; use those identifiers for the
-remaining recall, receipt, and component checks.
+<!-- DREAMEROS-BOOT-PRECONDITION v1.1.0 -->
+This command proves its own boot. `dreameros_session_package` is the only
+required boot call. Call it first. When the package directs it or the assigned
+task needs read-only enrichment, use this order: (1)
+`dreameros_session_handoff_read` for the full record when present, (2)
+`dreameros_context` and its SCS as the read-only current-state channel, (3)
+scoped `dreameros_recall`, and (4) `dreameros_canon` when needed. Use returned
+identifiers for the remaining receipt and component checks.
 
 Run this as an audit. Do not branch, commit, push, merge, deploy, publish,
 change credentials, or approve a paid action.
@@ -34,21 +37,22 @@ Record the UTC start time, then verify each row with current evidence:
    Claude SessionStart adapter, the Cursor plugin byte-verification line, and a
    passing native hook case count at or above the locked floor.
 2. Project rules: run `install/cursor/sync-project-rules.ps1` without `-Apply`.
-   Accept either `VERIFIED GLOBAL_ONLY` for a measured Git estate with no
-   per-repository boot rule, or require every discovered
-   `.cursor/rules/dreameros-boot-canon.mdc` under the DreamerOS and Codex estate
-   roots to be `POINTER_ALIGNED` with the generated fail-closed project
-   pointer. `LEGACY_FULL_COPY` means a duplicated canon can override the native
-   rule; `UNKNOWN` means the file is customized, truncated, or otherwise unsafe
-   to migrate. Either state prevents `FULL`. Never run `-Apply` from this audit.
-   `POINTER_ALIGNED DIRTY` is not durable parity and also prevents `FULL`.
+   Require every expected `.cursor/rules/dreameros-boot-canon.mdc` under the
+   DreamerOS and Codex estate roots to be `POINTER_ALIGNED FILE-CLEAN` with the
+   generated fail-closed project pointer. Treat `GLOBAL_ONLY` as a
+   `CLOUD_BOOT_GAP`; it prevents `FULL` because a cloud client cannot rely on
+   this machine's user-level carrier. `LEGACY_FULL_COPY` means a duplicated
+   canon can override the native rule; `UNKNOWN` means the file is customized,
+   truncated, or otherwise unsafe to migrate. Either state prevents `FULL`.
+   Never run `-Apply` from this audit. `POINTER_ALIGNED DIRTY` is not durable
+   parity and also prevents `FULL`.
 3. Cross-vendor project surfaces: run
    `install/cursor/audit-project-boot-surfaces.ps1`. Require every Claude,
-   Codex, and Cursor row to be `GLOBAL_ONLY FILE-CLEAN` or
-   `POINTER_ALIGNED FILE-CLEAN`. Any full copy, drifted pointer, unknown block,
-   dirty pointer, legacy generator, stale or drifted named adapter, duplicated
-   embedded/rule excerpt, or registered Claude session-start hook that is not
-   `BOOT_HOOK_ALIGNED FILE-CLEAN` prevents `FULL`. The local audit reports
+   Codex, and Cursor row to be `POINTER_ALIGNED FILE-CLEAN`. Any missing or full
+   copy, drifted pointer, unknown block, dirty pointer, legacy generator, stale
+   or drifted named adapter, duplicated embedded/rule excerpt, or registered
+   Claude session-start hook that is not `BOOT_HOOK_ALIGNED FILE-CLEAN`
+   prevents `FULL`. The local audit reports
    server-managed Claude hook policy as `UNVERIFIED_LIVE`; `FULL` additionally
    requires an authenticated Claude Code `/hooks` reading proving the central
    SessionStart adapter is effective and not blocked by `allowManagedHooksOnly`
@@ -235,8 +239,7 @@ only when another required path is blocked. Never erase or replace the first
 block. Background role output may arrive later as optional evidence, but it
 must not delay or rewrite either parity block.
 
-`overall=FULL` requires either a measured `GLOBAL_ONLY` estate or
-`POINTER_ALIGNED FILE-CLEAN` Cursor project rules,
+`overall=FULL` requires `POINTER_ALIGNED FILE-CLEAN` Cursor project rules,
 `ALIGNED` cross-vendor project surfaces, `ACTIVE` rules, `INVOKED`
 skills/subagents/commands, `PROVEN` hooks, hydration, receipt, and Git, a
 `CONNECTED` MCP with no legacy project authorization entries, and the
@@ -245,3 +248,5 @@ deployment row must be `REACHABLE` and cite
 both the deployment id and the destination status/body signature; `DEPLOYED`
 alone remains `PARTIAL`. Therefore `receipt=HELD`, `UNVERIFIED`, or no
 deployment target cannot return `FULL`. It is not a customer completion claim.
+A `GLOBAL_ONLY` project row remains reportable, but it is a `CLOUD_BOOT_GAP`
+and cannot return `FULL`.

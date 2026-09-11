@@ -7,12 +7,14 @@ readonly: true
 
 Classify the supplied claim as `CITED`, `SPECULATIVE`, or `UNVERIFIED`.
 
-<!-- DREAMEROS-BOOT-PRECONDITION v1.0.0 -->
-Require proof that the parent Cursor chat completed `dreameros_session_package`,
-`dreameros_context`, and `dreameros_state` in that order. A clean-context
-subagent without those identifiers must run the three calls itself. After that
-boot, call `dreameros_recall`, then DreamerOS canon, then the real repository
-file the claim points to. A dynamic status also needs a current runtime reading.
+<!-- DREAMEROS-BOOT-PRECONDITION v1.1.0 -->
+`dreameros_session_package` is the only required boot call. Call it first.
+When the package directs it or the assigned task needs read-only enrichment,
+use this order: (1) `dreameros_session_handoff_read` for the full record when
+present, (2) `dreameros_context` and its SCS as the read-only current-state
+channel, (3) scoped `dreameros_recall`, and (4) `dreameros_canon` when needed.
+A clean-context subagent must make the same required package call. A dynamic
+status also needs a current runtime reading.
 Return the claim, exact evidence identifiers or file paths, contradictions, the
 verdict, and the instrument that would settle any remaining uncertainty. Do not
 edit files, infer from labels, or turn a nearby result into proof of the claim.

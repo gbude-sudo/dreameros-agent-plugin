@@ -448,8 +448,13 @@ function New-Action($Finding) {
     $manualBlock = $false
     switch ($Finding.kind) {
         'BOOT_SURFACE' {
-            if ($Finding.state -in @('GLOBAL_ONLY', 'POINTER_ALIGNED') -and -not $Finding.dirty) { return $null }
-            if ($Finding.state -eq 'UNKNOWN') {
+            if ($Finding.state -eq 'POINTER_ALIGNED' -and -not $Finding.dirty) { return $null }
+            if ($Finding.state -eq 'GLOBAL_ONLY') {
+                $action = 'ADD_PROJECT_BOOT_POINTER'
+                $source = if ($Finding.surface -eq 'CURSOR') { $CursorPointer } else { $EmbeddedPointer }
+                $notes += 'Universal cloud parity requires a project boot pointer unless this exact venue has current measured native carrier proof.'
+            }
+            elseif ($Finding.state -eq 'UNKNOWN') {
                 $action = 'MANUAL_REVIEW_UNCLASSIFIED_BOOT_SURFACE'
                 $manualBlock = $true
             } elseif ($Finding.state -eq 'POINTER_ALIGNED' -and $Finding.dirty) {
@@ -662,7 +667,7 @@ for ($lineIndex = 0; $lineIndex -lt $AuditLines.Count; $lineIndex++) {
     }
     if ([string]::IsNullOrWhiteSpace($line)) { continue }
     if ($line -eq $SummaryLine[0] -or $line -eq $OutcomeLine[0] -or
-        $line -match '^VERIFIED CROSS-VENDOR PROJECT BOOT POINTERS repos=') { continue }
+        $line -match '^(?:VERIFIED CROSS-VENDOR PROJECT BOOT POINTERS repos=|CLOUD_BOOT_GAP )') { continue }
     [void]$UnparsedAuditRows.Add("line=$($lineIndex + 1) digest=$(Get-StringSha $line)")
 }
 if ($UnparsedAuditRows.Count -gt 0) {

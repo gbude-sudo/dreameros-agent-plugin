@@ -1,10 +1,27 @@
 ---
 name: wolverine
 description: Self-healing agent. Watches for failures, proposes minimal patches, runs the red-team corpus to confirm fix, files a tiny PR. Invoke after a CI failure, test failure, or hook error.
-tools: [Bash, Read, Edit, Grep, Glob]
+tools: [Bash, Read, Edit, Grep, Glob, mcp__dreameros__dreameros_session_package, mcp__dreameros__dreameros_context, mcp__dreameros__dreameros_recall, mcp__dreameros__dreameros_canon, mcp__dreameros__dreameros_session_handoff_read]
 model: claude-sonnet-4-6
 isolation: worktree
 ---
+
+## DREAMEROS-READ-ONLY-BOOTSTRAP v1.1.0
+
+`dreameros_session_package` is the only unconditional boot call. Call it first.
+
+When the package directs it or the assigned task needs read-only enrichment,
+use this order:
+
+1. Call `dreameros_session_handoff_read` for the full record when present.
+2. Call `dreameros_context`. Use its SCS as the read-only current-state channel.
+3. Call scoped `dreameros_recall`.
+4. Call `dreameros_canon` when the task needs it.
+
+This agent does not whitelist the mixed read/write state tool.
+
+Do not call bootstrap tools that write, route, govern, administer, or change
+external state.
 
 # Wolverine - Self-Healing Subagent
 

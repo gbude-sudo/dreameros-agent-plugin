@@ -34,6 +34,15 @@ function Assert-True([bool]$Condition, [string]$Message) {
     if (-not $Condition) { throw "ASSERTION FAILED: $Message" }
 }
 
+function Get-FileSha256([string]$Path) {
+    # Do not depend on Get-FileHash. The test deliberately runs in stripped
+    # PowerShell environments as well as the normal desktop shells.
+    $stream = [IO.File]::OpenRead($Path)
+    $sha = [Security.Cryptography.SHA256]::Create()
+    try { return ([BitConverter]::ToString($sha.ComputeHash($stream))).Replace('-', '').ToLowerInvariant() }
+    finally { $sha.Dispose(); $stream.Dispose() }
+}
+
 function New-TestRepo([string]$Name, [string[]]$RelativePaths) {
     $root = Join-Path $Estate $Name
     New-Item -ItemType Directory -Path $root -Force | Out-Null
@@ -100,7 +109,7 @@ function Invoke-PlannerProcessStartInfo([string]$AuditPath) {
 function Get-TreeDigest([string]$Path) {
     $lines = @(Get-ChildItem -LiteralPath $Path -File -Recurse -Force | Sort-Object FullName | ForEach-Object {
         $relative = $_.FullName.Substring($Path.Length).TrimStart('\').Replace('\', '/')
-        "$relative|$((Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())"
+        "$relative|$(Get-FileSha256 $_.FullName)"
     })
     $bytes = $Utf8.GetBytes(($lines -join "`n"))
     $sha = [Security.Cryptography.SHA256]::Create()
@@ -204,8 +213,8 @@ Assert-True ($plannedA.actions.Count -eq 8) 'repo-a action count mismatch'
 Assert-True (@($plannedA.actions | Where-Object action -eq 'REMOVE_LEGACY_AUTHORIZATION_WITHOUT_OUTPUTTING_VALUE').Count -eq 1) 'MCP structural action missing'
 Assert-True (@($plannedA.actions | Where-Object action -eq 'REPLACE_WITH_GENERATED_CURSOR_ADAPTER').Count -eq 1) 'adapter action missing'
 Assert-True ($plannedA.git.fresh_fetch_required -eq $true) 'fresh-fetch gate missing'
-Assert-True ($plannedB.plan_state -eq 'NO_MIGRATION_ACTION') 'global-only repo should have no action'
-Assert-True ($plannedB.actions.Count -eq 0) 'global-only repo received an action'
+Assert-True ($plannedB.plan_state -eq 'REVIEW_REQUIRED') 'global-only repo should require cloud-pointer review'
+Assert-True (@($plannedB.actions | Where-Object action -eq 'ADD_PROJECT_BOOT_POINTER').Count -eq 3) 'global-only repo did not receive three pointer additions'
 Assert-True (-not $jsonResult.Text.Contains($secretSentinel)) 'planner output exposed the sentinel credential value'
 Assert-True (@(& git -C $repoA status --porcelain=v1).Count -eq 0) 'planner changed repo-a'
 Assert-True (@(& git -C $repoB status --porcelain=v1).Count -eq 0) 'planner changed repo-b'
@@ -232,14 +241,14 @@ Assert-True ((Get-TreeDigest $TestHome) -eq $testHomeBefore) 'default planner ch
 
 $parallelOwnerFile = Join-Path $repoA 'parallel-owner.txt'
 [IO.File]::WriteAllText($parallelOwnerFile, 'preserve parallel owner work', $Utf8)
-$parallelOwnerHash = (Get-FileHash -LiteralPath $parallelOwnerFile -Algorithm SHA256).Hash
+$parallelOwnerHash = Get-FileSha256 $parallelOwnerFile
 $dirtyResult = Invoke-Planner $auditPath
 Assert-True ($dirtyResult.ExitCode -eq 0) "dirty-worktree planner failed: $($dirtyResult.Text)"
 $dirtyPlan = $dirtyResult.Text | ConvertFrom-Json
 $dirtyPlannedA = @($dirtyPlan.repositories | Where-Object path -eq $repoA)[0]
 Assert-True ($dirtyPlannedA.plan_state -eq 'BLOCKED_DIRTY') 'whole-worktree dirty gate missing'
 Assert-True (Test-Path -LiteralPath $parallelOwnerFile) 'planner removed parallel owner work'
-Assert-True ((Get-FileHash -LiteralPath $parallelOwnerFile -Algorithm SHA256).Hash -eq $parallelOwnerHash) 'planner changed parallel owner bytes'
+Assert-True ((Get-FileSha256 $parallelOwnerFile) -eq $parallelOwnerHash) 'planner changed parallel owner bytes'
 Move-Item -LiteralPath $parallelOwnerFile -Destination (Join-Path $TempRoot 'preserved-parallel-owner.txt')
 
 $indexPath = Join-Path $repoA '.git\index'
