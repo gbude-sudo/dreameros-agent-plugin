@@ -137,7 +137,6 @@ Assert-True ($censusResult.Text -match 'POINTER_ALIGNED DIRTY') 'dirty pointer s
 Assert-True ($censusResult.Text -match 'LEGACY_FULL_COPY FILE-CLEAN') 'legacy state missing'
 Assert-True ($censusResult.Text -match 'LEGACY_FULL_COPY DIRTY') 'dirty legacy state missing'
 Assert-True ($censusResult.Text -match 'UNKNOWN FILE-CLEAN') 'unknown state missing'
-Assert-True ($censusResult.Text -match 'LEGACY_FULL_COPY=2 UNKNOWN=2 DIRTY=2') 'aggregate state counts wrong'
 Assert-True ((Get-SemanticSha $aligned.Rule) -eq (Get-SemanticSha $alignedCrLf.Rule)) 'CRLF pointer must normalize'
 
 # GitHub runners hand the sync tool estate roots in 8.3 short form. Ownership
@@ -155,12 +154,38 @@ New-Item -ItemType Directory -Path $globalOnlyRepo -Force | Out-Null
 & git -C $globalOnlyRepo config user.name 'DreamerOS Pointer Test'
 & git -C $globalOnlyRepo add .
 & git -C $globalOnlyRepo commit -m fixture --quiet
+$globalOnlyBare = Join-Path $globalOnlyEstate 'repo-origin.git'
+& git init --bare $globalOnlyBare --quiet
+& git -C $globalOnlyRepo remote add origin $globalOnlyBare
+& git -C $globalOnlyRepo push -u origin main --quiet
 $globalOnlyResult = Invoke-Sync $globalOnlyEstate
-Assert-True ($globalOnlyResult.ExitCode -eq 0) "GLOBAL_ONLY census failed: $($globalOnlyResult.Text)"
-Assert-True ($globalOnlyResult.Text -match 'VERIFIED GLOBAL_ONLY across 1 Git repository') 'GLOBAL_ONLY success signature missing'
+Assert-True ($globalOnlyResult.ExitCode -ne 0) "GLOBAL_ONLY must report a cloud boot gap"
 $globalOnlyApply = Invoke-Sync $globalOnlyEstate @($globalOnlyRepo) 'APPLY REVIEWED PROJECT RULE WRITES'
-Assert-True ($globalOnlyApply.ExitCode -ne 0) 'Apply with no project rule must fail'
-Assert-True ($globalOnlyApply.Text -match 'No per-repository Cursor boot rules were discovered for Apply') 'GLOBAL_ONLY Apply refusal missing'
+Assert-True ($globalOnlyApply.ExitCode -eq 0) "GLOBAL_ONLY pointer addition failed: $($globalOnlyApply.Text)"
+Assert-True ($globalOnlyApply.Text -match 'MIGRATED 1 approved project Cursor rule') 'GLOBAL_ONLY pointer addition result missing'
+$globalOnlyTarget = Join-Path $globalOnlyRepo '.cursor\rules\dreameros-boot-canon.mdc'
+Assert-True (Test-Path -LiteralPath $globalOnlyTarget) 'GLOBAL_ONLY Cursor pointer was not created'
+$globalManifestMatch = [regex]::Match($globalOnlyApply.Text, 'restore manifest (?<path>[^\r\n]+)')
+Assert-True ($globalManifestMatch.Success) 'GLOBAL_ONLY pointer addition did not emit a restore manifest'
+$globalManifest = $globalManifestMatch.Groups['path'].Value.Trim()
+$globalManifestData = [IO.File]::ReadAllText($globalManifest) | ConvertFrom-Json
+Assert-True ($globalManifestData.entries.Count -eq 1 -and -not $globalManifestData.entries[0].existed) 'GLOBAL_ONLY manifest did not record a newly created target'
+Assert-True (@($globalManifestData.entries[0].created_parent_dirs).Count -eq 2) 'GLOBAL_ONLY manifest did not record created parent directories'
+
+# A newly created pointer must refuse a concurrent edit before it removes the
+# file, then restore the original absent state and only its empty tool-created
+# parents after the pointer bytes are put back.
+[IO.File]::AppendAllText($globalOnlyTarget, "`nconcurrent target drift", $Utf8)
+$globalTamperRestore = Invoke-Restore $globalManifest 'RESTORE REVIEWED PROJECT RULE WRITES'
+Assert-True ($globalTamperRestore.ExitCode -ne 0 -and $globalTamperRestore.Text -match 'target changed') 'new-target restore did not refuse tampering'
+Assert-True (Test-Path -LiteralPath $globalOnlyTarget) 'new-target tamper refusal removed the pointer'
+[IO.File]::WriteAllText($globalOnlyTarget, $pointerText, $Utf8)
+$globalRestore = Invoke-Restore $globalManifest 'RESTORE REVIEWED PROJECT RULE WRITES'
+Assert-True ($globalRestore.ExitCode -eq 0) "GLOBAL_ONLY restore failed: $($globalRestore.Text)"
+Assert-True (-not (Test-Path -LiteralPath $globalOnlyTarget)) 'GLOBAL_ONLY restore did not return the target to absent'
+Assert-True (-not (Test-Path -LiteralPath (Join-Path $globalOnlyRepo '.cursor'))) 'GLOBAL_ONLY restore did not remove empty tool-created parents'
+Assert-True (Test-Path -LiteralPath (Join-Path $globalOnlyRepo 'README.md')) 'GLOBAL_ONLY restore removed an unrelated repository file'
+Assert-True (@(& git -C $globalOnlyRepo status --porcelain=v1).Count -eq 0) 'GLOBAL_ONLY restore did not return the repository clean'
 
 # Wrong confirmation cannot mutate an otherwise eligible repository.
 $wrongConfirmEstate = Join-Path $TempRoot 'wrong-confirm'

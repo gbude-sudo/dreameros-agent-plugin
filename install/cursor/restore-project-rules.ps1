@@ -19,6 +19,75 @@ function Assert-ChildPath([string]$Path, [string]$Parent, [string]$Label) {
     }
 }
 
+function Assert-RealPath([string]$Path, [string]$Root, [string]$Label) {
+    $rootFull = [IO.Path]::GetFullPath($Root).TrimEnd('\')
+    $candidate = [IO.Path]::GetFullPath($Path)
+    Assert-ChildPath -Path $candidate -Parent $rootFull -Label $Label
+    while ($candidate -and $candidate.StartsWith($rootFull, [StringComparison]::OrdinalIgnoreCase)) {
+        if (Test-Path -LiteralPath $candidate) {
+            $item = Get-Item -LiteralPath $candidate -Force
+            if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+                throw "$Label crosses a reparse point: $candidate"
+            }
+        }
+        if ([string]::Equals($candidate.TrimEnd('\'), $rootFull, [StringComparison]::OrdinalIgnoreCase)) { break }
+        $candidate = [IO.Path]::GetDirectoryName($candidate)
+    }
+}
+
+function Get-ValidatedCreatedParentDirectories($Entry, [bool]$Existed, [string]$Root, [string]$Relative) {
+    $property = $Entry.PSObject.Properties['created_parent_dirs']
+    if (-not $property) {
+        if (-not $Existed) { throw 'Restore manifest created target is missing created_parent_dirs.' }
+        return @()
+    }
+    $values = @($property.Value | Where-Object { $null -ne $_ })
+    if ($Existed -and $values.Count -ne 0) { throw 'Restore manifest existing target cannot claim created parent directories.' }
+    $allowed = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    $segments = $Relative -split '/'
+    for ($index = 1; $index -lt $segments.Count; $index++) {
+        [void]$allowed.Add(($segments[0..($index - 1)] -join '/'))
+    }
+    $seen = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    $result = @()
+    foreach ($value in $values) {
+        if (-not ($value -is [string])) { throw 'Restore manifest created_parent_dirs contains a non-string value.' }
+        $normalized = $value.Replace('\', '/').Trim('/')
+        if ([string]::IsNullOrWhiteSpace($normalized) -or $normalized -match '(?:^|/)\.\.(?:/|$)' -or
+            -not $allowed.Contains($normalized) -or -not $seen.Add($normalized)) {
+            throw "Restore manifest created_parent_dirs is unsafe: $value"
+        }
+        $bound = [IO.Path]::GetFullPath((Join-Path $Root $normalized.Replace('/', '\')))
+        Assert-ChildPath -Path $bound -Parent $Root -Label 'Restore created parent'
+        $result += $normalized
+    }
+    return @($result)
+}
+
+function Remove-EmptyCreatedParentDirectories([string]$Root, [string[]]$RelativeDirectories) {
+    foreach ($relative in @($RelativeDirectories | Sort-Object Length -Descending)) {
+        $directory = [IO.Path]::GetFullPath((Join-Path $Root $relative.Replace('/', '\')))
+        Assert-RealPath -Path $directory -Root $Root -Label 'Restore created parent'
+        if (-not (Test-Path -LiteralPath $directory -PathType Container)) { continue }
+        if ((Get-ChildItem -LiteralPath $directory -Force | Measure-Object).Count -eq 0) {
+            [IO.Directory]::Delete($directory, $false)
+        }
+    }
+}
+
+function Remove-CreatedPointerTarget($Item, [string]$PointerHash) {
+    Assert-RealPath -Path $Item.Target -Root $Item.Root -Label 'Restore created target'
+    if (-not (Test-Path -LiteralPath $Item.Target -PathType Leaf)) {
+        throw "Restore created target is missing: $($Item.Target)"
+    }
+    if ((Get-SemanticSha $Item.Target) -ne $PointerHash) {
+        throw "Restore target changed after migration: $($Item.Target)"
+    }
+    [IO.File]::Delete($Item.Target)
+    if (Test-Path -LiteralPath $Item.Target) { throw "Restore created target removal failed: $($Item.Target)" }
+    Remove-EmptyCreatedParentDirectories -Root $Item.Root -RelativeDirectories @($Item.CreatedParentDirs)
+}
+
 function Get-SemanticSha([string]$Path) {
     $text = [IO.File]::ReadAllText($Path).Replace("`r`n", "`n").Replace("`r", "`n")
     $bytes = $Utf8.GetBytes($text)
@@ -45,10 +114,19 @@ function Assert-RestoreReady([object[]]$Items, [string]$PointerHash) {
     Assert-CurrentMain $root
     $expectedDirty = @()
     foreach ($item in $Items) {
+        if ($item.Removed) {
+            if (Test-Path -LiteralPath $item.Target -PathType Leaf) {
+                throw "Restore created target reappeared during transaction: $($item.Target)"
+            }
+            continue
+        }
+        if (-not (Test-Path -LiteralPath $item.Target -PathType Leaf)) {
+            throw "Restore target is missing: $($item.Target)"
+        }
         $hash = Get-SemanticSha $item.Target
         if ($hash -eq $PointerHash) {
             $expectedDirty += $item.Relative
-        } elseif ($hash -ne $item.OriginalHash) {
+        } elseif (-not $item.Existed -or $hash -ne $item.OriginalHash) {
             throw "Restore target changed outside the transaction: $($item.Target)"
         }
     }
@@ -88,8 +166,20 @@ if ([string]::IsNullOrWhiteSpace([string]$data.pointer_sha256)) { throw 'Restore
 $work = @()
 $seenTargets = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
 foreach ($entry in $entries) {
-    foreach ($field in @('target_path', 'git_root', 'git_relative', 'original_sha256', 'backup_relative')) {
+    foreach ($field in @('target_path', 'git_root', 'git_relative', 'backup_relative')) {
         if ([string]::IsNullOrWhiteSpace([string]$entry.$field)) { throw "Restore manifest entry is missing $field" }
+    }
+    if (-not $entry.PSObject.Properties['original_sha256']) { throw 'Restore manifest entry is missing original_sha256' }
+    if (-not $entry.PSObject.Properties['existed'] -or $entry.existed -isnot [bool]) {
+        throw 'Restore manifest entry is missing a boolean existed flag.'
+    }
+    $existed = [bool]$entry.existed
+    $originalHash = [string]$entry.original_sha256
+    if ($existed -and ($originalHash -notmatch '^[0-9a-f]{64}$')) {
+        throw 'Restore manifest existing target has an invalid original_sha256.'
+    }
+    if (-not $existed -and -not [string]::IsNullOrEmpty($originalHash)) {
+        throw 'Restore manifest newly created target must have an empty original_sha256.'
     }
     $root = [IO.Path]::GetFullPath([string]$entry.git_root).TrimEnd('\')
     $target = [IO.Path]::GetFullPath([string]$entry.target_path)
@@ -104,22 +194,27 @@ foreach ($entry in $entries) {
         throw "Restore manifest target_path does not match git_root plus git_relative: $target"
     }
     if (-not $seenTargets.Add($target)) { throw "Restore manifest contains a duplicate target: $target" }
-    Assert-ChildPath -Path $target -Parent $root -Label 'Restore target'
+    Assert-RealPath -Path $target -Root $root -Label 'Restore target'
     if (-not (Test-Path -LiteralPath (Join-Path $root '.git'))) { throw "Restore Git root is not a repository: $root" }
     if (-not (Test-Path -LiteralPath $target -PathType Leaf)) { throw "Restore target is missing: $target" }
+    $createdParentDirs = @(Get-ValidatedCreatedParentDirectories -Entry $entry -Existed $existed -Root $root -Relative $relative)
     $backup = Join-Path $backupSet ([string]$entry.backup_relative).Replace('/', '\')
     Assert-ChildPath -Path $backup -Parent $backupSet -Label 'Restore backup'
     if (-not (Test-Path -LiteralPath $backup -PathType Leaf)) { throw "Restore backup is missing: $backup" }
     $backupItem = Get-Item -LiteralPath $backup -Force
     if ($backupItem.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "Restore backup cannot be a reparse point: $backup" }
-    if ((Get-SemanticSha $backup) -ne [string]$entry.original_sha256) { throw "Restore backup hash mismatch: $backup" }
+    if ($existed -and (Get-SemanticSha $backup) -ne $originalHash) { throw "Restore backup hash mismatch: $backup" }
+    if (-not $existed -and $backupItem.Length -ne 0) { throw "Restore new-target backup must be empty: $backup" }
     if ((Get-SemanticSha $target) -ne [string]$data.pointer_sha256) { throw "Restore target changed after migration: $target" }
     $work += [pscustomobject]@{
         Root = $root
         Target = $target
         Relative = $relative
         Backup = $backup
-        OriginalHash = [string]$entry.original_sha256
+        OriginalHash = $originalHash
+        Existed = $existed
+        CreatedParentDirs = $createdParentDirs
+        Removed = $false
     }
 }
 
@@ -150,10 +245,18 @@ try {
     foreach ($item in $staged) {
         $rootItems = @($work | Where-Object { $_.Root -eq $item.Work.Root })
         Assert-RestoreReady $rootItems ([string]$data.pointer_sha256)
+        if (-not (Test-Path -LiteralPath $item.Work.Target -PathType Leaf)) {
+            throw "Restore target changed immediately before write: $($item.Work.Target)"
+        }
         if ((Get-SemanticSha $item.Work.Target) -ne [string]$data.pointer_sha256) {
             throw "Restore target changed immediately before write: $($item.Work.Target)"
         }
         [void]$changed.Add($item)
+        if (-not $item.Work.Existed) {
+            Remove-CreatedPointerTarget -Item $item.Work -PointerHash ([string]$data.pointer_sha256)
+            $item.Work.Removed = $true
+            continue
+        }
         Copy-Item -LiteralPath $item.Work.Backup -Destination $item.Work.Target -Force
         if ((Get-SemanticSha $item.Work.Target) -ne $item.Work.OriginalHash) {
             throw "Restored target hash failed: $($item.Work.Target)"
@@ -185,10 +288,34 @@ try {
     $errors = @()
     for ($index = $changed.Count - 1; $index -ge 0; $index--) {
         $item = $changed[$index]
-        if ((Get-SemanticSha $item.Work.Target) -eq [string]$data.pointer_sha256) { continue }
-        Copy-Item -LiteralPath $item.Staging -Destination $item.Work.Target -Force
-        if ((Get-SemanticSha $item.Work.Target) -ne [string]$data.pointer_sha256) {
-            $errors += "staging rollback hash failed: $($item.Work.Target)"
+        $targetExists = Test-Path -LiteralPath $item.Work.Target -PathType Leaf
+        if ($targetExists -and (Get-SemanticSha $item.Work.Target) -eq [string]$data.pointer_sha256) {
+            $item.Work.Removed = $false
+            continue
+        }
+        if ($targetExists -and -not $item.Work.Existed) {
+            $errors += "concurrent change prevented created-target rollback: $($item.Work.Target)"
+            continue
+        }
+        if ($targetExists -and $item.Work.Existed -and (Get-SemanticSha $item.Work.Target) -ne $item.Work.OriginalHash) {
+            $errors += "concurrent change prevented existing-target rollback: $($item.Work.Target)"
+            continue
+        }
+        if (-not $targetExists -and $item.Work.Existed) {
+            $errors += "concurrent deletion prevented existing-target rollback: $($item.Work.Target)"
+            continue
+        }
+        try {
+            Assert-RealPath -Path $item.Work.Target -Root $item.Work.Root -Label 'Restore rollback target'
+            New-Item -ItemType Directory -Path (Split-Path -Parent $item.Work.Target) -Force | Out-Null
+            Copy-Item -LiteralPath $item.Staging -Destination $item.Work.Target -Force
+            if ((Get-SemanticSha $item.Work.Target) -ne [string]$data.pointer_sha256) {
+                $errors += "staging rollback hash failed: $($item.Work.Target)"
+            } else {
+                $item.Work.Removed = $false
+            }
+        } catch {
+            $errors += "staging rollback failed: $($item.Work.Target): $($_.Exception.Message)"
         }
     }
     if ($manifestReplaced) {

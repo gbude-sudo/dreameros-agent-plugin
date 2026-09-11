@@ -20,7 +20,16 @@ sessions opened inside that repository, and an engine switch is not a
 per-repository event.
 
 If `~/.codex/hooks.json` already exists, MERGE rather than overwrite.
-The installer refuses to overwrite an existing file for that reason.
+The installer refuses to overwrite an existing file for that reason. It uses
+exclusive `CreateNew` when the file is absent. If another process creates or
+locks the file during installation, the installer stops with `MERGE NEEDED`.
+
+The central boot installer also treats the hook script as shared state. An
+aligned file is left untouched. A differing file is locked exclusively and
+backed up with a UTC timestamp before update. The installer rechecks the exact
+current byte hash immediately before writing. If another process holds or
+changes the destination, installation stops with `MERGE NEEDED` and preserves
+the owner's bytes for review.
 
 ## Two ways it learns the model, and why there are two
 
@@ -39,10 +48,20 @@ untrusted until Codex records its hash. Confirm the hook is trusted and
 watch it fire before treating this as covered - a hook that exits 0 is
 not a hook that ran.
 
+## Stop output contract
+
+Measured with Codex CLI 0.154.0. A Stop hook that must continue the current
+turn emits top-level `decision: block` plus a `reason`. The hook returns no
+output when `stop_hook_active` is true, which lets the continued response stop
+without recursion. `additionalContextLimit` is not part of this Stop
+registration. The repository validator and hook regression suite enforce all
+three conditions.
+
 ## Verified
 
 Fired from the installed path with a real session id and a real rollout.
-Covered: a switch fires; no switch stays silent; the same boundary
+Covered: a switch blocks Stop with a reason; the active-hook guard stays
+silent; no switch stays silent; the same boundary
 announces once and not twice; malformed stdin exits 0 without crashing;
 a truncated final transcript line costs one record and not the file; a
 byte-order mark does not silence it; a session id that matches no

@@ -76,13 +76,13 @@ output labels it as legacy. Run `-Update` afterward to return it to the current
 exact native inventory.
 
 The project-rule synchronizer defaults to a read-only estate parity check.
-Repositories track these files, and some repositories declare the boot canon
-global-only. The synchronizer classifies each managed rule as
-`POINTER_ALIGNED`, `LEGACY_FULL_COPY`, or `UNKNOWN`. It reports Git ownership
-separately. A measured `GLOBAL_ONLY` estate or `POINTER_ALIGNED FILE-CLEAN`
-passes. Cursor always applies the generated pointer. The pointer fails closed
-unless the audit proves the native full boot rule. It contains no duplicated
-canon and cannot import another Cursor rule.
+Repositories track these files. The synchronizer classifies each managed rule
+as `GLOBAL_ONLY`, `POINTER_ALIGNED`, `LEGACY_FULL_COPY`, or `UNKNOWN`. It
+reports Git ownership separately. `GLOBAL_ONLY` is a `CLOUD_BOOT_GAP` because
+a cloud client cannot rely on this machine's user-level carrier. Only
+`POINTER_ALIGNED FILE-CLEAN` passes. Cursor always applies the generated
+pointer. The pointer fails closed unless the audit proves the native full boot
+rule. It contains no duplicated canon and cannot import another Cursor rule.
 
 Apply mode is not part of routine bootstrap.
 A per-repository instruction and ownership review must approve tracked writes.
@@ -122,10 +122,10 @@ restore path.
 
 The cross-vendor audit is also read-only. It checks each direct Git repository
 under the DreamerOS and Codex estate roots across root `CLAUDE.md`, root
-`AGENTS.md`, and the Cursor project rule. `GLOBAL_ONLY` and
-`POINTER_ALIGNED FILE-CLEAN` are non-conflicting states. `LEGACY_FULL_COPY`,
-`POINTER_DRIFT`, `UNKNOWN`, or a dirty aligned pointer require reviewed
-per-repository migration. It also reports historical full-copy generators,
+`AGENTS.md`, and the Cursor project rule. Only `POINTER_ALIGNED FILE-CLEAN` is
+non-conflicting. `GLOBAL_ONLY` is a `CLOUD_BOOT_GAP`. `LEGACY_FULL_COPY`,
+`POINTER_DRIFT`, `UNKNOWN`, a dirty aligned pointer, or a missing pointer
+requires reviewed per-repository migration. It also reports historical full-copy generators,
 separate embedded Definition-of-Done/R1-R3 blocks, and standalone Cursor rule
 excerpts. It reports these items so reviewers can see the redundancy. The audit
 checks registered project Claude SessionStart hooks against the generated thin
@@ -250,8 +250,9 @@ prompt in Cursor itself.
    measured cold-load fallback. Then invoke `/dreameros-parity-check`. See Cursor's
    [hook reference](https://cursor.com/docs/hooks) and
    [side-chat notes](https://cursor.com/changelog/side-chat).
-3. Accept `overall=FULL` only for `GLOBAL_ONLY` or
-   `POINTER_ALIGNED FILE-CLEAN` project rules. The same run must prove the
+3. Accept `overall=FULL` only for `POINTER_ALIGNED FILE-CLEAN` project rules
+   and `ALIGNED` cross-vendor project surfaces. `GLOBAL_ONLY` is a
+   `CLOUD_BOOT_GAP` and cannot satisfy full parity. The same run must prove the
    installed payload, both native rules, skills, subagents, and all seven
    commands. It must prove live hook decisions, the MCP tool list, hydration,
    Git state, and required deployment evidence. Use the repository deployment

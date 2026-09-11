@@ -44,10 +44,18 @@ function Assert-True([bool]$Condition, [string]$Message) {
     if (-not $Condition) { throw "ASSERTION FAILED: $Message" }
 }
 
+function Get-BytesSha256([string]$Path) {
+    $sha = [Security.Cryptography.SHA256]::Create()
+    try {
+        return ([BitConverter]::ToString($sha.ComputeHash([IO.File]::ReadAllBytes($Path)))).Replace('-', '').ToLowerInvariant()
+    }
+    finally { $sha.Dispose() }
+}
+
 function Get-TreeDigest([string]$Path) {
     $lines = @(Get-ChildItem -LiteralPath $Path -File -Recurse -Force | Sort-Object FullName | ForEach-Object {
         $relative = $_.FullName.Substring($Path.Length).TrimStart('\').Replace('\', '/')
-        "$relative|$((Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())"
+        "$relative|$(Get-BytesSha256 $_.FullName)"
     })
     $bytes = $Utf8.GetBytes(($lines -join "`n"))
     $sha = [Security.Cryptography.SHA256]::Create()
@@ -142,7 +150,7 @@ $alignedGlobalGitBefore = Get-TreeDigest (Join-Path $alignedGlobalRepo '.git')
 $alignedPointerGitBefore = Get-TreeDigest (Join-Path $alignedPointerRepo '.git')
 $auditHomeBefore = Get-TreeDigest $AuditHome
 $alignedResult = Invoke-Audit $alignedEstate
-Assert-True ($alignedResult.ExitCode -eq 0) "aligned audit failed: $($alignedResult.Text)"
+Assert-True ($alignedResult.ExitCode -ne 0) "GLOBAL_ONLY audit must report cloud boot gaps"
 Assert-True ($alignedResult.Text -match 'repos=2 surfaces=6 GLOBAL_ONLY=3 POINTER_ALIGNED=3') 'aligned summary mismatch'
 Assert-True ($alignedResult.Text -match 'SUPERSEDED_GENERATOR FILE-CLEAN GENERATOR') 'superseded generator green state missing'
 Assert-True ($alignedResult.Text -match 'ADAPTER_ALIGNED FILE-CLEAN ADAPTER') 'aligned adapter green state missing'
@@ -150,8 +158,11 @@ Assert-True ($alignedResult.Text -match 'BOOT_HOOK_ALIGNED FILE-CLEAN CLAUDE_BOO
 Assert-True ($alignedResult.Text -match 'USER_CLAUDE_BOOT_ALIGNED USER_CLAUDE_BOOT exact=1 other_hydration=0') 'aligned user Claude hook state missing'
 Assert-True ($alignedResult.Text -match 'USER_CLAUDE_MANAGED_HOOK_POLICY=UNVERIFIED_LIVE') 'managed hook policy live-verification gap was not reported'
 Assert-True ($alignedResult.Text -match 'CURSOR_TEAM_HOOK_POLICY=UNVERIFIED_LIVE') 'team Cursor hook policy live-verification gap was not reported'
-Assert-True ($alignedResult.Text -match 'DREAMEROS_AUDIT_OUTCOME=PASS') 'aligned audit outcome marker missing'
-Assert-True ($alignedResult.Text -match 'VERIFIED CROSS-VENDOR PROJECT BOOT POINTERS') 'aligned success signature missing'
+Assert-True ($alignedResult.Text -match 'CLOUD_BOOT_GAP CLAUDE .*ADD_PROJECT_BOOT_POINTER') 'Claude cloud boot gap missing'
+Assert-True ($alignedResult.Text -match 'CLOUD_BOOT_GAP CODEX .*ADD_PROJECT_BOOT_POINTER') 'Codex cloud boot gap missing'
+Assert-True ($alignedResult.Text -match 'CLOUD_BOOT_GAP CURSOR .*ADD_PROJECT_BOOT_POINTER') 'Cursor cloud boot gap missing'
+Assert-True ($alignedResult.Text -match 'DREAMEROS_AUDIT_OUTCOME=FINDINGS') 'cloud-gap audit outcome missing'
+Assert-True ($alignedResult.Text -notmatch 'DREAMEROS_AUDIT_OUTCOME=PASS') 'GLOBAL_ONLY audit incorrectly passed'
 Assert-True ((Get-TreeDigest (Join-Path $alignedGlobalRepo '.git')) -eq $alignedGlobalGitBefore) 'standalone audit changed global-only Git metadata'
 Assert-True ((Get-TreeDigest (Join-Path $alignedPointerRepo '.git')) -eq $alignedPointerGitBefore) 'standalone audit changed pointer-repo Git metadata'
 Assert-True ((Get-TreeDigest $AuditHome) -eq $auditHomeBefore) 'standalone audit changed user configuration'
@@ -250,7 +261,7 @@ New-Item -ItemType Directory -Path (Split-Path -Parent $legacyHook) -Force | Out
 [IO.File]::WriteAllText($legacySettings, '{"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/dreameros-session-start.sh\""}]}]}}', $Utf8)
 & git -C $legacyRepo add governance/bootpack/build-boot-pack.ps1 .cursor/rules/answer-from-measurement.mdc .cursor/rules/canon-equals-live.mdc .cursor/rules/dreameros-cold-start.mdc .cursor/rules/dreameros-first.mdc .cursor/rules/imported/legacy/answer-from-measurement.mdc .cursor/rules/imported/legacy/generic-copy.mdc .claude/hooks/dreameros-session-start.sh .claude/settings.json
 & git -C $legacyRepo commit -m generator --quiet
-New-AuditRepo $mixedEstate 'drift' ($EmbeddedPointer.Replace('loaded globally', 'loaded somewhere') + "`n# THE DEFINITION OF DONE") $null ($CursorPointer + "`ncustom drift") | Out-Null
+New-AuditRepo $mixedEstate 'drift' ($EmbeddedPointer.Replace('proven by a native carrier', 'proven by another carrier') + "`n# THE DEFINITION OF DONE") $null ($CursorPointer + "`ncustom drift") | Out-Null
 $unknownRepo = New-AuditRepo $mixedEstate 'unknown' '<!-- DREAMEROS-BOOT-CANON POINTER -->' $null 'custom cursor rule'
 $unknownGenerator = Join-Path $unknownRepo 'governance\bootpack\build-boot-pack.ps1'
 New-Item -ItemType Directory -Path (Split-Path -Parent $unknownGenerator) -Force | Out-Null

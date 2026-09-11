@@ -75,6 +75,220 @@ function Get-TextSha([string]$Text) {
         $sha.Dispose()
     }
 }
+function Get-Utf8NoBomBytes([string]$Text) {
+    $Text = $Text.Replace(([string][char]13 + [char]10), [string][char]10)
+    $Text = $Text.Replace([string][char]13, [string][char]10)
+    return (New-Object System.Text.UTF8Encoding($false)).GetBytes($Text)
+}
+function Test-ExactBytes([byte[]]$Left, [byte[]]$Right) {
+    if ($Left.Length -ne $Right.Length) { return $false }
+    for ($index = 0; $index -lt $Left.Length; $index++) {
+        if ($Left[$index] -ne $Right[$index]) { return $false }
+    }
+    return $true
+}
+function Get-RawShaBytes([byte[]]$Bytes) {
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        return ([System.BitConverter]::ToString($sha.ComputeHash($Bytes))).Replace("-", "").ToLower()
+    } finally {
+        $sha.Dispose()
+    }
+}
+function Get-RawFileSha([string]$Path) {
+    return Get-RawShaBytes ([System.IO.File]::ReadAllBytes($Path))
+}
+function Read-LockedFileBytes([System.IO.FileStream]$Stream) {
+    $Stream.Position = 0
+    [byte[]]$bytes = New-Object byte[] ([int]$Stream.Length)
+    $offset = 0
+    while ($offset -lt $bytes.Length) {
+        $read = $Stream.Read($bytes, $offset, $bytes.Length - $offset)
+        if ($read -eq 0) { break }
+        $offset += $read
+    }
+    if ($offset -ne $bytes.Length) {
+        throw "short read from locked destination: expected $($bytes.Length) bytes, read $offset."
+    }
+    return ,$bytes
+}
+function New-TimestampedBackupPath([string]$Destination) {
+    $stamp = (Get-Date).ToUniversalTime().ToString('yyyyMMdd-HHmmssfffZ')
+    return $Destination + '.bak-' + $stamp + '-' + [guid]::NewGuid().ToString('N').Substring(0, 8)
+}
+function Install-CollisionSafeFile([string]$Source, [string]$Destination, [string]$Label) {
+    [byte[]]$sourceBytes = [System.IO.File]::ReadAllBytes($Source)
+    $sourceHash = Get-RawShaBytes $sourceBytes
+    New-Dir (Split-Path -Parent $Destination)
+
+    if (-not (Test-Path -LiteralPath $Destination -PathType Leaf)) {
+        $createStream = $null
+        try {
+            $createStream = [System.IO.File]::Open(
+                $Destination,
+                [System.IO.FileMode]::CreateNew,
+                [System.IO.FileAccess]::Write,
+                [System.IO.FileShare]::None)
+            $createStream.Write($sourceBytes, 0, $sourceBytes.Length)
+            $createStream.Flush($true)
+        } catch {
+            Write-Host ("  MERGE NEEDED {0}  ({1}) - destination appeared or could not be created exclusively." -f $Destination, $Label) -ForegroundColor Yellow
+            throw "MERGE NEEDED: collision-safe install stopped before creating $Destination."
+        } finally {
+            if ($null -ne $createStream) { $createStream.Dispose() }
+        }
+        if ((Get-RawFileSha $Destination) -cne $sourceHash) {
+            throw "destination verification failed after exclusive create: $Destination"
+        }
+        Write-Host ("  HEALED  {0}  ({1})" -f $Destination, $Label) -ForegroundColor Green
+        return
+    }
+
+    $destinationStream = $null
+    $state = ''
+    $backupPath = ''
+    try {
+        $destinationStream = [System.IO.File]::Open(
+            $Destination,
+            [System.IO.FileMode]::Open,
+            [System.IO.FileAccess]::ReadWrite,
+            [System.IO.FileShare]::None)
+        [byte[]]$currentBytes = Read-LockedFileBytes $destinationStream
+        $expectedCurrentHash = Get-RawShaBytes $currentBytes
+        if ($expectedCurrentHash -ceq $sourceHash) {
+            $state = 'ALIGNED'
+        } else {
+            $backupPath = New-TimestampedBackupPath $Destination
+            $backupStream = $null
+            try {
+                $backupStream = [System.IO.File]::Open(
+                    $backupPath,
+                    [System.IO.FileMode]::CreateNew,
+                    [System.IO.FileAccess]::Write,
+                    [System.IO.FileShare]::None)
+                $backupStream.Write($currentBytes, 0, $currentBytes.Length)
+                $backupStream.Flush($true)
+            } finally {
+                if ($null -ne $backupStream) { $backupStream.Dispose() }
+            }
+
+            # Re-read the locked destination immediately before mutation. The
+            # expected hash is the exact byte state captured for the backup.
+            [byte[]]$immediateBytes = Read-LockedFileBytes $destinationStream
+            $immediateHash = Get-RawShaBytes $immediateBytes
+            if ($immediateHash -cne $expectedCurrentHash) {
+                throw "destination changed after backup and before write."
+            }
+            $destinationStream.Position = 0
+            $destinationStream.SetLength(0)
+            $destinationStream.Write($sourceBytes, 0, $sourceBytes.Length)
+            $destinationStream.Flush($true)
+            $state = 'HEALED'
+        }
+    } catch {
+        Write-Host ("  MERGE NEEDED {0}  ({1}) - collision-safe transaction stopped: {2}" -f $Destination, $Label, $_.Exception.Message) -ForegroundColor Yellow
+        throw "MERGE NEEDED: $Label destination was preserved for owner review."
+    } finally {
+        if ($null -ne $destinationStream) { $destinationStream.Dispose() }
+    }
+
+    if ($state -eq 'ALIGNED') {
+        Write-Host ("  ALIGNED {0}  ({1})" -f $Destination, $Label) -ForegroundColor DarkGreen
+        return
+    }
+    if ((Get-RawFileSha $Destination) -cne $sourceHash) {
+        throw "destination verification failed after collision-safe update: $Destination"
+    }
+    Write-Host ("  HEALED  {0}  ({1})  backup {2}" -f $Destination, $Label, (Split-Path $backupPath -Leaf)) -ForegroundColor Green
+}
+function Install-NewTextFileOrPreserve([string]$Destination, [string]$Text, [string]$RequiredMarker, [string]$Label) {
+    [byte[]]$newBytes = Get-Utf8NoBomBytes $Text
+    $newHash = Get-RawShaBytes $newBytes
+    New-Dir (Split-Path -Parent $Destination)
+
+    # CreateNew is the transaction boundary. If another owner creates the file
+    # first, this call cannot truncate it and the preserve path below reads it.
+    $createStream = $null
+    $createdNew = $false
+    $writeComplete = $false
+    try {
+        $createStream = [System.IO.File]::Open(
+            $Destination,
+            [System.IO.FileMode]::CreateNew,
+            [System.IO.FileAccess]::Write,
+            [System.IO.FileShare]::None)
+        $createdNew = $true
+        $createStream.Write($newBytes, 0, $newBytes.Length)
+        $createStream.Flush($true)
+        $writeComplete = $true
+    } catch {
+        if ($createdNew) {
+            Write-Host ("  MERGE NEEDED {0}  ({1}) - exclusive creation did not complete." -f $Destination, $Label) -ForegroundColor Yellow
+            throw "MERGE NEEDED: $Label creation stopped without overwriting an existing owner file."
+        }
+    } finally {
+        if ($null -ne $createStream) { $createStream.Dispose() }
+    }
+
+    if ($writeComplete) {
+        if ((Get-RawFileSha $Destination) -cne $newHash) {
+            throw "destination verification failed after exclusive create: $Destination"
+        }
+        Write-Host ("  HEALED  {0}  ({1})" -f $Destination, $Label) -ForegroundColor Green
+        return
+    }
+
+    if (-not (Test-Path -LiteralPath $Destination -PathType Leaf)) {
+        Write-Host ("  MERGE NEEDED {0}  ({1}) - exclusive creation failed and no readable owner file exists." -f $Destination, $Label) -ForegroundColor Yellow
+        throw "MERGE NEEDED: $Label destination could not be created or preserved."
+    }
+
+    $existingStream = $null
+    try {
+        $existingStream = [System.IO.File]::Open(
+            $Destination,
+            [System.IO.FileMode]::Open,
+            [System.IO.FileAccess]::Read,
+            [System.IO.FileShare]::None)
+        [byte[]]$existingBytes = Read-LockedFileBytes $existingStream
+    } catch {
+        Write-Host ("  MERGE NEEDED {0}  ({1}) - existing owner file could not be read under an exclusive lock." -f $Destination, $Label) -ForegroundColor Yellow
+        throw "MERGE NEEDED: $Label owner file was preserved for review."
+    } finally {
+        if ($null -ne $existingStream) { $existingStream.Dispose() }
+    }
+
+    $existingText = (New-Object System.Text.UTF8Encoding($false)).GetString($existingBytes)
+    if ($existingText.Contains($RequiredMarker)) {
+        Write-Host ("  ALIGNED {0}  ({1})" -f $Destination, $Label) -ForegroundColor DarkGreen
+        return
+    }
+    Write-Host ("  MERGE NEEDED {0} - it exists and does not register the engine-switch hook. Add the Stop entry from install\codex\payload\hooks.json by hand rather than overwriting another lane's hooks." -f $Destination) -ForegroundColor Yellow
+}
+function ConvertTo-JsonString([string]$Text) {
+    $escaped = New-Object System.Text.StringBuilder
+    [void]$escaped.Append('"')
+    foreach ($character in $Text.ToCharArray()) {
+        switch ([int]$character) {
+            8 { [void]$escaped.Append('\b'); break }
+            9 { [void]$escaped.Append('\t'); break }
+            10 { [void]$escaped.Append('\n'); break }
+            12 { [void]$escaped.Append('\f'); break }
+            13 { [void]$escaped.Append('\r'); break }
+            34 { [void]$escaped.Append('\"'); break }
+            92 { [void]$escaped.Append('\\'); break }
+            default {
+                if ([int]$character -lt 32) {
+                    [void]$escaped.Append(('\u{0:X4}' -f [int]$character))
+                } else {
+                    [void]$escaped.Append($character)
+                }
+            }
+        }
+    }
+    [void]$escaped.Append('"')
+    return $escaped.ToString()
+}
 
 # This is the check outside the generator/checksum loop. A generated set can
 # be perfectly self-consistent while its source is stale. The reviewed floor
@@ -187,6 +401,7 @@ if ($RuleCountNow -lt $RuleCountFloor) {
 
 # --- targets ------------------------------------------------------------------
 $Targets = @()
+$PayloadTargets = @()
 
 $Targets += @{
     Path = Join-Path $Out 'claude\CLAUDE.md.block'
@@ -249,29 +464,68 @@ function Get-RegisteredCursorPluginRuleDest {
     return $dest
 }
 
-$ProjectPointerVersion = 'v1.0.0'
+function Get-ClaudeSessionStartRegistration([string]$SettingsPath) {
+    if (-not (Test-Path -LiteralPath $SettingsPath -PathType Leaf)) {
+        return [pscustomobject]@{ ParseOk = $false; BootstrapCount = 0; CompetingCount = 0 }
+    }
+    try { $settings = Get-Content -Raw -LiteralPath $SettingsPath | ConvertFrom-Json } catch {
+        return [pscustomobject]@{ ParseOk = $false; BootstrapCount = 0; CompetingCount = 0 }
+    }
+    $commands = @()
+    foreach ($group in @($settings.hooks.SessionStart)) {
+        foreach ($hook in @($group.hooks)) {
+            if ($hook.command) { $commands += [string]$hook.command }
+        }
+    }
+    $bootstrap = @($commands | Where-Object { $_ -match '(?i)dreameros-session-start\.sh' })
+    $competing = @($commands | Where-Object { $_ -match '(?i)(?:operator-standing-orders|dreameros-agent-stack-session-start|dreameros_state|dreameros_recall)' })
+    return [pscustomobject]@{ ParseOk = $true; BootstrapCount = $bootstrap.Count; CompetingCount = $competing.Count }
+}
+
+$ProjectPointerVersion = 'v1.1.0'
+$SessionPackageRequiredCanaryIds = @('R26', 'R27', 'HC-DEFINITION-OF-DONE')
 $ProjectPointerBody = @"
 <!-- DREAMEROS-BOOT-CANON: NOT DUPLICATED HERE -->
 <!-- DREAMEROS-PROJECT-BOOT-POINTER $ProjectPointerVersion -->
-## DreamerOS Boot Canon - loaded globally, not copied here
+## DreamerOS Boot Canon - proven by a native carrier or session package
 
 The full DreamerOS Boot Canon is generated from
 gbude-sudo/dreameros-agent-plugin:bootpack/SOURCE-dreameros-boot-canon.md and delivered
-through each engine's machine-wide native surface. This project file
+through native carriers and authenticated session packages. This project file
 intentionally contains no copy of the canon and cannot import another rule.
 
-Before substantive DreamerOS work, verify the native surface for the active
-engine:
+Before substantive DreamerOS work, prove either carrier A or carrier B:
 
-1. Claude Code or Desktop: the current generated block is present once in
-   ~/.claude/CLAUDE.md.
-2. Codex: the current generated block is present once in ~/.codex/AGENTS.md.
-3. Cursor: Customize shows the local Dreameros plugin, and its
-   dreameros-boot-canon rule is set to Always and appears in the active rule
-   trace for the fresh Agent chat.
+A. Native carrier for the active engine:
+   1. Claude Code or Desktop: the current generated block is present once in
+      ~/.claude/CLAUDE.md.
+   2. Codex: the current generated block is present once in ~/.codex/AGENTS.md.
+   3. Cursor: Customize shows the local Dreameros plugin, and its
+      dreameros-boot-canon rule is set to Always and appears in the active rule
+      trace for the fresh Agent chat.
 
-If the active engine cannot prove its full native boot rule, report BLOCKED
-and stop substantive work. Do not treat this pointer as a fallback canon.
+B. Cloud carrier: a successful authenticated ``dreameros_session_package``
+   response proves one ``package_components.boot_canon`` component and one
+   complete boot-canon wrapper. Component and wrapper schema, version, SHA-256,
+   and provenance metadata must match. Recompute the SHA-256 over the complete
+   LF-normalized wrapper body and require it to match the component metadata.
+   Require the current canary set inside that full body and a canonical UTC
+   ``composed_at`` plus integer ``ttl_seconds`` from 1 through 3600, allowing
+   no more than 60 seconds of clock skew. An optional ``expires_at`` is not an
+   alternate authority. A marker-only, truncated, duplicate, malformed, or
+   auth-required package is not proof.
+
+   If the visible package lacks the complete closing wrapper or full hash proof
+   but metadata-first ``package_continuation`` is present, fetch same-tool parts
+   1 through N. Verify per-part hashes, order, and user-bound ``package_id`` plus
+   ``content_hash``. Reassemble, verify the full content hash and boot-canon
+   body, then proceed. Failed reconstruction is BLOCKED.
+
+If both carriers are available, their boot-canon identity metadata must match.
+If they differ, report CONFLICT and stop substantive work.
+
+If neither carrier is proven, report BLOCKED and stop substantive work. Do not
+use this pointer as a fallback canon.
 Repository instructions add project scope after boot; they do not replace the
 Human Conductor or the current generated boot rule.
 
@@ -291,7 +545,7 @@ $Targets += @{
     Path = Join-Path $Out 'cursor\dreameros-project-pointer.mdc'
     Text = @"
 ---
-description: DreamerOS project boot pointer. Requires the current native DreamerOS boot rule and contains no duplicated canon.
+description: DreamerOS project boot pointer. Requires a native carrier or authenticated session package and contains no duplicated canon.
 alwaysApply: true
 ---
 
@@ -441,11 +695,9 @@ Change this adapter only through the central DreamerOS agent-plugin generator.
 "@
 }
 
-$Targets += @{
-    Path = Join-Path $Out 'claude\dreameros-session-start.sh'
-    Text = @'
+$ClaudeSessionStartText = @'
 #!/usr/bin/env bash
-# DREAMEROS-CLAUDE-SESSION-START-ADAPTER v1.0.0
+# DREAMEROS-CLAUDE-SESSION-START-ADAPTER v1.1.0
 # Thin runtime adapter. The full boot canon remains in the native global file.
 set -euo pipefail
 
@@ -453,11 +705,18 @@ cat <<'JSON'
 {
   "hookSpecificOutput": {
     "hookEventName": "SessionStart",
-    "additionalContext": "DreamerOS session boot is mandatory before substantive work. Use the exact DreamerOS tool names exposed by this session; never hardcode an MCP server id. In order: (1) call dreameros_session_package for the active Claude engine and current project, (2) call dreameros_context, (3) call dreameros_state with action load, and (4) call a scoped dreameros_recall for the current topic. Read relevant canon only when the task requires it. Then read global, repository, and nested instructions; measure Git state; and check active coordination claims. If any required DreamerOS tool is unavailable, report BLOCKED for DreamerOS hydration and continue only safe local work in STANDALONE mode. Never expose or store credentials, token values, private keys, or environment values."
+    "additionalContext": "DreamerOS session boot is mandatory before substantive work. Use the exact DreamerOS tool names exposed by this session; never hardcode an MCP server id. Call dreameros_session_package first for the active Claude engine and current project. It is the only unconditional boot call and carries the full Boot Canon plus a handoff summary. When the package directs it or the current task needs read-only enrichment, call in this order: (1) dreameros_session_handoff_read for the full record when present, (2) dreameros_context and use its SCS as the read-only current-state channel, (3) a scoped dreameros_recall for the current topic, and (4) relevant dreameros_canon. If package_continuation is metadata-first and the visible package lacks a complete wrapper or full hash proof, fetch parts 1 through N with the same tool, verify part hashes, order, user-bound package_id and content_hash, reassemble, and verify the full boot-canon body before proceeding. Failed reconstruction is BLOCKED. The mixed read/write state tool is not a generic bootstrap call. Then read global, repository, and nested instructions; measure Git state; and check active coordination claims. If any required DreamerOS tool is unavailable, report BLOCKED for DreamerOS hydration and continue only safe local work in STANDALONE mode. Never expose or store credentials, token values, private keys, or environment values."
   }
 }
 JSON
 '@
+$Targets += @{
+    Path = Join-Path $Out 'claude\dreameros-session-start.sh'
+    Text = $ClaudeSessionStartText
+}
+$PayloadTargets += @{
+    Path = Join-Path (Split-Path -Parent $Root) 'install\claude-code\payload\hooks\dreameros-session-start.sh'
+    Text = $ClaudeSessionStartText
 }
 
 $Targets += @{
@@ -474,6 +733,25 @@ $Targets += @{
 # gbude-sudo/dreameros-agent-plugin:bootpack/build-boot-pack.ps1
 throw 'This historical boot generator is superseded. Use the central DreamerOS agent-plugin generator. No files were written.'
 "@
+}
+
+$Targets += @{
+    Path = Join-Path $Out 'project-oauth\claude.mcp.json'
+    Text = '{"mcpServers":{"dreameros":{"type":"streamable-http","url":"https://mcp.dreameros.app/mcp"}}}'
+}
+$Targets += @{
+    Path = Join-Path $Out 'project-oauth\cursor.mcp.json'
+    Text = '{"mcpServers":{"dreameros-platform":{"url":"https://mcp.dreameros.app/mcp"}}}'
+}
+$Targets += @{
+    Path = Join-Path $Out 'project-oauth\codex.config.toml'
+    Text = @'
+[mcp_servers.dreameros]
+url = "https://mcp.dreameros.app/mcp"
+
+[mcp_servers.dreameros.tools.dreameros_session_package]
+output_token_limit = 30000
+'@
 }
 
 $Targets += @{
@@ -503,6 +781,23 @@ reachable. Then wait for the task.
 "@
 }
 
+$PortableSourceText = [System.IO.File]::ReadAllText($Source)
+$RuntimeStablePrefixText = '{' +
+    '"schema_version":' + (ConvertTo-JsonString 'dreameros-session-package-stable-prefix-v1') + ',' +
+    '"version":' + (ConvertTo-JsonString $Version) + ',' +
+    '"sha256":' + (ConvertTo-JsonString $SourceSemanticSha) + ',' +
+    '"source_provenance":{' +
+        '"repository":' + (ConvertTo-JsonString 'gbude-sudo/dreameros-agent-plugin') + ',' +
+        '"path":' + (ConvertTo-JsonString 'bootpack/SOURCE-dreameros-boot-canon.md') + ',' +
+        '"generator":' + (ConvertTo-JsonString 'bootpack/build-boot-pack.ps1') +
+    '},' +
+    '"portable_text":' + (ConvertTo-JsonString $PortableSourceText) +
+'}'
+$Targets += @{
+    Path = Join-Path $Out 'runtime\dreameros-boot-canon-stable-prefix.json'
+    Text = $RuntimeStablePrefixText
+}
+
 $manifest = [ordered]@{
     name        = 'dreameros-boot-canon'
     version     = $Version
@@ -518,13 +813,18 @@ foreach ($m in $RuleMatches) {
 $manifest.rule_count = $manifest.rules.Count
 $manifest.project_pointer = [ordered]@{
     version = $ProjectPointerVersion
-    purpose = 'Fail-closed project pointer. The full canon remains machine-wide and single-source.'
+    purpose = 'Fail-closed project pointer. The full canon remains single-source and is proven by a native carrier or authenticated session package.'
     cursor_path = 'cursor/dreameros-project-pointer.mdc'
     cursor_global_plugin_pointer = 'cursor/dreameros-global-plugin-pointer.mdc'
     embedded_path = 'project/DREAMEROS_BOOT_CANON_POINTER.md.block'
+    cloud_session_package = [ordered]@{
+        component = 'package_components.boot_canon'
+        proof = 'one complete wrapper with matching schema, version, sha256, provenance, full-body hash, canaries, and fresh metadata'
+        required_canary_ids = $SessionPackageRequiredCanaryIds
+    }
 }
 $manifest.project_adapters = [ordered]@{
-    version = 'v1.0.0'
+    version = 'v1.1.0'
     measurement = 'cursor/answer-from-measurement.adapter.mdc'
     status_vocabulary = 'cursor/canon-equals-live.adapter.mdc'
     project_coordination = 'cursor/dreameros-cold-start.adapter.mdc'
@@ -536,6 +836,19 @@ $manifest.evidence = [ordered]@{
     hc_attributed_quotes = 'evidence/HC_ATTRIBUTED_QUOTES_v1_0_0.md'
     unique_quote_count = 16
     purpose = 'Portable evidence only. Not a second rule surface.'
+}
+$manifest.runtime_export = [ordered]@{
+    schema_version = 'dreameros-session-package-stable-prefix-v1'
+    path = 'runtime/dreameros-boot-canon-stable-prefix.json'
+    purpose = 'Deterministic gateway session-package stable prefix. Generated from the single boot canon source.'
+    source_sha256 = $SourceSemanticSha
+}
+$manifest.project_oauth_onramp = [ordered]@{
+    status = 'TEMPLATE_WRITTEN_NOT_REGISTERED'
+    claude = 'project-oauth/claude.mcp.json'
+    cursor = 'project-oauth/cursor.mcp.json'
+    codex = 'project-oauth/codex.config.toml'
+    requirement = 'Client OAuth approval is required before connection proof.'
 }
 $Targets += @{
     Path = Join-Path $Out 'manifest\dreameros-boot-canon.json'
@@ -550,6 +863,7 @@ $ckPath = Join-Path $Out 'CHECKSUMS.txt'
 if (-not $VerifyGenerated) {
     New-Dir $Out
     foreach ($t in $Targets) { Write-Utf8 -Path $t.Path -Text $t.Text }
+    foreach ($t in $PayloadTargets) { Write-Utf8 -Path $t.Path -Text $t.Text }
     Write-Utf8 -Path $CursorPluginRule -Text $CursorRuleTarget.Text
 
     $lines  = @()
@@ -564,6 +878,7 @@ if (-not $VerifyGenerated) {
 
     Write-Host ("BUILT {0} vendor formats from 1 source. Rules carried: {1}" -f $Targets.Count, $manifest.rule_count) -ForegroundColor Green
     foreach ($t in $Targets) { Write-Host ("  " + $t.Path.Substring($Out.Length).TrimStart('\')) -ForegroundColor DarkGray }
+    foreach ($t in $PayloadTargets) { Write-Host ("  generated payload " + $t.Path) -ForegroundColor DarkGray }
 }
 
 # --- verify -------------------------------------------------------------------
@@ -583,9 +898,16 @@ if ($VerifyGenerated) {
         $now = Get-Sha $t.Path
         $rendered = Get-TextSha $t.Text
         $rec = $stored | Where-Object { $_ -match ([regex]::Escape($rel) + '$') }
-        if ($now -ne $rendered) { Write-Host ("  DRIFT  " + $rel + " differs from current renderer") -ForegroundColor Red; $fail++ }
+        if ($rel -eq 'runtime\dreameros-boot-canon-stable-prefix.json' -and -not (Test-ExactBytes ([IO.File]::ReadAllBytes($t.Path)) (Get-Utf8NoBomBytes $t.Text))) { Write-Host ("  DRIFT  " + $rel + " raw bytes differ from current renderer") -ForegroundColor Red; $fail++ }
+        elseif ($now -ne $rendered) { Write-Host ("  DRIFT  " + $rel + " differs from current renderer") -ForegroundColor Red; $fail++ }
         elseif (-not $rec -or $rec -notmatch $now) { Write-Host ("  DRIFT  " + $rel) -ForegroundColor Red; $fail++ }
         else { Write-Host ("  ok     " + $rel) -ForegroundColor Green }
+    }
+    foreach ($t in $PayloadTargets) {
+        $label = 'install\\claude-code\\payload\\hooks\\' + (Split-Path -Leaf $t.Path)
+        if (-not (Test-Path $t.Path)) { Write-Host ("  MISSING " + $label) -ForegroundColor Red; $fail++; continue }
+        if ((Get-Sha $t.Path) -ne (Get-TextSha $t.Text)) { Write-Host ("  DRIFT  " + $label + " differs from current renderer") -ForegroundColor Red; $fail++ }
+        else { Write-Host ("  ok     " + $label) -ForegroundColor Green }
     }
     if (-not (Test-Path $CursorPluginRule)) {
         Write-Host "  MISSING cursor\rules\dreameros-boot-canon.mdc" -ForegroundColor Red
@@ -603,10 +925,11 @@ if ($VerifyGenerated) {
 if ($VerifyInstalled) {
     Write-Host "`n=== INSTALLED DESTINATION CHECK (read-only) ===" -ForegroundColor Cyan
     $fail = 0
+    $verifiedCarrierIds = New-Object System.Collections.Generic.List[string]
     $blockPattern = '<!-- BEGIN DREAMEROS-BOOT-CANON v[0-9]+\.[0-9]+\.[0-9]+ - GENERATED, DO NOT EDIT\. Source: SOURCE-dreameros-boot-canon\.md -->[\s\S]*?<!-- END DREAMEROS-BOOT-CANON v[0-9]+\.[0-9]+\.[0-9]+ -->'
     $globalBlocks = @(
-        @{ Path = Join-Path $env:USERPROFILE '.claude\CLAUDE.md'; Source = Join-Path $Out 'claude\CLAUDE.md.block'; Label = 'Claude global boot block' },
-        @{ Path = Join-Path $env:USERPROFILE '.codex\AGENTS.md'; Source = Join-Path $Out 'codex\AGENTS.md.block'; Label = 'Codex global boot block' }
+        @{ Path = Join-Path $env:USERPROFILE '.claude\CLAUDE.md'; Source = Join-Path $Out 'claude\CLAUDE.md.block'; Label = 'Claude global boot block'; Id = 'claude_global_boot' },
+        @{ Path = Join-Path $env:USERPROFILE '.codex\AGENTS.md'; Source = Join-Path $Out 'codex\AGENTS.md.block'; Label = 'Codex global boot block'; Id = 'codex_global_boot' }
     )
     foreach ($item in $globalBlocks) {
         if (-not (Test-Path -LiteralPath $item.Path -PathType Leaf)) {
@@ -622,23 +945,25 @@ if ($VerifyInstalled) {
             $fail++
         } else {
             Write-Host ("  ok      {0}" -f $item.Label) -ForegroundColor Green
+            [void]$verifiedCarrierIds.Add($item.Id)
         }
     }
     $repoRoot = Split-Path -Parent $Root
     $fileChecks = @(
-        @{ Source = Join-Path $Out 'cursor\dreameros-global-plugin-pointer.mdc'; Path = Join-Path $env:USERPROFILE '.cursor\rules\dreameros-boot-canon.mdc'; Label = 'Cursor global plugin pointer' },
-        @{ Source = Join-Path $Out 'skill\dreameros-boot\SKILL.md'; Path = Join-Path $env:USERPROFILE '.claude\skills\dreameros-boot\SKILL.md'; Label = 'Claude boot skill' },
-        @{ Source = Join-Path $Out 'skill\dreameros-boot\SKILL.md'; Path = Join-Path $env:USERPROFILE '.codex\skills\dreameros-boot\SKILL.md'; Label = 'Codex boot skill' },
-        @{ Source = Join-Path $Out 'skill\dreameros-boot\SKILL.md'; Path = Join-Path $env:USERPROFILE '.agents\skills\dreameros-boot\SKILL.md'; Label = 'Shared boot skill' },
-        @{ Source = Join-Path $Out 'skill\dreameros-boot\SKILL.md'; Path = Join-Path $repoRoot 'skills\dreameros-boot\SKILL.md'; Label = 'Agent Plugin boot skill' },
-        @{ Source = Join-Path $Out 'evidence\HC_ATTRIBUTED_QUOTES_v1_0_0.md'; Path = Join-Path $env:USERPROFILE '.agents\evidence\dreameros\HC_ATTRIBUTED_QUOTES_v1_0_0.md'; Label = 'Shared quote evidence' },
-        @{ Source = Join-Path $Out 'claude\dreameros-session-start.sh'; Path = Join-Path $env:USERPROFILE '.claude\hooks\dreameros-session-start.sh'; Label = 'Claude SessionStart adapter' }
+        @{ Source = Join-Path $Out 'cursor\dreameros-global-plugin-pointer.mdc'; Path = Join-Path $env:USERPROFILE '.cursor\rules\dreameros-boot-canon.mdc'; Label = 'Cursor global plugin pointer'; Id = 'cursor_global_pointer' },
+        @{ Source = Join-Path $Out 'skill\dreameros-boot\SKILL.md'; Path = Join-Path $env:USERPROFILE '.claude\skills\dreameros-boot\SKILL.md'; Label = 'Claude boot skill'; Id = 'claude_boot_skill' },
+        @{ Source = Join-Path $Out 'skill\dreameros-boot\SKILL.md'; Path = Join-Path $env:USERPROFILE '.codex\skills\dreameros-boot\SKILL.md'; Label = 'Codex boot skill'; Id = 'codex_boot_skill' },
+        @{ Source = Join-Path $Out 'skill\dreameros-boot\SKILL.md'; Path = Join-Path $env:USERPROFILE '.agents\skills\dreameros-boot\SKILL.md'; Label = 'Shared boot skill'; Id = 'shared_boot_skill' },
+        @{ Source = Join-Path $Out 'skill\dreameros-boot\SKILL.md'; Path = Join-Path $repoRoot 'skills\dreameros-boot\SKILL.md'; Label = 'Agent Plugin boot skill'; Id = 'agent_plugin_boot_skill' },
+        @{ Source = Join-Path $Out 'evidence\HC_ATTRIBUTED_QUOTES_v1_0_0.md'; Path = Join-Path $env:USERPROFILE '.agents\evidence\dreameros\HC_ATTRIBUTED_QUOTES_v1_0_0.md'; Label = 'Shared quote evidence'; Id = 'shared_quote_evidence' },
+        @{ Source = Join-Path $Out 'claude\dreameros-session-start.sh'; Path = Join-Path $env:USERPROFILE '.claude\hooks\dreameros-session-start.sh'; Label = 'Claude SessionStart adapter'; Id = 'claude_session_start_hook' }
     )
     $registeredCursorRule = Get-RegisteredCursorPluginRuleDest
     if ($registeredCursorRule) {
-        $fileChecks += @{ Source = $CursorRuleTarget.Path; Path = $registeredCursorRule; Label = 'Cursor registered plugin rule (the file Cursor actually loads)' }
+        $fileChecks += @{ Source = $CursorRuleTarget.Path; Path = $registeredCursorRule; Label = 'Cursor registered plugin rule (the file Cursor actually loads)'; Id = 'cursor_registered_plugin_rule' }
     } else {
-        Write-Host '  SKIP    no local Cursor plugin registration names dreameros-agent-plugin; registered plugin rule not checked' -ForegroundColor Yellow
+        Write-Host '  MISSING Cursor registered plugin rule' -ForegroundColor Red
+        $fail++
     }
     foreach ($item in $fileChecks) {
         if (-not (Test-Path -LiteralPath $item.Path -PathType Leaf) -or (Get-Sha $item.Source) -ne (Get-Sha $item.Path)) {
@@ -646,9 +971,27 @@ if ($VerifyInstalled) {
             $fail++
         } else {
             Write-Host ("  ok      {0}" -f $item.Label) -ForegroundColor Green
+            [void]$verifiedCarrierIds.Add($item.Id)
         }
     }
+    $registration = Get-ClaudeSessionStartRegistration (Join-Path $env:USERPROFILE '.claude\settings.json')
+    if (-not $registration.ParseOk -or $registration.BootstrapCount -ne 1 -or $registration.CompetingCount -ne 0) {
+        Write-Host '  DRIFT   Claude SessionStart registration' -ForegroundColor Red
+        $fail++
+    } else {
+        Write-Host '  ok      Claude SessionStart registration' -ForegroundColor Green
+        [void]$verifiedCarrierIds.Add('claude_session_start_registration')
+    }
+    $requiredCarrierIds = @('claude_global_boot','codex_global_boot','cursor_global_pointer','cursor_registered_plugin_rule','claude_boot_skill','codex_boot_skill','shared_boot_skill','agent_plugin_boot_skill','shared_quote_evidence','claude_session_start_hook','claude_session_start_registration')
+    $verifiedSorted = @($verifiedCarrierIds | Sort-Object -Unique)
+    $requiredSorted = @($requiredCarrierIds | Sort-Object)
+    if (($verifiedSorted -join ',') -cne ($requiredSorted -join ',')) {
+        Write-Host '  DRIFT   Installed carrier receipt set is incomplete, extra, or duplicated' -ForegroundColor Red
+        $fail++
+    }
     if ($fail -gt 0) { throw "$fail installed DreamerOS carrier(s) are missing or drifted." }
+    $receipt = [ordered]@{ schema_version = 'dreameros-verify-installed-v1'; ok = $true; boot_canon = [ordered]@{ version = $Version; sha256 = $SourceSemanticSha }; required_carriers = $requiredSorted; verified_carriers = $verifiedSorted }
+    Write-Output ('DREAMEROS_VERIFY_INSTALLED_JSON=' + ($receipt | ConvertTo-Json -Compress))
     Write-Host "  VERIFIED installed Claude, Codex, Cursor pointer, Cursor registered plugin rule, skills, evidence, and Claude hook" -ForegroundColor Green
 }
 
@@ -779,9 +1122,11 @@ if ($Install) {
     #
     # It installs at the user level, not per repository, because an engine
     # switch is not a per-repository event. It is placed here rather than
-    # in a separate installer so that "available at boot" is literally
-    # true: the SessionStart hook runs this script, so every session
-    # re-places the hook if something removed it.
+    # in a separate installer so that "available at boot" is literal: the
+    # SessionStart hook runs this script, so every session checks the source.
+    # A differing destination is locked, backed up byte-for-byte, rechecked,
+    # and then updated. A lock conflict or drift reports MERGE NEEDED and stops
+    # before it can overwrite another owner's in-flight edit.
     #
     # An existing user hooks.json is NEVER overwritten. Codex allows only
     # one file there and it may already carry another lane's hooks, so a
@@ -794,24 +1139,12 @@ if ($Install) {
     if ((Test-Path $codexHookSrc) -and (Test-Path $codexJsonSrc)) {
         $codexHookDest = Join-Path $codexHome 'hooks\model-switch-ack-codex.py'
         New-Dir (Split-Path -Parent $codexHookDest)
-        if ((Test-Path $codexHookDest) -and ((Get-Sha $codexHookSrc) -eq (Get-Sha $codexHookDest))) {
-            Write-Host ("  ALIGNED {0}  (Codex engine-switch hook)" -f $codexHookDest) -ForegroundColor DarkGreen
-        } else {
-            Copy-Item $codexHookSrc $codexHookDest -Force
-            Write-Host ("  HEALED  {0}  (Codex engine-switch hook)" -f $codexHookDest) -ForegroundColor Green
-        }
+        Install-CollisionSafeFile -Source $codexHookSrc -Destination $codexHookDest -Label 'Codex engine-switch hook'
 
         $codexJsonDest = Join-Path $codexHome 'hooks.json'
         $rendered = (Get-Content $codexJsonSrc -Raw).Replace(
             '__DREAMEROS_CODEX_HOME__', ($codexHome -replace '\\', '/'))
-        if (-not (Test-Path $codexJsonDest)) {
-            Write-Utf8 -Path $codexJsonDest -Text $rendered
-            Write-Host ("  HEALED  {0}  (Codex hook registration)" -f $codexJsonDest) -ForegroundColor Green
-        } elseif ((Get-Content $codexJsonDest -Raw) -match 'model-switch-ack-codex') {
-            Write-Host ("  ALIGNED {0}  (Codex hook registration)" -f $codexJsonDest) -ForegroundColor DarkGreen
-        } else {
-            Write-Host ("  MERGE NEEDED {0} - it exists and does not register the engine-switch hook. Add the Stop entry from install\codex\payload\hooks.json by hand rather than overwriting another lane's hooks." -f $codexJsonDest) -ForegroundColor Yellow
-        }
+        Install-NewTextFileOrPreserve -Destination $codexJsonDest -Text $rendered -RequiredMarker 'model-switch-ack-codex' -Label 'Codex hook registration'
 
         Write-Host "  NOTE: Codex records hook trust as a hash in config.toml. A newly" -ForegroundColor Yellow
         Write-Host "  placed hook stays untrusted until Codex records it, so confirm it" -ForegroundColor Yellow

@@ -79,6 +79,7 @@ $ActionProperties = @(
 $SourceProperties = @('path', 'sha256')
 $PolicyFindingProperties = @('kind', 'name', 'state', 'detail', 'action', 'action_id')
 $RenderableActions = @(
+    'ADD_PROJECT_BOOT_POINTER',
     'MIGRATE_CURSOR_RULE_WITH_SYNC_TOOL',
     'REPLACE_GENERATED_BOOT_REGION_WITH_POINTER',
     'REPLACE_LEGACY_GENERATOR_WITH_POINTER_STUB',
@@ -108,11 +109,13 @@ $KnownActions = @(
     )
 )
 $ExpectedSources = @{
+    'ADD_PROJECT_BOOT_POINTER' = $null
     'MIGRATE_CURSOR_RULE_WITH_SYNC_TOOL' = Join-Path $RepoRoot 'bootpack\out\cursor\dreameros-project-pointer.mdc'
     'REPLACE_GENERATED_BOOT_REGION_WITH_POINTER' = Join-Path $RepoRoot 'bootpack\out\project\DREAMEROS_BOOT_CANON_POINTER.md.block'
     'REPLACE_LEGACY_GENERATOR_WITH_POINTER_STUB' = Join-Path $RepoRoot 'bootpack\out\project\DREAMEROS_CENTRAL_BOOT_GENERATOR_POINTER.ps1.block'
     'REPLACE_WITH_GENERATED_THIN_CLAUDE_HOOK' = Join-Path $RepoRoot 'bootpack\out\claude\dreameros-session-start.sh'
 }
+$ExpectedSources['ADD_PROJECT_BOOT_POINTER'] = $null
 $AdapterSources = @{
     'answer-from-measurement.mdc' = Join-Path $RepoRoot 'bootpack\out\cursor\answer-from-measurement.adapter.mdc'
     'canon-equals-live.mdc' = Join-Path $RepoRoot 'bootpack\out\cursor\canon-equals-live.adapter.mdc'
@@ -667,6 +670,10 @@ function Assert-PlanReconciliation($Plan) {
 }
 
 function Get-ExpectedSource([string]$Action, [string]$Target) {
+    if ($Action -eq 'ADD_PROJECT_BOOT_POINTER') {
+        if ($Target -match '\\.cursor\\rules\\dreameros-boot-canon\.mdc$') { return Join-Path $RepoRoot 'bootpack\out\cursor\dreameros-project-pointer.mdc' }
+        return Join-Path $RepoRoot 'bootpack\out\project\DREAMEROS_BOOT_CANON_POINTER.md.block'
+    }
     if ($Action -eq 'REPLACE_WITH_GENERATED_CURSOR_ADAPTER') {
         return $AdapterSources[[IO.Path]::GetFileName($Target)]
     }
@@ -706,6 +713,12 @@ function Assert-ActionTuple($Action, $Finding, [bool]$IsGlobal) {
     }
 
     switch ([string]$Action.action) {
+        'ADD_PROJECT_BOOT_POINTER' {
+            if ($Finding.kind -ne 'BOOT_SURFACE' -or $Finding.state -ne 'GLOBAL_ONLY' -or
+                $Finding.surface -notin @('CLAUDE', 'CODEX', 'CURSOR')) {
+                throw 'Project-pointer addition does not match its sealed global-only finding.'
+            }
+        }
         'MIGRATE_CURSOR_RULE_WITH_SYNC_TOOL' {
             if ($Finding.kind -ne 'BOOT_SURFACE' -or $Finding.surface -ne 'CURSOR' -or $Finding.state -ne 'LEGACY_FULL_COPY') {
                 throw 'Cursor-rule action does not match its sealed finding tuple.'
@@ -841,6 +854,25 @@ function Get-TextInfo([string]$Path, [string]$Label) {
         Normalized = $normalized
         Lines = @($lines)
         EndsNewline = $endsNewline
+    }
+}
+
+function New-MissingTextInfo([string]$Path) {
+    [byte[]]$empty = @()
+    $file = [pscustomobject]@{
+        Path = [IO.Path]::GetFullPath($Path)
+        Bytes = $empty
+        ContentBytes = $empty
+        Text = ''
+        HasBom = $false
+        Sha256 = Get-BytesSha $empty
+    }
+    return [pscustomobject]@{
+        File = $file
+        Newline = "`n"
+        Normalized = ''
+        Lines = @()
+        EndsNewline = $false
     }
 }
 
@@ -1069,6 +1101,12 @@ function Get-ClaudeHookRegistration([string]$Root) {
 
 function Assert-CurrentClassification($Action, $Finding, $TargetInfo, $SourceInfo, [string]$RepositoryRoot) {
     switch ($Action.action) {
+        'ADD_PROJECT_BOOT_POINTER' {
+            if ($Finding.kind -ne 'BOOT_SURFACE' -or $Finding.state -ne 'GLOBAL_ONLY' -or
+                $Finding.surface -notin @('CLAUDE', 'CODEX', 'CURSOR') -or (Test-Path -LiteralPath $TargetInfo.File.Path)) {
+                throw 'Project-pointer addition no longer classifies as a missing global-only surface.'
+            }
+        }
         'MIGRATE_CURSOR_RULE_WITH_SYNC_TOOL' {
             if ($Finding.kind -ne 'BOOT_SURFACE' -or $Finding.surface -ne 'CURSOR' -or $Finding.state -ne 'LEGACY_FULL_COPY') {
                 throw 'Cursor-rule action tuple is invalid.'
@@ -1341,7 +1379,11 @@ foreach ($repo in @($Plan.repositories | Sort-Object path)) {
         if (-not $renderedTargets.Add($target)) { throw 'More than one content-renderable action targets the same file.' }
         try {
             Assert-NoReparseTraversal $target $repoPath
-            $targetInfo = Get-TextInfo $target 'Migration target'
+            $targetInfo = if ($action.action -eq 'ADD_PROJECT_BOOT_POINTER' -and -not (Test-Path -LiteralPath $target -PathType Leaf)) {
+                New-MissingTextInfo $target
+            } else {
+                Get-TextInfo $target 'Migration target'
+            }
             $sourcePath = Assert-LocalFileSystemPath ([string]$action.generated_source.path) 'Generated source'
             $sourceInfo = Get-TextInfo $sourcePath 'Generated source'
             if ($sourceInfo.File.Sha256 -cne [string]$action.generated_source.sha256) {

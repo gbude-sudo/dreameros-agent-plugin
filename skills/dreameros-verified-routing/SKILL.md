@@ -10,11 +10,12 @@ question would benefit from more than one AI engine's perspective: contested
 claims, high-ambiguity decisions, creative directions with no single right
 answer, or when the user explicitly asks for a second opinion.
 
-<!-- DREAMEROS-BOOT-PRECONDITION v1.0.0 -->
-Before any routing call, require returned proof for
-`dreameros_session_package`, then `dreameros_context`, then `dreameros_state`.
-If the current chat has no such proof, perform those three calls in that order
-before calling `dreameros_route`.
+<!-- DREAMEROS-BOOT-PRECONDITION v1.1.0 -->
+`dreameros_session_package` is the only required boot call. Call it first.
+When the package directs it or the assigned task needs read-only enrichment,
+use this order: (1) `dreameros_session_handoff_read` for the full record when
+present, (2) `dreameros_context` and its SCS as the read-only current-state
+channel, (3) scoped `dreameros_recall`, and (4) `dreameros_canon` when needed.
 
 ## How
 

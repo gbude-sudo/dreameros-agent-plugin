@@ -1,0 +1,5 @@
+[mcp_servers.dreameros]
+url = "https://mcp.dreameros.app/mcp"
+
+[mcp_servers.dreameros.tools.dreameros_session_package]
+output_token_limit = 30000
