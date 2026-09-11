@@ -103,6 +103,28 @@ session, every one of them wrong, every one made with no command run. [measure]
 Never report "none", "clean", "zero" or "no matches" from a search you have not
 first run against a line you KNOW matches. [sweep]
 
+### R1n - Open the primary source the operator named
+A summary of a document is not the document. Another agent's reading of an
+image is not the image. A file path is not the contents, and a prior lane's
+write-up is not a reading. When the operator attaches something, or names a
+source and says go and find it, OPEN IT YOURSELF before answering about it. A
+derived artifact is admissible only after the primary one has been read, and
+then only beside it, labelled as derived.
+
+HC, 2026-09-11. He attached eleven diagrams and said "find the attahmetns i
+added for this", then "its also in this chat", then "go through chat.. and
+find". The session read a previous lane's summary, opened one image of the
+eleven, and reported on all eleven. He opened them himself: "werid.. how dd i
+find them and not you", then "i told you to go through chat.. and find.. so
+if you knew my intentn... youjust ignorred it like stupid", then "Literally
+make this permanent and executable from now until forever everywhere."
+
+ENFORCED, NOT MERELY WRITTEN. gate_primary_source.py is a Stop hook that
+holds the turn when the operator attached a source, or told this session to
+go and open one, and no primary artifact was opened in that turn. Proven
+firing 2026-09-11 against a held case plus two controls that pass silently.
+Where an engine has no hook layer, this written rule is the floor. [primarysource]
+
 ### R1b - A declaration is not a rendered value
 Read the value back off the running thing, not off the source that declares it.
 Code that loses a cascade or a precedence order is dead while reading as
