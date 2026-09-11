@@ -256,6 +256,44 @@ def check_skills() -> None:
         fail("skills/: no discoverable skills")
 
 
+def check_model_tiered_offload_mirror() -> None:
+    source = ROOT / "skills" / "model-tiered-offload"
+    packaged = ROOT / "install" / "claude-code" / "payload" / "skills" / "model-tiered-offload"
+    expected = {"SKILL.md", "references/kimi-fireworks-claude.md"}
+
+    for label, root in (("canonical", source), ("Claude package", packaged)):
+        if not root.is_dir():
+            fail(f"model-tiered-offload {label}: directory missing")
+            continue
+        inventory = {
+            path.relative_to(root).as_posix()
+            for path in root.rglob("*")
+            if path.is_file()
+        }
+        if inventory != expected:
+            fail(f"model-tiered-offload {label}: file inventory differs from reviewed source map")
+
+    if not source.is_dir() or not packaged.is_dir():
+        return
+    for relative in sorted(expected):
+        try:
+            source_bytes = (source / relative).read_bytes()
+            packaged_bytes = (packaged / relative).read_bytes()
+        except OSError as exc:
+            fail(f"model-tiered-offload mirror: unreadable {relative} ({exc})")
+            continue
+        if source_bytes != packaged_bytes:
+            fail(f"model-tiered-offload mirror: {relative} differs from canonical source")
+
+    try:
+        entrypoint = (source / "SKILL.md").read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        fail(f"model-tiered-offload canonical entrypoint: unreadable ({exc})")
+        return
+    if "references/kimi-fireworks-claude.md" not in entrypoint:
+        fail("model-tiered-offload canonical entrypoint: provider reference is not discoverable")
+
+
 def _frontmatter(path: Path) -> str | None:
     try:
         text = path.read_text(encoding="utf-8")
@@ -1397,6 +1435,7 @@ def main() -> int:
     check_cursor_project_pointer()
     check_project_adapters()
     check_skills()
+    check_model_tiered_offload_mirror()
     check_claude_payload_agents()
     check_cursor_plugin()
     check_cursor_component_name_uniqueness()
