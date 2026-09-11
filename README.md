@@ -40,6 +40,9 @@ reads:
 - Claude users can set `MAX_MCP_OUTPUT_TOKENS=30000` as a non-secret
   user or project setting when full package output is needed. This is not a
   connection proof and no Cursor output limit is configured here.
+- Codex is a client surface for the DreamerOS `chatgpt` package engine. Its
+  generated global adapter passes `engine: "chatgpt"` to
+  `dreameros_session_package`; `codex` is not a live package-engine value.
 - thin project coordination, handoff, and Claude SessionStart adapters that
   preserve tracked paths without duplicating canon or hardcoding an MCP id
 - Agent Plugin skill

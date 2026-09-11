@@ -1,4 +1,10 @@
 <!-- BEGIN DREAMEROS-BOOT-CANON v2.4.0 - GENERATED, DO NOT EDIT. Source: SOURCE-dreameros-boot-canon.md -->
+<dreameros_codex_client_adapter version="v1.0.0">
+Codex is a client surface for the DreamerOS chatgpt engine family.
+When calling dreameros_session_package from Codex, pass engine: "chatgpt".
+Do not pass engine: "codex"; that is a client name, not a package engine.
+</dreameros_codex_client_adapter>
+
 # DreamerOS Boot Canon v2.4.0
 
 SINGLE SOURCE OF TRUTH. Every vendor file is generated from this one.
