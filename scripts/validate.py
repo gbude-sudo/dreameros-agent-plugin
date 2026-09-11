@@ -271,6 +271,15 @@ def _frontmatter(path: Path) -> str | None:
 
 def check_claude_payload_agents() -> None:
     """Statically validate every installed Claude agent before a loader sees it."""
+    attributes_path = ROOT / ".gitattributes"
+    try:
+        attributes = attributes_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        fail(f"Claude payload SessionStart hook: .gitattributes unreadable ({exc})")
+        attributes = ""
+    if not re.search(r"(?m)^install/claude-code/payload/hooks/\*\.sh\s+text\s+eol=lf\s*$", attributes):
+        fail("Claude payload SessionStart hook: installed Bash payload is not pinned to LF")
+
     agents_dir = ROOT / "install" / "claude-code" / "payload" / "agents"
     if not agents_dir.is_dir():
         fail("Claude payload agents: directory missing")
