@@ -62,7 +62,7 @@ Assert-True (Test-ExactBytes $runtimeRawBytes $runtimeExpectedBytes) 'runtime ex
 $runtimeExport = Get-Content -Raw -LiteralPath $runtimeExportPath | ConvertFrom-Json
 $sourceText = Get-Content -Raw -LiteralPath (Join-Path $BootRoot 'SOURCE-dreameros-boot-canon.md')
 Assert-True ($runtimeExport.schema_version -ceq 'dreameros-session-package-stable-prefix-v1') 'runtime export schema mismatch'
-Assert-True ($runtimeExport.version -ceq 'v2.4.0') 'runtime export version mismatch'
+Assert-True ($runtimeExport.version -ceq 'v2.5.0') 'runtime export version mismatch'
 Assert-True ($runtimeExport.sha256 -ceq (Get-SemanticSha $sourceText)) 'runtime export source hash mismatch'
 Assert-True ($runtimeExport.source_provenance.repository -ceq 'gbude-sudo/dreameros-agent-plugin') 'runtime export repository provenance mismatch'
 Assert-True ($runtimeExport.source_provenance.path -ceq 'bootpack/SOURCE-dreameros-boot-canon.md') 'runtime export source path mismatch'
