@@ -34,12 +34,28 @@ $Targets = [ordered]@{
 $Failures = New-Object System.Collections.Generic.List[string]
 $Stamp = (Get-Date).ToUniversalTime().ToString('yyyyMMddTHHmmssZ')
 
+function Get-CanonicalFileHash([string]$Path) {
+    if ([IO.Path]::GetExtension($Path) -ine '.md') {
+        return (Get-FileHash -Algorithm SHA256 -LiteralPath $Path).Hash.ToLowerInvariant()
+    }
+    $text = [IO.File]::ReadAllText($Path)
+    $canonical = $text.Replace("`r`n", "`n").Replace("`r", "`n")
+    $bytes = (New-Object Text.UTF8Encoding($false)).GetBytes($canonical)
+    $sha = [Security.Cryptography.SHA256]::Create()
+    try {
+        return [BitConverter]::ToString($sha.ComputeHash($bytes)).Replace('-', '').ToLowerInvariant()
+    }
+    finally {
+        $sha.Dispose()
+    }
+}
+
 function Get-TreeMap([string]$Root) {
     $map = [ordered]@{}
     if (-not (Test-Path -LiteralPath $Root -PathType Container)) { return $map }
     foreach ($file in (Get-ChildItem -LiteralPath $Root -Recurse -File | Sort-Object FullName)) {
         $relative = $file.FullName.Substring($Root.Length).TrimStart([char[]]@('\', '/')).Replace('\', '/')
-        $map[$relative] = (Get-FileHash -Algorithm SHA256 -LiteralPath $file.FullName).Hash.ToLowerInvariant()
+        $map[$relative] = Get-CanonicalFileHash $file.FullName
     }
     return $map
 }

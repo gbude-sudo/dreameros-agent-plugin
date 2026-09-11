@@ -277,13 +277,15 @@ def check_model_tiered_offload_mirror() -> None:
         return
     for relative in sorted(expected):
         try:
-            source_bytes = (source / relative).read_bytes()
-            packaged_bytes = (packaged / relative).read_bytes()
-        except OSError as exc:
+            source_text = (source / relative).read_text(encoding="utf-8")
+            packaged_text = (packaged / relative).read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
             fail(f"model-tiered-offload mirror: unreadable {relative} ({exc})")
             continue
-        if source_bytes != packaged_bytes:
-            fail(f"model-tiered-offload mirror: {relative} differs from canonical source")
+        source_canonical = source_text.replace("\r\n", "\n").replace("\r", "\n")
+        packaged_canonical = packaged_text.replace("\r\n", "\n").replace("\r", "\n")
+        if source_canonical != packaged_canonical:
+            fail(f"model-tiered-offload mirror: {relative} content differs from canonical source")
 
     try:
         entrypoint = (source / "SKILL.md").read_text(encoding="utf-8")
