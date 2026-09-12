@@ -1028,10 +1028,20 @@ if (Test-Path -LiteralPath $skillSrc) {
     foreach ($d in (Get-ChildItem -LiteralPath $skillSrc -Directory)) {
         $sf = Join-Path $d.FullName 'SKILL.md'
         if (-not (Test-Path -LiteralPath $sf)) { continue }
-        Install-TemplatedFile -Source $sf `
-            -Destination (Join-Path (Join-Path (Join-Path $ClaudeHome 'skills') $d.Name) 'SKILL.md') `
-            -Label ('skill ' + $d.Name) `
-            -OverwriteWhenDifferent:$Force
+        foreach ($f in (Get-ChildItem -LiteralPath $d.FullName -Recurse -File | Sort-Object FullName)) {
+            $relative = $f.FullName.Substring($d.FullName.Length).TrimStart([char[]]@('\', '/'))
+            $destination = Join-Path (Join-Path (Join-Path $ClaudeHome 'skills') $d.Name) $relative
+            $label = if ($relative -ceq 'SKILL.md') {
+                'skill ' + $d.Name
+            }
+            else {
+                'skill ' + $d.Name + '/' + $relative.Replace('\', '/')
+            }
+            Install-TemplatedFile -Source $f.FullName `
+                -Destination $destination `
+                -Label $label `
+                -OverwriteWhenDifferent:$Force
+        }
     }
 }
 else {
