@@ -1,18 +1,11 @@
-import base64, hashlib, json, unittest
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-from gates.gateway_lockstep import extract_from_host_payload, verify_record
-
-def build(content="x", state="SUCCESS"):
-    tool = {"skill":"auto","content":content}; key = Ed25519PrivateKey.generate()
-    signed = {"id":"receipt-12345678","intent_anchor":"anchor-12345678","terminal_state":state,"request_sha256":hashlib.sha256(json.dumps(tool,sort_keys=True,separators=(",", ":")).encode()).hexdigest()}
-    raw = json.dumps(signed,sort_keys=True,separators=(",", ":")).encode(); public = key.public_key().public_bytes(serialization.Encoding.Raw,serialization.PublicFormat.Raw)
-    return tool, {"schema_version":"dreameros-gateway-lockstep-v2","intent_envelope_schema":"dreameros-intent-envelope-v1","receipt":{"schema_version":"dreameros-receipt-event-v1",**signed,"signed_payload_b64":base64.b64encode(raw).decode(),"signature_b64":base64.b64encode(key.sign(raw)).decode(),"key_id":"test-key"},"public_key_lookup":{"schema_version":"dreameros-receipt-key-v1","key_id":"test-key","public_key_b64":base64.b64encode(public).decode(),"source_url":"https://mcp.dreameros.app/.well-known/ctci-keys.json"}}
-
+import hashlib,json,unittest
+from gates.gateway_lockstep import extract_from_host_payload,verify_record
+def build(content="x"):
+ tool={"skill":"auto","content":content}; receipt={"schema_version":"dreameros-receipt-event-v1","id":"receipt-12345678","intent_anchor":"anchor-12345678","terminal_state":"SUCCESS","request_sha256":hashlib.sha256(json.dumps(tool,sort_keys=True,separators=(",", ":")).encode()).hexdigest()}; record={"schema_version":"dreameros-gateway-lockstep-v3","intent_envelope_schema":"dreameros-intent-envelope-v1","receipt":receipt,"receipt_verify_url":"https://mcp.dreameros.app/api/v1/receipts/receipt-12345678/verify"}; verified={"id":receipt["id"],"intent_anchor":receipt["intent_anchor"],"terminal_state":receipt["terminal_state"],"request_sha256":receipt["request_sha256"],"verified":True};return tool,record,verified
 class TestLockstep(unittest.TestCase):
- def test_valid_terminal(self): tool, record=build(); self.assertEqual((verify_record(record,tool).status,verify_record(record,tool).ok),("TERMINAL",True))
- def test_missing_receipt(self): tool, record=build(); record["receipt"]={}; self.assertEqual(verify_record(record,tool).status,"INVOKED")
- def test_fabricated_input_anchor_rejected(self): tool, record=build(); tool["intent_key"]="fake"; self.assertEqual(verify_record(record,tool).status,"CONFIGURED")
- def test_wrong_input_hash_rejected(self): tool, record=build(); self.assertEqual(verify_record(record,{"skill":"auto","content":"other"}).status,"INVOKED")
- def test_tampered_signature_rejected(self): tool, record=build(); record["receipt"]["signature_b64"]="AAAA"; self.assertEqual(verify_record(record,tool).status,"INVOKED")
- def test_unsupported_host(self): self.assertEqual(extract_from_host_payload({}).status,"UNSUPPORTED")
+ def test_clean_machine_stdlib_only(self): tool,r,v=build();self.assertEqual(verify_record(r,tool,lambda _:v).status,"TERMINAL")
+ def test_missing_receipt(self):tool,r,v=build();r["receipt"]={};self.assertEqual(verify_record(r,tool,lambda _:v).status,"INVOKED")
+ def test_fabricated_input_anchor(self):tool,r,v=build();tool["intent_key"]="fake";self.assertEqual(verify_record(r,tool,lambda _:v).status,"CONFIGURED")
+ def test_wrong_input_hash(self):tool,r,v=build();self.assertEqual(verify_record(r,{"skill":"auto","content":"other"},lambda _:v).status,"INVOKED")
+ def test_offline(self):tool,r,v=build();self.assertEqual(verify_record(r,tool,lambda _:(_ for _ in ()).throw(OSError())).status,"OFFLINE")
+ def test_unsupported_host(self):self.assertEqual(extract_from_host_payload({},lambda _:{}).status,"UNSUPPORTED")
