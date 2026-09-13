@@ -9,6 +9,42 @@ existing configuration files. It preserves existing MCP servers, each unique
 permission, and each unique nonretired hook. It removes duplicate and named
 retired lifecycle registrations.
 
+## Load this repository as a Claude Code plugin
+
+Three ways, from a one-session test to a permanent load. All three read the
+same two things: `.claude-plugin/plugin.json` and `skills/` at the repository
+root. Skills arrive namespaced, for example `/dreameros:dreameros-boot`.
+
+1. One session, no install. Needs the `claude` CLI on PATH.
+
+```
+claude --plugin-dir <path-to-this-repository>
+```
+
+2. Install by name. The catalog is `.claude-plugin/marketplace.json`.
+
+```
+claude plugin marketplace add gbude-sudo/dreameros-agent-plugin
+claude plugin install dreameros@dreameros
+```
+
+For a local clone, give `marketplace add` the clone path instead of the
+GitHub name.
+
+3. Permanent load with no CLI and no install. Put this repository under your
+personal skills directory. On Windows a directory junction keeps one copy:
+
+```
+cmd /c mklink /J %USERPROFILE%\.claude\skills\dreameros <path-to-this-repository>
+```
+
+The plugin loads as `dreameros@skills-dir` on the next session. To stop
+loading it, remove the junction with `cmd /c rmdir` on the junction path;
+that removes the link, not the repository.
+
+The MCP entry in `.mcp.json` carries no credential. A client that needs a
+bearer follows the Authentication section of the root README.
+
 ## What it installs
 
 ```
