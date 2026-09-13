@@ -55,12 +55,29 @@ function Get-CanonicalFileHash([string]$Path) {
     }
 }
 
+function Get-RelativeChildPath([string]$Root, [string]$Path) {
+    $resolvedRoot = (Resolve-Path -LiteralPath $Root).Path.TrimEnd([char[]]@('\', '/'))
+    $currentPath = [IO.Path]::GetFullPath($Path)
+    $segments = New-Object System.Collections.Generic.List[string]
+    $segments.Insert(0, (Split-Path -Leaf $currentPath))
+    $parent = Split-Path -Parent $currentPath
+    while ($parent -ine $resolvedRoot) {
+        $boundary = $resolvedRoot + [IO.Path]::DirectorySeparatorChar
+        if (-not $parent.StartsWith($boundary, [StringComparison]::OrdinalIgnoreCase)) {
+            throw "Path is outside source root: $Path"
+        }
+        $segments.Insert(0, (Split-Path -Leaf $parent))
+        $parent = Split-Path -Parent $parent
+    }
+    return ($segments -join [IO.Path]::DirectorySeparatorChar)
+}
+
 function Get-TreeMap([string]$Root) {
     $map = [ordered]@{}
     if (-not (Test-Path -LiteralPath $Root -PathType Container)) { return $map }
     $resolvedRoot = (Resolve-Path -LiteralPath $Root).Path.TrimEnd([char[]]@('\', '/'))
     foreach ($file in (Get-ChildItem -LiteralPath $resolvedRoot -Recurse -File | Sort-Object FullName)) {
-        $relative = $file.FullName.Substring($resolvedRoot.Length).TrimStart([char[]]@('\', '/')).Replace('\', '/')
+        $relative = (Get-RelativeChildPath -Root $resolvedRoot -Path $file.FullName).Replace('\', '/')
         $map[$relative] = Get-CanonicalFileHash $file.FullName
     }
     return $map
@@ -89,7 +106,7 @@ function Copy-Tree([string]$Label, [string]$From, [string]$To, [bool]$BackUp) {
     if (-not (Test-Path -LiteralPath $From -PathType Container)) { throw "$Label source missing: $From" }
     $resolvedFrom = (Resolve-Path -LiteralPath $From).Path.TrimEnd([char[]]@('\', '/'))
     foreach ($file in (Get-ChildItem -LiteralPath $resolvedFrom -Recurse -File | Sort-Object FullName)) {
-        $relative = $file.FullName.Substring($resolvedFrom.Length).TrimStart([char[]]@('\', '/'))
+        $relative = Get-RelativeChildPath -Root $resolvedFrom -Path $file.FullName
         $destination = Join-Path $To $relative
         $destinationDirectory = Split-Path -Parent $destination
         if (-not (Test-Path -LiteralPath $destinationDirectory)) {
