@@ -34,3 +34,14 @@ class TestLockstep(unittest.TestCase):
   tool,r,_=build();self.assertEqual(verify_record(r,tool,lambda _:(_ for _ in ()).throw(URLError("network"))).status,"OFFLINE")
  def test_non_string_receipt_id_is_rejected(self):
   tool,r,_=build();r["receipt"]["id"]=123;self.assertEqual(verify_record(r,tool,lambda _:self.fail("transport called")).status,"INVOKED")
+ def test_emitted_status_vocabulary_is_exact(self):
+  tool,record,verified=build()
+  malformed_receipt=build()[1];malformed_receipt["receipt"]={}
+  statuses={
+   verify_record({},tool,lambda _:verified).status,
+   verify_record(malformed_receipt,tool,lambda _:verified).status,
+   verify_record(build()[1],tool,lambda url:(_ for _ in ()).throw(HTTPError(url,404,"missing",None,None))).status,
+   verify_record(build()[1],tool,lambda _:(_ for _ in ()).throw(OSError("offline"))).status,
+   verify_record(record,tool,lambda _:verified).status,
+  }
+  self.assertEqual(statuses,{"CONFIGURED","INVOKED","UNSUPPORTED","OFFLINE","TERMINAL"})

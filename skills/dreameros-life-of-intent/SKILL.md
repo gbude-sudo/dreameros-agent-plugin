@@ -32,8 +32,7 @@ to simulate. Use the returned answer and its receipt evidence.
 ## Gateway Lockstep evidence
 
 Client hooks can verify a bounded Gateway Lockstep record when the host event
-supplies it. The record distinguishes `CONFIGURED`, `INVOKED`, `RECEIPTED`, and
-`TERMINAL`. A terminal result requires the signed Gateway receipt to bind the
+supplies it. The verifier emits `CONFIGURED`, `INVOKED`, `UNSUPPORTED`, `OFFLINE`, and `TERMINAL`. A terminal result requires the signed Gateway receipt to bind the
 actual `dreameros_skill` input and its signed intent anchor. Terminal states
 are `SUCCESS`, `NO-OP`, `BLOCKED`, `STALLED`, and `EXHAUSTED`.
 

@@ -314,6 +314,16 @@ def check_life_of_intent_skill_mirrors() -> None:
         except OSError as exc:
             fail(f"dreameros-life-of-intent mirror: unreadable {mirror.relative_to(ROOT)} ({exc})")
 
+    expected_vocabulary = "`CONFIGURED`, `INVOKED`, `UNSUPPORTED`, `OFFLINE`, and `TERMINAL`"
+    for path in (ROOT / "README.md", source, *mirrors):
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            fail(f"Gateway Lockstep vocabulary: unreadable {path.relative_to(ROOT)} ({exc})")
+            continue
+        if expected_vocabulary not in text or "`RECEIPTED`" in text:
+            fail(f"Gateway Lockstep vocabulary: emitted-status set drifted in {path.relative_to(ROOT)}")
+
 
 def _frontmatter(path: Path) -> str | None:
     try:
