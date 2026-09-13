@@ -1,14 +1,12 @@
 ---
 name: dreameros-verified-routing
-description: Route hard or contested questions through DreamerOS multi-engine consultation so the answer reflects more than one model's judgment.
+description: Choose the best eligible model or request a second opinion for a hard, ambiguous, or contested task. This is a compatibility routing mode inside dreameros-life-of-intent, not a separate pipeline.
 ---
 
-# DreamerOS Verified Routing
+# DreamerOS Verified Routing Mode
 
-Use this skill when the user's DreamerOS connection is available and a
-question would benefit from more than one AI engine's perspective: contested
-claims, high-ambiguity decisions, creative directions with no single right
-answer, or when the user explicitly asks for a second opinion.
+This name is preserved for compatibility. Run it inside the one Life of an
+Intent path.
 
 <!-- DREAMEROS-BOOT-PRECONDITION v1.1.0 -->
 `dreameros_session_package` is the only required boot call. Call it first.
@@ -17,23 +15,10 @@ use this order: (1) `dreameros_session_handoff_read` for the full record when
 present, (2) `dreameros_context` and its SCS as the read-only current-state
 channel, (3) scoped `dreameros_recall`, and (4) `dreameros_canon` when needed.
 
-## How
+Call `dreameros_skill` with `skill: dreameros-verified-routing` and the
+current request as `content`. That call enters the Life of an Intent path and
+returns its answer. The mode emphasizes best-fit routing and second opinion,
+but it does not create a second model-selection or answer pipeline.
 
-1. For a single best answer from the most suitable engine, call the
-   `dreameros_route` tool with the question and let it pick the engine.
-2. For cross-checking a contested claim or important decision, request the
-   consensus mode so multiple engines answer independently and agreement
-   and disagreement are surfaced.
-3. Present the result honestly:
-   - Where engines agree, say so and give the shared answer.
-   - Where they disagree, show the disagreement instead of averaging it
-     away. Disagreement between engines is signal the user paid to see.
-
-## Ground rules
-
-- Do not route trivial questions through consensus. Multiple engines cost
-  more than one; spend the user's capacity where perspectives differ.
-- Attribute honestly. If one engine produced the winning answer, do not
-  present it as unanimous.
-- If routing is unavailable, answer directly and say the multi-engine
-  check did not run.
+Report the engine and any disagreement only when the Gateway response proves
+them. Never present one answer as consensus.

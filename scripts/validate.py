@@ -1301,6 +1301,7 @@ def check_hydration_preconditions() -> None:
         ROOT / "cursor" / "commands" / "dreameros-verify.md",
         ROOT / "cursor" / "rules" / "dreameros-runtime.mdc",
         ROOT / "skills" / "dreameros-continuity" / "SKILL.md",
+        ROOT / "skills" / "dreameros-life-of-intent" / "SKILL.md",
         ROOT / "skills" / "dreameros-verified-answers" / "SKILL.md",
         ROOT / "skills" / "dreameros-verified-routing" / "SKILL.md",
     )
