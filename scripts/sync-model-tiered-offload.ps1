@@ -89,14 +89,21 @@ function Compare-Tree([string]$Label, [string]$ExpectedRoot, [string]$ActualRoot
         return
     }
     $expected = Get-TreeMap $ExpectedRoot
-    $actual = Get-TreeMap $ActualRoot
     $expectedNames = @($expected.Keys)
-    $actualNames = @($actual.Keys)
-    $missing = @($expectedNames | Where-Object { -not $actual.Contains($_) })
-    $extra = @($actualNames | Where-Object { -not $expected.Contains($_) })
-    $changed = @($expectedNames | Where-Object { $actual.Contains($_) -and $actual[$_] -cne $expected[$_] })
-    if ($missing.Count -or $extra.Count -or $changed.Count) {
-        $Failures.Add("$Label drift: missing=$($missing -join ',') extra=$($extra -join ',') changed=$($changed -join ',')")
+    $actualFiles = @(Get-ChildItem -LiteralPath $ActualRoot -Recurse -File | Sort-Object FullName)
+    $missing = New-Object System.Collections.Generic.List[string]
+    $changed = New-Object System.Collections.Generic.List[string]
+    foreach ($relative in $expectedNames) {
+        $actualPath = Join-Path $ActualRoot $relative.Replace('/', '\')
+        if (-not (Test-Path -LiteralPath $actualPath -PathType Leaf)) {
+            $missing.Add($relative)
+            continue
+        }
+        if ((Get-CanonicalFileHash $actualPath) -cne $expected[$relative]) { $changed.Add($relative) }
+    }
+    $extra = [Math]::Max(0, $actualFiles.Count - $expectedNames.Count)
+    if ($missing.Count -or $extra -or $changed.Count) {
+        $Failures.Add("$Label drift: missing=$($missing -join ',') extra_count=$extra changed=$($changed -join ',')")
         return
     }
     Write-Output "PASS $Label files=$($expected.Count)"
@@ -104,9 +111,9 @@ function Compare-Tree([string]$Label, [string]$ExpectedRoot, [string]$ActualRoot
 
 function Copy-Tree([string]$Label, [string]$From, [string]$To, [bool]$BackUp) {
     if (-not (Test-Path -LiteralPath $From -PathType Container)) { throw "$Label source missing: $From" }
-    $resolvedFrom = (Resolve-Path -LiteralPath $From).Path.TrimEnd([char[]]@('\', '/'))
-    foreach ($file in (Get-ChildItem -LiteralPath $resolvedFrom -Recurse -File | Sort-Object FullName)) {
-        $relative = Get-RelativeChildPath -Root $resolvedFrom -Path $file.FullName
+    $sourceMap = Get-TreeMap $From
+    foreach ($relative in @($sourceMap.Keys)) {
+        $file = Get-Item -LiteralPath (Join-Path $From $relative.Replace('/', '\'))
         $destination = Join-Path $To $relative
         $destinationDirectory = Split-Path -Parent $destination
         if (-not (Test-Path -LiteralPath $destinationDirectory)) {
