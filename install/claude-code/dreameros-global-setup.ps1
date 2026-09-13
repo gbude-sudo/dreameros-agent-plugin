@@ -1099,6 +1099,12 @@ try {
 
     $fragRaw = Expand-Tokens (Read-TextFile $fragPath)
     $fragment = ConvertTo-OrderedHash (ConvertFrom-Json $fragRaw)
+    if ($null -eq $py) {
+        $fragment['hooks']['Stop'] = @($fragment['hooks']['Stop'] | Where-Object {
+            -not (@($_['hooks']) | Where-Object { [string]$_['command'] -match 'gateway_lockstep\.py' })
+        })
+        Add-Warning 'Gateway Lockstep Stop registration skipped because the exact Python runtime is unavailable.'
+    }
     $renderedBashCommands = Render-FragmentBashCommands -FragmentHooks $fragment['hooks']
     if ($renderedBashCommands -ne 10 -or (Get-CanonicalJson $fragment).Contains('__DREAMEROS_BASH_COMMAND__')) {
         throw 'settings fragment Bash command rendering was incomplete.'

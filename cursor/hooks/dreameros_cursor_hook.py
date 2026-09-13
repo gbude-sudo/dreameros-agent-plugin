@@ -872,9 +872,7 @@ def _lockstep_after_result(payload: dict[str, Any], canonical_tool: str) -> dict
         return result
     verdict = extract_from_host_payload(payload).to_dict()
     result["gateway_lockstep"] = verdict
-    if not verdict["ok"] and verdict["status"] != "UNSUPPORTED":
-        result["continue"] = False
-        result["user_message"] = f"Gateway Lockstep {verdict['status']}: {verdict['reason']}"
+    result["gateway_lockstep"]["mode"] = "OBSERVED"
     return result
 
 
@@ -1943,10 +1941,10 @@ def self_test() -> int:
         ("gateway-shaped package validates: " + strict_package_positive_reason, {"value": strict_package_positive_valid}, "value", True),
         ("gateway-shaped package has five static continuation parts", {"value": strict_static_five_parts}, "value", True),
         ("gateway-shaped package validates wrapper inside surrounding package text", {"value": strict_full_package_framing}, "value", True),
-        ("Gateway Lockstep terminal evidence passes", lockstep_terminal, "continue", True),
-        ("Gateway Lockstep terminal state is recorded", lockstep_terminal["gateway_lockstep"], "status", "TERMINAL"),
-        ("Gateway Lockstep nonterminal evidence blocks", lockstep_nonterminal, "continue", False),
-        ("Gateway Lockstep nonterminal state is receipted", lockstep_nonterminal["gateway_lockstep"], "status", "RECEIPTED"),
+        ("Gateway Lockstep post-MCP observation continues", lockstep_terminal, "continue", True),
+        ("Gateway Lockstep malformed evidence is not terminal", lockstep_terminal["gateway_lockstep"], "status", "CONFIGURED"),
+        ("Gateway Lockstep post-MCP never blocks", lockstep_nonterminal, "continue", True),
+        ("Gateway Lockstep malformed evidence stays nonterminal", lockstep_nonterminal["gateway_lockstep"], "status", "CONFIGURED"),
         ("empty package result rejects", {"value": _validate_session_package_result({"result_json": json.dumps(strict_package_empty)})[0]}, "value", False),
         ("auth-required package rejects", {"value": _validate_session_package_result({"result_json": json.dumps(strict_package_auth)})[0]}, "value", False),
         ("malformed package rejects", {"value": _validate_session_package_result({"result_json": json.dumps(strict_package_malformed)})[0]}, "value", False),

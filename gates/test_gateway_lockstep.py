@@ -1,62 +1,18 @@
-from __future__ import annotations
+import base64, hashlib, json, unittest
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from gates.gateway_lockstep import extract_from_host_payload, verify_record
 
-import unittest
+def build(content="x", state="SUCCESS"):
+    tool = {"skill":"auto","content":content}; key = Ed25519PrivateKey.generate()
+    signed = {"id":"receipt-12345678","intent_anchor":"anchor-12345678","terminal_state":state,"request_sha256":hashlib.sha256(json.dumps(tool,sort_keys=True,separators=(",", ":")).encode()).hexdigest()}
+    raw = json.dumps(signed,sort_keys=True,separators=(",", ":")).encode(); public = key.public_key().public_bytes(serialization.Encoding.Raw,serialization.PublicFormat.Raw)
+    return tool, {"schema_version":"dreameros-gateway-lockstep-v2","intent_envelope_schema":"dreameros-intent-envelope-v1","receipt":{"schema_version":"dreameros-receipt-event-v1",**signed,"signed_payload_b64":base64.b64encode(raw).decode(),"signature_b64":base64.b64encode(key.sign(raw)).decode(),"key_id":"test-key"},"public_key_lookup":{"schema_version":"dreameros-receipt-key-v1","key_id":"test-key","public_key_b64":base64.b64encode(public).decode(),"source_url":"https://mcp.dreameros.app/.well-known/ctci-keys.json"}}
 
-from gates.gateway_lockstep import SCHEMA_VERSION, extract_from_host_payload, verify_record
-
-
-def valid_record() -> dict[str, object]:
-    return {
-        "schema_version": SCHEMA_VERSION,
-        "intent_envelope_schema": "dreameros-intent-envelope-v1",
-        "intent_key": "intent-20260913-a",
-        "mcp_invocation": {"tool": "dreameros_skill", "intent_key": "intent-20260913-a"},
-        "receipt": {
-            "schema_version": "dreameros-receipt-event-v1",
-            "id": "receipt-20260913-a",
-            "intent_key": "intent-20260913-a",
-        },
-        "terminal_state": "completed",
-    }
-
-
-class GatewayLockstepTests(unittest.TestCase):
-    def test_missing_mcp_invocation_stops_at_configured(self) -> None:
-        record = valid_record()
-        record["mcp_invocation"] = None
-        verdict = verify_record(record)
-        self.assertEqual((verdict.status, verdict.ok), ("CONFIGURED", False))
-
-    def test_missing_or_malformed_receipt_stops_at_invoked(self) -> None:
-        record = valid_record()
-        record["receipt"] = {"id": "bad"}
-        verdict = verify_record(record)
-        self.assertEqual((verdict.status, verdict.ok), ("INVOKED", False))
-
-    def test_wrong_intent_key_stops_at_invoked(self) -> None:
-        record = valid_record()
-        record["receipt"] = {
-            "schema_version": "dreameros-receipt-event-v1",
-            "id": "receipt-20260913-a",
-            "intent_key": "another-intent",
-        }
-        verdict = verify_record(record)
-        self.assertEqual((verdict.status, verdict.ok), ("INVOKED", False))
-
-    def test_nonterminal_state_stops_at_receipted(self) -> None:
-        record = valid_record()
-        record["terminal_state"] = "running"
-        verdict = verify_record(record)
-        self.assertEqual((verdict.status, verdict.ok), ("RECEIPTED", False))
-
-    def test_valid_record_passes_terminal_completion(self) -> None:
-        verdict = verify_record(valid_record())
-        self.assertEqual((verdict.status, verdict.ok), ("TERMINAL", True))
-
-    def test_missing_host_evidence_is_unsupported_not_a_pass(self) -> None:
-        verdict = extract_from_host_payload({"result_json": {"ok": True}})
-        self.assertEqual((verdict.status, verdict.ok), ("UNSUPPORTED", False))
-
-
-if __name__ == "__main__":
-    unittest.main()
+class TestLockstep(unittest.TestCase):
+ def test_valid_terminal(self): tool, record=build(); self.assertEqual((verify_record(record,tool).status,verify_record(record,tool).ok),("TERMINAL",True))
+ def test_missing_receipt(self): tool, record=build(); record["receipt"]={}; self.assertEqual(verify_record(record,tool).status,"INVOKED")
+ def test_fabricated_input_anchor_rejected(self): tool, record=build(); tool["intent_key"]="fake"; self.assertEqual(verify_record(record,tool).status,"CONFIGURED")
+ def test_wrong_input_hash_rejected(self): tool, record=build(); self.assertEqual(verify_record(record,{"skill":"auto","content":"other"}).status,"INVOKED")
+ def test_tampered_signature_rejected(self): tool, record=build(); record["receipt"]["signature_b64"]="AAAA"; self.assertEqual(verify_record(record,tool).status,"INVOKED")
+ def test_unsupported_host(self): self.assertEqual(extract_from_host_payload({}).status,"UNSUPPORTED")

@@ -163,9 +163,9 @@ on each call and the returned receipt shows when DreamerOS was actually used.
 
 `gates/gateway_lockstep.py` validates a bounded evidence record for the
 portable Life of an Intent entry. It reports four distinct states:
-`CONFIGURED`, `INVOKED`, `RECEIPTED`, and `TERMINAL`. The terminal state needs
-a matching intent key in both the MCP invocation and receipt, with
-`terminal_state: completed`.
+`CONFIGURED`, `INVOKED`, `RECEIPTED`, and `TERMINAL`. A terminal result needs
+a signed Gateway receipt that binds the actual MCP input and signed intent
+anchor. States are `SUCCESS`, `NO-OP`, `BLOCKED`, `STALLED`, and `EXHAUSTED`.
 
 The verifier centralizes the intent-envelope schema, receipt-event schema,
 terminal-state enum, client capability matrix, managed-artifact manifest, and

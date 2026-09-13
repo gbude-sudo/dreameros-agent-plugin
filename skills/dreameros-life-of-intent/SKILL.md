@@ -33,8 +33,9 @@ to simulate. Use the returned answer and its receipt evidence.
 
 Client hooks can verify a bounded Gateway Lockstep record when the host event
 supplies it. The record distinguishes `CONFIGURED`, `INVOKED`, `RECEIPTED`, and
-`TERMINAL`. A terminal result requires one matching intent key in the MCP
-invocation and receipt, plus `terminal_state: completed`.
+`TERMINAL`. A terminal result requires the signed Gateway receipt to bind the
+actual `dreameros_skill` input and its signed intent anchor. Terminal states
+are `SUCCESS`, `NO-OP`, `BLOCKED`, `STALLED`, and `EXHAUSTED`.
 
 The shared verifier owns the intent-envelope schema, receipt-event schema,
 terminal-state enum, client capability matrix, managed-artifact manifest, and
