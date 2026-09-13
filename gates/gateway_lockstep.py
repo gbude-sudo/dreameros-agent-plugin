@@ -4,8 +4,9 @@ from __future__ import annotations
 import hashlib, json, re, sys
 from dataclasses import asdict, dataclass
 from typing import Any, Callable
-from urllib.error import URLError
-from urllib.request import Request, urlopen
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlparse
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 SCHEMA_VERSION = "dreameros-gateway-lockstep-v3"
 INTENT_ENVELOPE_SCHEMA = "dreameros-intent-envelope-v1"
@@ -16,6 +17,8 @@ CLIENT_CAPABILITY_MATRIX = {"claude_stop":{"event":"Stop","enforce":False},"curs
 MANAGED_ARTIFACTS = {"shared_verifier":"gates/gateway_lockstep.py","claude_stop_adapter":"install/claude-code/payload/settings.fragment.json","cursor_mcp_adapter":"cursor/hooks/dreameros_cursor_hook.py"}
 HOOK_EVENT_ADAPTERS = {"claude_stop":{"evidence_field":None},"cursor_after_mcp":{"evidence_field":"gateway_lockstep_evidence"}}
 _ANCHOR = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{7,127}\Z")
+_RECEIPT_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{7,127}\Z")
+_RECEIPT_PATH = re.compile(r"^/api/v1/receipts/([A-Za-z0-9][A-Za-z0-9._:-]{7,127})/verify$")
 Transport = Callable[[str], Any]
 @dataclass(frozen=True)
 class Verdict:
@@ -25,21 +28,28 @@ def _load(v:Any)->Any: return json.loads(v) if isinstance(v,str) else v
 def _canon(v:Any)->bytes: return json.dumps(v,sort_keys=True,separators=(",", ":")).encode()
 def _v(s:str,r:str,ok:bool=False)->Verdict: return Verdict(s,ok,r)
 def https_transport(url:str)->Any:
- if not url.startswith("https://"): raise ValueError("receipt verify URL must use HTTPS")
- with urlopen(Request(url,headers={"Accept":"application/json"}),timeout=3) as response:
-  if response.status != 200: raise URLError("non-200 receipt verify response")
-  return json.loads(response.read().decode("utf-8"))
+ parsed=urlparse(url)
+ if parsed.scheme!="https" or parsed.netloc!="mcp.dreameros.app" or parsed.query or parsed.fragment or _RECEIPT_PATH.fullmatch(parsed.path) is None: raise ValueError("receipt verify URL is not an allowed Gateway endpoint")
+ class NoRedirect(HTTPRedirectHandler):
+  def redirect_request(self,*args,**kwargs): return None
+ try:
+  with build_opener(NoRedirect).open(Request(url,headers={"Accept":"application/json"}),timeout=3) as response:
+   data=response.read(MAX_RECORD_BYTES+1)
+   if len(data)>MAX_RECORD_BYTES: raise ValueError("receipt verify response exceeds byte limit")
+   return json.loads(data.decode("utf-8"))
+ except HTTPError: raise
 def verify_record(record:Any,tool_input:Any,transport:Transport= https_transport)->Verdict:
  try: record,tool_input=_load(record),_load(tool_input)
  except Exception: return _v("CONFIGURED","record or tool input is malformed")
  if not isinstance(tool_input,dict) or set(tool_input)!={"skill","content"} or tool_input.get("skill")!="auto" or not isinstance(tool_input.get("content"),str) or not tool_input["content"].strip(): return _v("CONFIGURED","actual dreameros_skill input is not the portable auto path")
  if not isinstance(record,dict) or len(_canon(record))>MAX_RECORD_BYTES or set(record)!={"schema_version","intent_envelope_schema","receipt","receipt_verify_url"} or record.get("schema_version")!=SCHEMA_VERSION or record.get("intent_envelope_schema")!=INTENT_ENVELOPE_SCHEMA: return _v("CONFIGURED","record schema is missing or unsupported")
  receipt=record["receipt"]; keys={"schema_version","id","intent_anchor","terminal_state","request_sha256"}
- if not isinstance(receipt,dict) or set(receipt)!=keys or receipt.get("schema_version")!=RECEIPT_EVENT_SCHEMA: return _v("INVOKED","receipt is missing or malformed")
+ if not isinstance(receipt,dict) or set(receipt)!=keys or receipt.get("schema_version")!=RECEIPT_EVENT_SCHEMA or not isinstance(receipt.get("id"),str) or _RECEIPT_ID.fullmatch(receipt["id"]) is None: return _v("INVOKED","receipt is missing or malformed")
  url=record.get("receipt_verify_url")
- if not isinstance(url,str) or not url.startswith("https://") or "/receipts/" not in url or receipt["id"] not in url: return _v("INVOKED","Gateway receipt verify URL is missing or malformed")
+ if not isinstance(url,str) or url != "https://mcp.dreameros.app/api/v1/receipts/" + receipt["id"] + "/verify": return _v("INVOKED","Gateway receipt verify URL is missing or malformed")
  if not isinstance(receipt.get("intent_anchor"),str) or _ANCHOR.fullmatch(receipt["intent_anchor"]) is None or receipt.get("terminal_state") not in TERMINAL_STATES or receipt.get("request_sha256")!=hashlib.sha256(_canon(tool_input)).hexdigest(): return _v("INVOKED","receipt does not bind actual input and signed intent anchor")
  try: verified=transport(url)
+ except HTTPError as exc: return _v("UNSUPPORTED","Gateway receipt verification returned HTTP " + str(exc.code))
  except (OSError, URLError, TimeoutError, ValueError): return _v("OFFLINE","Gateway receipt verification is unavailable")
  if not isinstance(verified,dict): return _v("UNSUPPORTED","Gateway receipt verify response is malformed")
  expected={"id":receipt["id"],"intent_anchor":receipt["intent_anchor"],"terminal_state":receipt["terminal_state"],"request_sha256":receipt["request_sha256"],"verified":True}
