@@ -296,6 +296,25 @@ def check_model_tiered_offload_mirror() -> None:
         fail("model-tiered-offload canonical entrypoint: provider reference is not discoverable")
 
 
+def check_life_of_intent_skill_mirrors() -> None:
+    source = ROOT / "skills" / "dreameros-life-of-intent" / "SKILL.md"
+    mirrors = (
+        ROOT / "install" / "claude-code" / "payload" / "skills" / "dreameros-life-of-intent" / "SKILL.md",
+        ROOT / "install" / "codex" / "payload" / "skills" / "dreameros-life-of-intent" / "SKILL.md",
+    )
+    try:
+        source_bytes = source.read_bytes()
+    except OSError as exc:
+        fail(f"dreameros-life-of-intent canonical skill: unreadable ({exc})")
+        return
+    for mirror in mirrors:
+        try:
+            if mirror.read_bytes() != source_bytes:
+                fail(f"dreameros-life-of-intent mirror: byte drift in {mirror.relative_to(ROOT)}")
+        except OSError as exc:
+            fail(f"dreameros-life-of-intent mirror: unreadable {mirror.relative_to(ROOT)} ({exc})")
+
+
 def _frontmatter(path: Path) -> str | None:
     try:
         text = path.read_text(encoding="utf-8")
@@ -418,7 +437,7 @@ def check_claude_payload_agents() -> None:
         fail("Claude payload SessionStart registration: requires one generated bootstrap and no competing hydration hook")
     stop_groups = settings.get("hooks", {}).get("Stop", [])
     stop_commands = [hook.get("command", "") for group in stop_groups for hook in group.get("hooks", [])]
-    direct_switch = [command for command in stop_commands if re.search(r"(?i)python(?:3|\.exe)?\s+.*model-switch-ack\.py", command)]
+    direct_switch = [command for command in stop_commands if re.search(r"__DREAMEROS_PYTHON_COMMAND__\s+.*model-switch-ack\.py", command)]
     shell_switch = [command for command in stop_commands if "model-switch-ack.sh" in command]
     if len(direct_switch) != 1 or shell_switch:
         fail("Claude payload Stop registration: requires one direct Python model-switch hook and no shell wrapper")
@@ -1468,6 +1487,7 @@ def main() -> int:
     check_project_adapters()
     check_skills()
     check_model_tiered_offload_mirror()
+    check_life_of_intent_skill_mirrors()
     check_claude_payload_agents()
     check_cursor_plugin()
     check_cursor_component_name_uniqueness()

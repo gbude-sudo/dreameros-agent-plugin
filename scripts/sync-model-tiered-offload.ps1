@@ -1,13 +1,14 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Verifies or explicitly stages and installs the model-tiered-offload skill.
+  Verifies or explicitly stages and installs a mirrored DreamerOS skill.
 
 .DESCRIPTION
   With no switches, this script is read-only and compares the canonical source,
-  Claude package mirror, and the installed Agents, Codex, and Claude carriers.
-  -StagePayload copies the source tree into the package mirror. -Install copies
-  a verified package into all three local carriers. Neither mode deletes files.
+  the Claude package mirror, and the installed Agents, Codex, and Claude
+  carriers. The dreameros-life-of-intent carrier also requires a Codex package
+  mirror. -StagePayload copies each required package mirror. -Install copies a
+  verified package into all three local carriers. Neither mode deletes files.
 #>
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
@@ -15,6 +16,7 @@ param(
     [string]$AgentsHome = (Join-Path $env:USERPROFILE '.agents'),
     [string]$CodexHome = (Join-Path $env:USERPROFILE '.codex'),
     [string]$ClaudeHome = (Join-Path $env:USERPROFILE '.claude'),
+    [string]$SkillName = 'model-tiered-offload',
     [switch]$StagePayload,
     [switch]$Install
 )
@@ -22,14 +24,17 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
-$SkillName = 'model-tiered-offload'
 $Source = Join-Path $RepoRoot "skills\$SkillName"
-$Payload = Join-Path $RepoRoot "install\claude-code\payload\skills\$SkillName"
+$ClaudePayload = Join-Path $RepoRoot "install\claude-code\payload\skills\$SkillName"
+$CodexPayload = Join-Path $RepoRoot "install\codex\payload\skills\$SkillName"
 $Targets = [ordered]@{
-    package = $Payload
+    claude_package = $ClaudePayload
     agents = Join-Path $AgentsHome "skills\$SkillName"
     codex = Join-Path $CodexHome "skills\$SkillName"
     claude = Join-Path $ClaudeHome "skills\$SkillName"
+}
+if ($SkillName -ceq 'dreameros-life-of-intent') {
+    $Targets['codex_package'] = $CodexPayload
 }
 $Failures = New-Object System.Collections.Generic.List[string]
 $Stamp = (Get-Date).ToUniversalTime().ToString('yyyyMMddTHHmmssZ')
@@ -115,14 +120,20 @@ if (-not (Test-Path -LiteralPath (Join-Path $Source 'SKILL.md') -PathType Leaf))
 }
 
 if ($StagePayload) {
-    Copy-Tree -Label 'package' -From $Source -To $Payload -BackUp $false
+    Copy-Tree -Label 'Claude package' -From $Source -To $ClaudePayload -BackUp $false
+    if ($SkillName -ceq 'dreameros-life-of-intent') {
+        Copy-Tree -Label 'Codex package' -From $Source -To $CodexPayload -BackUp $false
+    }
 }
 
 if ($Install) {
-    Compare-Tree -Label 'package pre-install' -ExpectedRoot $Source -ActualRoot $Payload
-    if ($Failures.Count) { throw 'Refusing local install because the package mirror differs from source.' }
+    Compare-Tree -Label 'Claude package pre-install' -ExpectedRoot $Source -ActualRoot $ClaudePayload
+    if ($SkillName -ceq 'dreameros-life-of-intent') {
+        Compare-Tree -Label 'Codex package pre-install' -ExpectedRoot $Source -ActualRoot $CodexPayload
+    }
+    if ($Failures.Count) { throw 'Refusing local install because a package mirror differs from source.' }
     foreach ($label in @('agents', 'codex', 'claude')) {
-        Copy-Tree -Label $label -From $Payload -To $Targets[$label] -BackUp $true
+        Copy-Tree -Label $label -From $ClaudePayload -To $Targets[$label] -BackUp $true
     }
 }
 
@@ -135,4 +146,4 @@ if ($Failures.Count) {
     exit 1
 }
 
-Write-Output 'PASS model-tiered-offload all carriers match canonical source'
+Write-Output "PASS $SkillName all carriers match canonical source"

@@ -19,6 +19,12 @@ if (-not (Test-Path -LiteralPath $ProgramFilesBash -PathType Leaf)) {
 }
 $VerifiedBashPath = (Resolve-Path -LiteralPath $ProgramFilesBash).Path
 $BashCommandPrefix = '"' + $VerifiedBashPath.Replace('\', '/') + '"'
+$PythonExecutable = Get-Command python.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+if ($null -eq $PythonExecutable) {
+    throw 'Python application fixture is unavailable before the test restricts PATH'
+}
+$VerifiedPythonPath = (Resolve-Path -LiteralPath $PythonExecutable.Source).Path
+$PythonCommandPrefix = '"' + $VerifiedPythonPath.Replace('\', '/') + '"'
 $Cases = 0
 
 function Assert-True([bool]$Condition, [string]$Message) {
@@ -76,7 +82,8 @@ function Render-BashCommand([string]$Command) {
 function Invoke-Installer {
     param(
         [string] $TargetClaudeHome = $ClaudeHome,
-        [string] $BashPathOverride
+        [string] $BashPathOverride,
+        [string] $PythonPathOverride = $VerifiedPythonPath
     )
     $installerEscaped = $Installer.Replace("'", "''")
     $homeEscaped = $TargetClaudeHome.Replace("'", "''")
@@ -87,7 +94,8 @@ function Invoke-Installer {
     if (-not [string]::IsNullOrWhiteSpace($BashPathOverride)) {
         $bashArgument = " -BashPath '" + $BashPathOverride.Replace("'", "''") + "'"
     }
-    $command = "`$env:Path = '$gitPathEscaped'; if (Get-Command bash -CommandType Application -ErrorAction SilentlyContinue) { throw 'test PATH unexpectedly resolves bash' }; & '$installerEscaped' -ClaudeHome '$homeEscaped' -RepoRoot '$repoEscaped' -PayloadPath '$payloadEscaped'$bashArgument -SkipCanon"
+    $pythonArgument = " -PythonPath '" + $PythonPathOverride.Replace("'", "''") + "'"
+    $command = "`$env:Path = '$gitPathEscaped'; if (Get-Command bash -CommandType Application -ErrorAction SilentlyContinue) { throw 'test PATH unexpectedly resolves bash' }; if (Get-Command python -CommandType Application -ErrorAction SilentlyContinue) { throw 'test PATH unexpectedly resolves python' }; & '$installerEscaped' -ClaudeHome '$homeEscaped' -RepoRoot '$repoEscaped' -PayloadPath '$payloadEscaped'$bashArgument$pythonArgument -SkipCanon"
     $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($command))
     $priorPreference = $ErrorActionPreference
     try {
@@ -129,6 +137,7 @@ $stackStop = "bash `"$homeUnix/hooks/dreameros-agent-stack-stop.sh`""
 $phase = "bash `"$homeUnix/hooks/model-phase-boundary.sh`""
 $switchShell = "bash `"$homeUnix/hooks/model-switch-ack.sh`""
 $switchPython = "python `"$homeUnix/hooks/model-switch-ack.py`""
+$lockstepPython = "python `"$homeUnix/hooks/gateway_lockstep.py`""
 $ownerNearSwitch = "bash `"$homeUnix/hooks/owner-model-switch-ack.sh`""
 $sharedPreTool = "python `"$homeUnix/hooks/shared-pretool.py`""
 $sharedAgentPrompt = 'Same owner prompt under two lifecycle matchers must remain twice.'
@@ -138,6 +147,8 @@ $renderedGateStop = Render-BashCommand $gateStop
 $renderedClaim = Render-BashCommand $claim
 $renderedStackStop = Render-BashCommand $stackStop
 $renderedPhase = Render-BashCommand $phase
+$renderedSwitchPython = $PythonCommandPrefix + $switchPython.Substring(6)
+$renderedLockstepPython = $PythonCommandPrefix + $lockstepPython.Substring(6)
 
 $fixture = [ordered]@{
     permissions = [ordered]@{ defaultMode = 'auto'; deny = @('OwnerDeny'); allow = @('OwnerAllow') }
@@ -250,7 +261,7 @@ foreach ($eventName in @('PreToolUse', 'SessionStart', 'Stop')) {
     }
 }
 
-Assert-True ($afterLifecycleCount -eq ($beforeLifecycleCount - 7)) 'lifecycle hook count did not decrease by exactly seven'
+Assert-True ($afterLifecycleCount -eq ($beforeLifecycleCount - 6)) 'lifecycle hook count did not preserve the verified Gateway Lockstep registration'
 Assert-True ($afterDuplicateCount -eq 0) 'cross-group lifecycle duplicates remain'
 Assert-True (@($sessionCommands | Where-Object { $_ -ceq $renderedSessionPackage }).Count -eq 1) 'session package launcher is not the quoted Git Bash path'
 Assert-True (@($sessionCommands | Where-Object { $_ -ceq $renderedOpenLoop }).Count -eq 1) 'open-loop launcher is not the quoted Git Bash path'
@@ -258,7 +269,7 @@ Assert-True (@($stopCommands | Where-Object { $_ -ceq $renderedGateStop }).Count
 Assert-True (@($stopCommands | Where-Object { $_ -ceq $renderedClaim }).Count -eq 1) 'claim launcher is not the quoted Git Bash path'
 Assert-True (@($stopCommands | Where-Object { $_ -ceq $renderedStackStop }).Count -eq 1) 'stack stop launcher is not the quoted Git Bash path'
 Assert-True (@($stopCommands | Where-Object { $_ -ceq $renderedPhase }).Count -eq 1) 'phase launcher is not the quoted Git Bash path'
-Assert-True (@($stopCommands | Where-Object { $_ -match 'gateway_lockstep\.py' }).Count -eq 1) 'Gateway Lockstep Stop hook count is not one'
+Assert-True (@($stopCommands | Where-Object { $_ -ceq $renderedLockstepPython }).Count -eq 1) 'Gateway Lockstep hook did not use the verified quoted Python interpreter'
 Assert-True (Test-Path -LiteralPath (Join-Path $FixtureHookDir 'gateway_lockstep.py') -PathType Leaf) 'Gateway Lockstep verifier was not installed'
 Assert-True ($managedShellCommands.Count -eq 10) 'managed shell registration count is not ten'
 Assert-True (@($managedShellCommands | Where-Object { -not $_.StartsWith($BashCommandPrefix + ' ', [StringComparison]::Ordinal) }).Count -eq 0) 'a managed shell registration did not use the one quoted Git Bash launcher'
@@ -270,7 +281,7 @@ Assert-True (@($sessionCommands | Where-Object { $_ -ceq $retiredInstall }).Coun
 Assert-True (@($sessionCommands | Where-Object { $_ -match 'build-boot-pack\.ps1.*-VerifyInstalled' }).Count -eq 1) 'verify-only SessionStart hook was removed'
 Assert-True (@($sessionCommands | Where-Object { $_ -match 'dreameros-session-start\.sh' }).Count -eq 1) 'session-package bootstrap hook was removed or duplicated'
 Assert-True (@($stopCommands | Where-Object { $_ -ceq $switchShell }).Count -eq 0) 'retired model-switch shell wrapper remains registered'
-Assert-True (@($stopCommands | Where-Object { $_ -ceq $switchPython }).Count -eq 1) 'direct model-switch Python hook was removed or duplicated'
+Assert-True (@($stopCommands | Where-Object { $_ -ceq $renderedSwitchPython }).Count -eq 1) 'model-switch hook did not use the verified quoted Python interpreter'
 Assert-True (@($sessionCommands | Where-Object { $_ -ceq $ownerNearInstall }).Count -eq 1) 'near-name owner build hook was removed'
 Assert-True (@($sessionCommands | Where-Object { $_ -ceq $retiredStandingOrders -or $_ -ceq $retiredStackSession }).Count -eq 0) 'exact retired hydration hook remains'
 Assert-True (@($sessionCommands | Where-Object { $_ -ceq $ownerNearStandingOrders }).Count -eq 1) 'owner-prefixed standing-orders hook was removed'
@@ -298,7 +309,9 @@ Assert-True ($first.Text -match 'hooks.Stop removed 3 duplicate hook') 'Stop dup
 Assert-True ($first.Text -match 'hooks.SessionStart removed 3 retired hook') 'retired SessionStart receipt missing'
 Assert-True ($first.Text -match 'hooks.Stop removed 1 retired hook') 'retired shell-wrapper receipt missing'
 Assert-True ($first.Text -match 'hooks updated 10 Claude-home Bash launcher') 'managed Bash launcher update receipt missing'
+Assert-True ($first.Text -match 'hooks updated 1 Claude-home Python launcher') 'managed Python launcher update receipt missing'
 Assert-True ($first.Text -match [regex]::Escape("Git Bash verified at $VerifiedBashPath")) 'verified Git Bash preflight receipt missing'
+Assert-True ($first.Text -match [regex]::Escape("Python verified at $VerifiedPythonPath")) 'verified Python preflight receipt missing'
 
 $sessionStartAfter = Find-CommandHook $after 'SessionStart' 'dreameros-session-start\.sh'
 $sessionStartProbe = @'
@@ -324,6 +337,11 @@ $missing = Invoke-Installer -TargetClaudeHome $missingClaudeHome -BashPathOverri
 Assert-True ($missing.ExitCode -ne 0) "missing Git Bash launcher did not fail visibly: $($missing.Text)"
 Assert-True ($missing.Text -match 'requested Git Bash executable was not found or failed verification') 'missing Git Bash launcher did not name the preflight failure'
 Assert-True (-not (Test-Path -LiteralPath $missingClaudeHome)) 'missing Git Bash launcher created Claude files before failing'
+$missingPythonHome = Join-Path $TempRoot 'missing python home\.claude'
+$missingPython = Invoke-Installer -TargetClaudeHome $missingPythonHome -PythonPathOverride 'C:\definitely-missing\Python\python.exe'
+Assert-True ($missingPython.ExitCode -ne 0) "missing Python launcher did not fail visibly: $($missingPython.Text)"
+Assert-True ($missingPython.Text -match 'requested Python interpreter was not found or failed verification') 'missing Python launcher did not name the preflight failure'
+Assert-True (-not (Test-Path -LiteralPath $missingPythonHome)) 'missing Python launcher created Claude files before failing'
 
 $firstHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $SettingsPath).Hash
 $second = Invoke-Installer
