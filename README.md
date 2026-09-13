@@ -19,9 +19,10 @@ dreameros/
   mcp.json       DreamerOS MCP server (Streamable HTTP)
   skills/
     dreameros-boot/              vendor-neutral boot canon
-    dreameros-continuity/        recall before work, remember after
-    dreameros-verified-answers/  verify before high-stakes claims
-    dreameros-verified-routing/  multi-engine consultation
+    dreameros-life-of-intent/    one automatic DreamWeaver request path
+    dreameros-continuity/        compatibility mode for continuity
+    dreameros-verified-answers/  compatibility mode for verification
+    dreameros-verified-routing/  compatibility mode for model routing
 ```
 
 ## Shared vendor boot pack
@@ -153,7 +154,10 @@ Per the Agent Plugins specification, this plugin never embeds credentials.
 No key ships in any file here, and you should never commit yours.
 
 The DreamerOS server gates capabilities by subscription tier. The same plugin
-works on every tier, including free.
+installs on every tier, including free. Installation does not prove that a
+capability ran. The complete Life of an Intent path is a DreamWeaver Solo,
+DreamWeaver Duo, and higher-plan capability; the Gateway checks that entitlement
+on each call and the returned receipt shows when DreamerOS was actually used.
 
 ## Versioning
 
