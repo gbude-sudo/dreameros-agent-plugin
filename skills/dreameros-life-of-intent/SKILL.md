@@ -29,6 +29,23 @@ current request as `content`. That call enters the same Gateway answer path as
 `dreameros_chat`; it does not return another standalone skill for the client
 to simulate. Use the returned answer and its receipt evidence.
 
+## Gateway Lockstep evidence
+
+Client hooks can verify a bounded Gateway Lockstep record when the host event
+supplies it. The record distinguishes `CONFIGURED`, `INVOKED`, `RECEIPTED`, and
+`TERMINAL`. A terminal result requires one matching intent key in the MCP
+invocation and receipt, plus `terminal_state: completed`.
+
+The shared verifier owns the intent-envelope schema, receipt-event schema,
+terminal-state enum, client capability matrix, managed-artifact manifest, and
+native hook-event adapter table. The SDK must expose typed records and the
+Gateway must enforce them. This plugin only carries the contract and maps host
+events to it.
+
+Do not treat a client configuration, hook launch, or missing event fields as
+proof of the path. A host that cannot supply the record reports `UNSUPPORTED`.
+That is an honest capability limit, not a pass or a universal enforcement claim.
+
 The Gateway decides entitlement. If it denies the lifecycle, or if the Gateway
 or required MCP tool is unavailable, report the affected step `BLOCKED`. Do not
 reproduce a hidden internal profile or substitute an unreceipted local answer.

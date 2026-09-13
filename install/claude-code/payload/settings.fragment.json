@@ -141,6 +141,14 @@
         "hooks": [
           {
             "type": "command",
+            "command": "python \"__DREAMEROS_CLAUDE_HOME__/hooks/gateway_lockstep.py\""
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
             "command": "__DREAMEROS_BASH_COMMAND__ \"__DREAMEROS_CLAUDE_HOME__/hooks/model-phase-boundary.sh\""
           }
         ]

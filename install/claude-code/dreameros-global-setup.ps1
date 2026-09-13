@@ -1018,6 +1018,18 @@ else {
     Add-Failed 'hooks' "payload folder missing at $hookSrc"
 }
 
+$installerRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$lockstepSource = Join-Path $installerRoot 'gates\gateway_lockstep.py'
+if (Test-Path -LiteralPath $lockstepSource -PathType Leaf) {
+    Install-TemplatedFile -Source $lockstepSource `
+        -Destination (Join-Path $ClaudeHome 'hooks\gateway_lockstep.py') `
+        -Label 'hook gateway_lockstep.py' `
+        -OverwriteWhenDifferent:$Force
+}
+else {
+    Add-Failed 'hook gateway_lockstep.py' "shared verifier missing at $lockstepSource"
+}
+
 # ---------------------------------------------------------------------------
 # Skills
 # ---------------------------------------------------------------------------

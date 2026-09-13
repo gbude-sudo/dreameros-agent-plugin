@@ -1413,6 +1413,35 @@ def check_codex_stop_hook() -> None:
         fail("Codex Stop hook installer: hooks.json retains a non-exclusive write path")
 
 
+def check_gateway_lockstep() -> None:
+    verifier = ROOT / "gates" / "gateway_lockstep.py"
+    tests = ROOT / "gates" / "test_gateway_lockstep.py"
+    cursor_hook = ROOT / "cursor" / "hooks" / "dreameros_cursor_hook.py"
+    claude_settings = ROOT / "install" / "claude-code" / "payload" / "settings.fragment.json"
+    claude_installer = ROOT / "install" / "claude-code" / "dreameros-global-setup.ps1"
+    cursor_installer = ROOT / "install" / "cursor" / "install.ps1"
+    required = (verifier, tests, cursor_hook, claude_settings, claude_installer, cursor_installer)
+    if any(not path.is_file() for path in required):
+        fail("Gateway Lockstep: required verifier, test, hook, or installer file is missing")
+        return
+    verifier_text = verifier.read_text(encoding="utf-8")
+    required_constants = (
+        "MAX_RECORD_BYTES", "INTENT_ENVELOPE_SCHEMA", "RECEIPT_EVENT_SCHEMA",
+        "TERMINAL_STATES", "CLIENT_CAPABILITY_MATRIX", "MANAGED_ARTIFACTS",
+        "HOOK_EVENT_ADAPTERS",
+    )
+    if any(constant not in verifier_text for constant in required_constants):
+        fail("Gateway Lockstep: verifier lacks bounded terminal contract")
+    if "extract_from_host_payload" not in cursor_hook.read_text(encoding="utf-8"):
+        fail("Gateway Lockstep: Cursor post-MCP integration is missing")
+    if "gateway_lockstep.py" not in claude_settings.read_text(encoding="utf-8"):
+        fail("Gateway Lockstep: Claude Stop hook registration is missing")
+    if "gates\\gateway_lockstep.py" not in claude_installer.read_text(encoding="utf-8"):
+        fail("Gateway Lockstep: Claude installer does not install the shared verifier")
+    if "'gates'" not in cursor_installer.read_text(encoding="utf-8"):
+        fail("Gateway Lockstep: Cursor installer does not include the shared verifier")
+
+
 def check_house_rules() -> None:
     for p in ROOT.rglob("*"):
         if not p.is_file() or ".git" in p.parts:
@@ -1446,6 +1475,7 @@ def main() -> int:
     check_customer_copy_vocabulary()
     check_hydration_preconditions()
     check_codex_stop_hook()
+    check_gateway_lockstep()
     check_house_rules()
     if FAILS:
         for f in FAILS:

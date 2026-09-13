@@ -1,7 +1,7 @@
 {
   "name": "dreameros",
   "description": "DreamerOS starts agents with shared rules, verifies intent, carries memory across sessions, checks claims, and routes work through one gateway with vendor-native adapters.",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "author": {
     "name": "DreamerOS",
     "url": "https://dreameros.app"

@@ -21,6 +21,13 @@ from pathlib import Path
 from typing import Any
 
 
+PLUGIN_ROOT = Path(__file__).resolve().parents[2]
+if str(PLUGIN_ROOT) not in sys.path:
+    sys.path.insert(0, str(PLUGIN_ROOT))
+
+from gates.gateway_lockstep import extract_from_host_payload
+
+
 STATE_ROOT = Path(os.environ.get("DREAMEROS_CURSOR_STATE_DIR") or (Path.home() / ".cursor" / "dreameros"))
 TRANSCRIPT_ROOT = Path(os.environ.get("DREAMEROS_CURSOR_TRANSCRIPT_ROOT") or (Path.home() / ".cursor" / "projects"))
 SIGNATURE_LOG = STATE_ROOT / "hook-signatures.jsonl"
@@ -859,6 +866,18 @@ def _mcp_identity_matches(payload: dict[str, Any], server: str) -> bool:
     return bool(hints)
 
 
+def _lockstep_after_result(payload: dict[str, Any], canonical_tool: str) -> dict[str, Any]:
+    result: dict[str, Any] = {"continue": True}
+    if not canonical_tool.endswith("dreameros_skill"):
+        return result
+    verdict = extract_from_host_payload(payload).to_dict()
+    result["gateway_lockstep"] = verdict
+    if not verdict["ok"] and verdict["status"] != "UNSUPPORTED":
+        result["continue"] = False
+        result["user_message"] = f"Gateway Lockstep {verdict['status']}: {verdict['reason']}"
+    return result
+
+
 def after_mcp_execution(payload: dict[str, Any]) -> dict[str, Any]:
     event = _event(payload).lower()
     server = str(payload.get("mcp_server_name") or "").lower()
@@ -872,23 +891,23 @@ def after_mcp_execution(payload: dict[str, Any]) -> dict[str, Any]:
         return {"continue": True}
     fingerprint = _boot_fingerprint(payload)
     if fingerprint in {"unavailable", "conflict"}:
-        return {"continue": True}
+        return _lockstep_after_result(payload, canonical_tool)
     try:
         with _boot_state_lock():
             states = _load_boot_states()
             entry = states["sessions"].get(fingerprint)
             if not isinstance(entry, dict) or not entry.get("pending"):
-                return {"continue": True}
+                return _lockstep_after_result(payload, canonical_tool)
             generation = _generation_fingerprint(payload)
             expected_generation = str(entry.get("generation") or "unavailable")
             if expected_generation not in {"unavailable", generation} or generation == "conflict":
                 entry["pending"] = None
                 entry["updated"] = _now_epoch()
                 _save_boot_states(states)
-                return {"continue": True}
+                return _lockstep_after_result(payload, canonical_tool)
             pending = str(entry.get("pending"))
             if not canonical_tool.endswith(pending):
-                return {"continue": True}
+                return _lockstep_after_result(payload, canonical_tool)
             entry["pending"] = None
             succeeded = _mcp_result_succeeded(payload)
             if pending == "dreameros_session_package":
@@ -899,7 +918,7 @@ def after_mcp_execution(payload: dict[str, Any]) -> dict[str, Any]:
             _save_boot_states(states)
     except (OSError, TimeoutError):
         pass
-    return {"continue": True}
+    return _lockstep_after_result(payload, canonical_tool)
 
 
 def _write_signature(event: str, permission: str, payload: dict[str, Any]) -> None:
@@ -1894,10 +1913,40 @@ def self_test() -> int:
         package["expires_at"] = (freshness_now + dt.timedelta(days=1)).isoformat()
     strict_negative("separate expires_at cannot spoof freshness", spoof_expiry)
 
+    lockstep_record = {
+        "schema_version": "dreameros-gateway-lockstep-v1",
+        "intent_envelope_schema": "dreameros-intent-envelope-v1",
+        "intent_key": "cursor-lockstep-intent",
+        "mcp_invocation": {"tool": "dreameros_skill", "intent_key": "cursor-lockstep-intent"},
+        "receipt": {
+            "schema_version": "dreameros-receipt-event-v1",
+            "id": "cursor-lockstep-receipt",
+            "intent_key": "cursor-lockstep-intent",
+        },
+        "terminal_state": "completed",
+    }
+    lockstep_payload = {
+        "hook_event_name": "afterMCPExecution",
+        "mcp_server_name": "dreameros-platform",
+        "command": "dreameros-platform",
+        "tool_name": "dreameros_skill",
+        "result_json": json.dumps({"gateway_lockstep_evidence": lockstep_record}),
+    }
+    lockstep_terminal = after_mcp_execution(lockstep_payload)
+    lockstep_bad = json.loads(json.dumps(lockstep_payload))
+    lockstep_bad["result_json"] = json.dumps({"gateway_lockstep_evidence": {
+        **lockstep_record, "terminal_state": "running",
+    }})
+    lockstep_nonterminal = after_mcp_execution(lockstep_bad)
+
     cases = [
         ("gateway-shaped package validates: " + strict_package_positive_reason, {"value": strict_package_positive_valid}, "value", True),
         ("gateway-shaped package has five static continuation parts", {"value": strict_static_five_parts}, "value", True),
         ("gateway-shaped package validates wrapper inside surrounding package text", {"value": strict_full_package_framing}, "value", True),
+        ("Gateway Lockstep terminal evidence passes", lockstep_terminal, "continue", True),
+        ("Gateway Lockstep terminal state is recorded", lockstep_terminal["gateway_lockstep"], "status", "TERMINAL"),
+        ("Gateway Lockstep nonterminal evidence blocks", lockstep_nonterminal, "continue", False),
+        ("Gateway Lockstep nonterminal state is receipted", lockstep_nonterminal["gateway_lockstep"], "status", "RECEIPTED"),
         ("empty package result rejects", {"value": _validate_session_package_result({"result_json": json.dumps(strict_package_empty)})[0]}, "value", False),
         ("auth-required package rejects", {"value": _validate_session_package_result({"result_json": json.dumps(strict_package_auth)})[0]}, "value", False),
         ("malformed package rejects", {"value": _validate_session_package_result({"result_json": json.dumps(strict_package_malformed)})[0]}, "value", False),

@@ -250,7 +250,7 @@ foreach ($eventName in @('PreToolUse', 'SessionStart', 'Stop')) {
     }
 }
 
-Assert-True ($afterLifecycleCount -eq ($beforeLifecycleCount - 8)) 'lifecycle hook count did not decrease by exactly eight'
+Assert-True ($afterLifecycleCount -eq ($beforeLifecycleCount - 7)) 'lifecycle hook count did not decrease by exactly seven'
 Assert-True ($afterDuplicateCount -eq 0) 'cross-group lifecycle duplicates remain'
 Assert-True (@($sessionCommands | Where-Object { $_ -ceq $renderedSessionPackage }).Count -eq 1) 'session package launcher is not the quoted Git Bash path'
 Assert-True (@($sessionCommands | Where-Object { $_ -ceq $renderedOpenLoop }).Count -eq 1) 'open-loop launcher is not the quoted Git Bash path'
@@ -258,6 +258,8 @@ Assert-True (@($stopCommands | Where-Object { $_ -ceq $renderedGateStop }).Count
 Assert-True (@($stopCommands | Where-Object { $_ -ceq $renderedClaim }).Count -eq 1) 'claim launcher is not the quoted Git Bash path'
 Assert-True (@($stopCommands | Where-Object { $_ -ceq $renderedStackStop }).Count -eq 1) 'stack stop launcher is not the quoted Git Bash path'
 Assert-True (@($stopCommands | Where-Object { $_ -ceq $renderedPhase }).Count -eq 1) 'phase launcher is not the quoted Git Bash path'
+Assert-True (@($stopCommands | Where-Object { $_ -match 'gateway_lockstep\.py' }).Count -eq 1) 'Gateway Lockstep Stop hook count is not one'
+Assert-True (Test-Path -LiteralPath (Join-Path $FixtureHookDir 'gateway_lockstep.py') -PathType Leaf) 'Gateway Lockstep verifier was not installed'
 Assert-True ($managedShellCommands.Count -eq 10) 'managed shell registration count is not ten'
 Assert-True (@($managedShellCommands | Where-Object { -not $_.StartsWith($BashCommandPrefix + ' ', [StringComparison]::Ordinal) }).Count -eq 0) 'a managed shell registration did not use the one quoted Git Bash launcher'
 Assert-True (@($sessionCommands | Where-Object { $_ -match 'open-loop-surface\.sh' }).Count -eq 1) 'open-loop SessionStart count is not one'
