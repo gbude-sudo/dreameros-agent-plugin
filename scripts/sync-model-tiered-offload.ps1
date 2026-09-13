@@ -58,8 +58,9 @@ function Get-CanonicalFileHash([string]$Path) {
 function Get-TreeMap([string]$Root) {
     $map = [ordered]@{}
     if (-not (Test-Path -LiteralPath $Root -PathType Container)) { return $map }
-    foreach ($file in (Get-ChildItem -LiteralPath $Root -Recurse -File | Sort-Object FullName)) {
-        $relative = $file.FullName.Substring($Root.Length).TrimStart([char[]]@('\', '/')).Replace('\', '/')
+    $resolvedRoot = (Resolve-Path -LiteralPath $Root).Path.TrimEnd([char[]]@('\', '/'))
+    foreach ($file in (Get-ChildItem -LiteralPath $resolvedRoot -Recurse -File | Sort-Object FullName)) {
+        $relative = $file.FullName.Substring($resolvedRoot.Length).TrimStart([char[]]@('\', '/')).Replace('\', '/')
         $map[$relative] = Get-CanonicalFileHash $file.FullName
     }
     return $map
@@ -86,8 +87,9 @@ function Compare-Tree([string]$Label, [string]$ExpectedRoot, [string]$ActualRoot
 
 function Copy-Tree([string]$Label, [string]$From, [string]$To, [bool]$BackUp) {
     if (-not (Test-Path -LiteralPath $From -PathType Container)) { throw "$Label source missing: $From" }
-    foreach ($file in (Get-ChildItem -LiteralPath $From -Recurse -File | Sort-Object FullName)) {
-        $relative = $file.FullName.Substring($From.Length).TrimStart([char[]]@('\', '/'))
+    $resolvedFrom = (Resolve-Path -LiteralPath $From).Path.TrimEnd([char[]]@('\', '/'))
+    foreach ($file in (Get-ChildItem -LiteralPath $resolvedFrom -Recurse -File | Sort-Object FullName)) {
+        $relative = $file.FullName.Substring($resolvedFrom.Length).TrimStart([char[]]@('\', '/'))
         $destination = Join-Path $To $relative
         $destinationDirectory = Split-Path -Parent $destination
         if (-not (Test-Path -LiteralPath $destinationDirectory)) {
