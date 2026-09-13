@@ -1,0 +1,20 @@
+{
+  "name": "dreameros",
+  "description": "DreamerOS starts agents with shared rules, verifies intent, carries memory across sessions, checks claims, and routes work through one gateway with vendor-native adapters.",
+  "version": "0.4.1",
+  "author": {
+    "name": "DreamerOS",
+    "url": "https://dreameros.app"
+  },
+  "homepage": "https://dreameros.app",
+  "repository": "https://github.com/gbude-sudo/dreameros-agent-plugin",
+  "license": "UNLICENSED",
+  "keywords": [
+    "dreameros",
+    "memory",
+    "verification",
+    "intent-verification",
+    "mcp",
+    "continuity"
+  ]
+}
