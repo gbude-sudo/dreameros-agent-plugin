@@ -5,3 +5,5 @@ desktop/** text eol=lf
 release/** text eol=lf
 install/cursor/** text eol=lf
 install/claude-code/payload/hooks/*.sh text eol=lf
+install/claude-code/payload/skills/**/SKILL.md text eol=lf
+install/codex/payload/skills/**/SKILL.md text eol=lf

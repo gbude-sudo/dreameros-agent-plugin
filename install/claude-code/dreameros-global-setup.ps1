@@ -29,7 +29,12 @@
 .PARAMETER BashPath
   Optional absolute path to bash. On Windows the installer otherwise resolves
   and verifies Git for Windows bash.exe. On other systems it keeps the portable
-  bash command name.
+   bash command name.
+
+.PARAMETER PythonPath
+  Optional absolute path to the Python interpreter used by managed Python hook
+  commands. On Windows the installer otherwise resolves and verifies Python
+  before registering those hooks.
 
 .PARAMETER DryRun
   Print every action and change nothing.
@@ -57,6 +62,7 @@ param(
     [string] $RepoRoot = (Join-Path $env:USERPROFILE 'Documents\DreamerOS'),
     [string] $PayloadPath,
     [string] $BashPath,
+    [string] $PythonPath,
     [switch] $DryRun,
     [switch] $Force,
     [switch] $SkipCanon
@@ -75,6 +81,7 @@ $script:Warnings  = New-Object System.Collections.ArrayList
 
 $script:Stamp = (Get-Date).ToString('yyyyMMdd-HHmmss')
 $script:BashCommandPrefix = 'bash'
+$script:PythonCommandPrefix = 'python'
 
 function Write-Step {
     param([string] $Message)
@@ -208,6 +215,7 @@ function Expand-Tokens {
     $root1 = ($RepoRoot -replace '\\', '/').TrimEnd('/')
     $out = $Text.Replace('__DREAMEROS_CLAUDE_HOME__', $home1)
     $out = $out.Replace('__DREAMEROS_REPO_ROOT__', $root1)
+    $out = $out.Replace('__DREAMEROS_PYTHON_COMMAND__', $script:PythonCommandPrefix)
     return $out
 }
 
@@ -280,6 +288,66 @@ function Resolve-BashLauncher {
         throw "The requested Git Bash executable was not found or failed verification: $RequestedPath"
     }
     throw 'Git for Windows bash.exe was not found or failed GNU bash verification.'
+}
+
+function Test-PythonExecutable {
+    param([Parameter(Mandatory)][string] $Path)
+    $priorPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        $output = @(& $Path -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 8) else 1)' 2>&1)
+        $code = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $priorPreference
+    }
+    return $code -eq 0
+}
+
+function Resolve-PythonLauncher {
+    param([string] $RequestedPath)
+
+    if (-not (Test-WindowsHost)) {
+        $candidate = if ([string]::IsNullOrWhiteSpace($RequestedPath)) { 'python3' } else { $RequestedPath }
+        if (-not [string]::IsNullOrWhiteSpace($RequestedPath) -and -not [System.IO.Path]::IsPathRooted($RequestedPath)) {
+            throw '-PythonPath must be an absolute path.'
+        }
+        if (-not (Test-PythonExecutable -Path $candidate)) {
+            throw "The requested Python interpreter was not found or failed verification: $candidate"
+        }
+        return [pscustomobject]@{ Executable = $candidate; JsonCommandPrefix = 'python3' }
+    }
+
+    $candidates = New-Object System.Collections.ArrayList
+    if (-not [string]::IsNullOrWhiteSpace($RequestedPath)) {
+        if (-not [System.IO.Path]::IsPathRooted($RequestedPath)) {
+            throw '-PythonPath must be an absolute path.'
+        }
+        [void]$candidates.Add($RequestedPath)
+    }
+    else {
+        foreach ($name in @('python.exe', 'python')) {
+            foreach ($python in @(Get-Command $name -CommandType Application -ErrorAction SilentlyContinue)) {
+                if (-not [string]::IsNullOrWhiteSpace([string]$python.Source)) { [void]$candidates.Add([string]$python.Source) }
+            }
+        }
+    }
+
+    $seen = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($candidate in $candidates) {
+        if ([string]::IsNullOrWhiteSpace([string]$candidate) -or -not $seen.Add([string]$candidate)) { continue }
+        if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) { continue }
+        $resolved = (Resolve-Path -LiteralPath $candidate).Path
+        if (-not (Test-PythonExecutable -Path $resolved)) { continue }
+        return [pscustomobject]@{
+            Executable = $resolved
+            JsonCommandPrefix = '\"' + $resolved.Replace('\', '/') + '\"'
+        }
+    }
+    if (-not [string]::IsNullOrWhiteSpace($RequestedPath)) {
+        throw "The requested Python interpreter was not found or failed verification: $RequestedPath"
+    }
+    throw 'Python 3.8 or newer was not found or failed verification.'
 }
 
 function Install-TemplatedFile {
@@ -641,6 +709,7 @@ function Update-ClaudeHomeBashHookLaunchers {
                 $hookHash = ConvertTo-OrderedHash $hook
                 if (-not $hookHash.Contains('command')) { continue }
                 $wanted = [string]$hookHash['command']
+                if ([string]::IsNullOrWhiteSpace($wanted)) { continue }
                 $wantedParts = Get-ClaudeHomeBashInvocation -Command $wanted
                 if ($null -ne $wantedParts) {
                     $managedCommands[(Get-ManagedBashRegistrationKey -EventName $eventName -CommandTail $wantedParts.Rest)] = $wanted
@@ -678,6 +747,70 @@ function Update-ClaudeHomeBashHookLaunchers {
             [void]$updatedGroups.Add($groupHash)
         }
         $Hooks[$eventName] = $updatedGroups
+    }
+    return $updated
+}
+
+function Get-ClaudeHomePythonInvocation {
+    param([Parameter(Mandatory)][string] $Command)
+
+    $invocation = [regex]::Match(
+        $Command,
+        '(?i)^(?<launcher>python(?:3|\.exe)?|"[^"]*[\\/]python(?:3|\.exe)?"|''[^'']*[\\/]python(?:3|\.exe)?''|[^\s"'']*[\\/]python(?:3|\.exe)?)\s+(?<rest>[\s\S]+)$')
+    if (-not $invocation.Success) { return $null }
+
+    $rest = $invocation.Groups['rest'].Value
+    $scriptMatch = [regex]::Match(
+        $rest,
+        '^(?:"(?<double>[^"]+\.py)"|''(?<single>[^'']+\.py)''|(?<bare>\S+\.py))(?=$|\s)')
+    if (-not $scriptMatch.Success) { return $null }
+    $scriptPath = $scriptMatch.Groups['double'].Value
+    if ([string]::IsNullOrEmpty($scriptPath)) { $scriptPath = $scriptMatch.Groups['single'].Value }
+    if ([string]::IsNullOrEmpty($scriptPath)) { $scriptPath = $scriptMatch.Groups['bare'].Value }
+
+    try {
+        $hooksRoot = [System.IO.Path]::GetFullPath((Join-Path $ClaudeHome 'hooks')).TrimEnd([char[]]@('\', '/'))
+        $fullScript = [System.IO.Path]::GetFullPath($scriptPath)
+    }
+    catch { return $null }
+    $boundary = $hooksRoot + [System.IO.Path]::DirectorySeparatorChar
+    if (-not $fullScript.StartsWith($boundary, [System.StringComparison]::OrdinalIgnoreCase)) { return $null }
+    return [pscustomobject]@{ Launcher = $invocation.Groups['launcher'].Value; Rest = $rest }
+}
+
+function Update-ClaudeHomePythonHookLaunchers {
+    param($Hooks, $FragmentHooks)
+
+    if ($script:PythonCommandPrefix -ceq 'python') { return 0 }
+    $managedCommands = New-Object 'System.Collections.Generic.Dictionary[string,string]' ([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($eventName in @($FragmentHooks.Keys)) {
+        foreach ($group in @($FragmentHooks[$eventName])) {
+            foreach ($hook in @((ConvertTo-OrderedHash $group)['hooks'])) {
+                $hookHash = ConvertTo-OrderedHash $hook
+                if (-not $hookHash.Contains('command')) { continue }
+                $wanted = [string]$hookHash['command']
+                if ([string]::IsNullOrWhiteSpace($wanted)) { continue }
+                $wantedParts = Get-ClaudeHomePythonInvocation -Command $wanted
+                if ($null -ne $wantedParts) { $managedCommands[(Get-ManagedBashRegistrationKey -EventName $eventName -CommandTail $wantedParts.Rest)] = $wanted }
+            }
+        }
+    }
+    $updated = 0
+    foreach ($eventName in @($Hooks.Keys)) {
+        foreach ($group in @($Hooks[$eventName])) {
+            foreach ($hook in @((ConvertTo-OrderedHash $group)['hooks'])) {
+                $hookHash = ConvertTo-OrderedHash $hook
+                if (-not $hookHash.Contains('command')) { continue }
+                $command = [string]$hookHash['command']
+                if ([string]::IsNullOrWhiteSpace($command)) { continue }
+                $parts = Get-ClaudeHomePythonInvocation -Command $command
+                $managedKey = if ($null -ne $parts) { Get-ManagedBashRegistrationKey -EventName $eventName -CommandTail $parts.Rest } else { $null }
+                if ($null -ne $managedKey -and $managedCommands.ContainsKey($managedKey) -and $hookHash['command'] -cne $managedCommands[$managedKey]) {
+                    $hookHash['command'] = $managedCommands[$managedKey]
+                    $updated++
+                }
+            }
+        }
     }
     return $updated
 }
@@ -814,7 +947,8 @@ function Remove-RetiredLifecycleHooks {
             foreach ($hook in @((ConvertTo-OrderedHash $group)['hooks'])) {
                 $hookHash = ConvertTo-OrderedHash $hook
                 $command = if ($hookHash.Contains('command')) { [string]$hookHash['command'] } else { '' }
-                if ($command -match '(?i)(?:^|\s)python(?:3|\.exe)?\s+["'']?(?:[^"'']*[\\/])?model-switch-ack\.py(?:["'']|\s|$)') {
+                $pythonInvocation = if ([string]::IsNullOrWhiteSpace($command)) { $null } else { Get-ClaudeHomePythonInvocation -Command $command }
+                if ($null -ne $pythonInvocation -and $command -match '(?i)(?:^|[\s\\/"''])model-switch-ack\.py(?:["'']|\s|$)') {
                     $directSwitchPresent = $true
                 }
             }
@@ -886,6 +1020,10 @@ function Merge-Settings {
         $updatedLaunchers = Update-ClaudeHomeBashHookLaunchers -Hooks $hooks -FragmentHooks $Fragment['hooks']
         if ($updatedLaunchers -gt 0) {
             [void]$changes.Add("hooks updated $updatedLaunchers Claude-home Bash launcher(s)")
+        }
+        $updatedPythonLaunchers = Update-ClaudeHomePythonHookLaunchers -Hooks $hooks -FragmentHooks $Fragment['hooks']
+        if ($updatedPythonLaunchers -gt 0) {
+            [void]$changes.Add("hooks updated $updatedPythonLaunchers Claude-home Python launcher(s)")
         }
         foreach ($evt in $Fragment['hooks'].Keys) {
             $cur = $null
@@ -960,13 +1098,15 @@ catch {
     exit 2
 }
 
-$py = Get-Command python -ErrorAction SilentlyContinue
-if ($null -eq $py) {
-    Add-Warning 'python was not found on PATH. The model phase boundary hook needs it and will stay silent.'
-    Write-Step "WARN  python not on PATH"
+try {
+    $pythonLauncher = Resolve-PythonLauncher -RequestedPath $PythonPath
+    $script:PythonCommandPrefix = $pythonLauncher.JsonCommandPrefix
+    Write-Step "Python verified at $($pythonLauncher.Executable)"
 }
-else {
-    Write-Step "python found at $($py.Source)"
+catch {
+    Write-Host "FATAL: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host 'No Claude files were changed.' -ForegroundColor Red
+    exit 2
 }
 
 if (-not (Test-Path -LiteralPath $RepoRoot)) {
@@ -1016,6 +1156,18 @@ if (Test-Path -LiteralPath $hookSrc) {
 }
 else {
     Add-Failed 'hooks' "payload folder missing at $hookSrc"
+}
+
+$installerRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$lockstepSource = Join-Path $installerRoot 'gates\gateway_lockstep.py'
+if (Test-Path -LiteralPath $lockstepSource -PathType Leaf) {
+    Install-TemplatedFile -Source $lockstepSource `
+        -Destination (Join-Path $ClaudeHome 'hooks\gateway_lockstep.py') `
+        -Label 'hook gateway_lockstep.py' `
+        -OverwriteWhenDifferent:$Force
+}
+else {
+    Add-Failed 'hook gateway_lockstep.py' "shared verifier missing at $lockstepSource"
 }
 
 # ---------------------------------------------------------------------------

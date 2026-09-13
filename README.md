@@ -159,6 +159,23 @@ capability ran. The complete Life of an Intent path is a DreamWeaver Solo,
 DreamWeaver Duo, and higher-plan capability; the Gateway checks that entitlement
 on each call and the returned receipt shows when DreamerOS was actually used.
 
+## Gateway Lockstep
+
+`gates/gateway_lockstep.py` validates a bounded evidence record for the
+portable Life of an Intent entry. It emits five distinct states:
+`CONFIGURED`, `INVOKED`, `UNSUPPORTED`, `OFFLINE`, and `TERMINAL`. A terminal result needs
+a signed Gateway receipt that binds the actual MCP input and signed intent
+anchor. States are `SUCCESS`, `NO-OP`, `BLOCKED`, `STALLED`, and `EXHAUSTED`.
+
+The verifier centralizes the intent-envelope schema, receipt-event schema,
+terminal-state enum, client capability matrix, managed-artifact manifest, and
+hook-event adapter table. SDK typed contracts and Gateway enforcement are held
+outside this portable plugin slice.
+
+Cursor checks this record after a supported DreamerOS MCP result. Claude's
+Stop event reports `UNSUPPORTED` when it lacks the record. These hooks do not
+claim universal enforcement.
+
 ## Versioning
 
 Semantic versioning. The plugin tracks Agent Plugins spec 1.0.0.
