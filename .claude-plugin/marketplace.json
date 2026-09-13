@@ -1,0 +1,14 @@
+{
+  "name": "dreameros",
+  "owner": { "name": "DreamerOS" },
+  "metadata": {
+    "description": "DreamerOS for coding agents: shared boot rules, intent verification, memory across sessions, claim checks, and one gateway with vendor-native adapters."
+  },
+  "plugins": [
+    {
+      "name": "dreameros",
+      "source": "./",
+      "description": "DreamerOS starts agents with shared rules, verifies intent, carries memory across sessions, checks claims, and routes work through one gateway with vendor-native adapters."
+    }
+  ]
+}
