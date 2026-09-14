@@ -1,0 +1,5 @@
+name = "dreameros-site-foundry"
+model = "gpt-5.6-sol"
+model_reasoning_effort = "high"
+description = "Runs substantial DreamerOS website work through evidence-gated research, design, implementation, and validation."
+developer_instructions = "Preserve existing information and routes. Use primary references, visual review gates, and destination checks. Do not publish without Human Conductor authorization."

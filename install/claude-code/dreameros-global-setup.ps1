@@ -1124,6 +1124,24 @@ foreach ($d in @($ClaudeHome, (Join-Path $ClaudeHome 'agents'), (Join-Path $Clau
 }
 
 # ---------------------------------------------------------------------------
+# Portable control map. This is a static map of native controls, not runtime
+# state. It is deliberately separate from settings.json, which remains the
+# only registration surface for Claude hooks.
+# ---------------------------------------------------------------------------
+
+Write-Head 'DreamerOS control map'
+$controlSrc = Join-Path $PayloadPath 'dreameros'
+if (Test-Path -LiteralPath $controlSrc) {
+    foreach ($f in (Get-ChildItem -LiteralPath $controlSrc -Recurse -File | Sort-Object FullName)) {
+        $relative = $f.FullName.Substring($controlSrc.Length).TrimStart([char[]]@('\', '/'))
+        Install-TemplatedFile -Source $f.FullName `
+            -Destination (Join-Path (Join-Path $ClaudeHome 'dreameros') $relative) `
+            -Label ('dreameros/' + $relative.Replace('\', '/')) `
+            -OverwriteWhenDifferent:$Force
+    }
+}
+
+# ---------------------------------------------------------------------------
 # Agents
 # ---------------------------------------------------------------------------
 

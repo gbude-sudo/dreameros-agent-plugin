@@ -261,8 +261,9 @@ foreach ($eventName in @('PreToolUse', 'SessionStart', 'Stop')) {
     }
 }
 
-Assert-True ($afterLifecycleCount -eq ($beforeLifecycleCount - 6)) 'lifecycle hook count did not preserve the verified Gateway Lockstep registration'
 Assert-True ($afterDuplicateCount -eq 0) 'cross-group lifecycle duplicates remain'
+Assert-True ($null -ne (Find-CommandHook $after 'UserPromptSubmit' 'gate_prompt_submit\.py')) 'consolidated prompt-submit gate is not registered'
+Assert-True ($null -ne (Find-CommandHook $after 'Stop' 'gate_receipt_zero\.py')) 'receipt-zero closure gate is not registered'
 Assert-True (@($sessionCommands | Where-Object { $_ -ceq $renderedSessionPackage }).Count -eq 1) 'session package launcher is not the quoted Git Bash path'
 Assert-True (@($sessionCommands | Where-Object { $_ -ceq $renderedOpenLoop }).Count -eq 1) 'open-loop launcher is not the quoted Git Bash path'
 Assert-True (@($stopCommands | Where-Object { $_ -ceq $renderedGateStop }).Count -eq 1) 'stop gate launcher is not the quoted Git Bash path'

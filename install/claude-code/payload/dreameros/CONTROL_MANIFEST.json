@@ -1,0 +1,14 @@
+{
+  "schema": "dreameros-claude-control-manifest-v1",
+  "anchor": "__DREAMEROS_CLAUDE_HOME__",
+  "rule": "Share the contract, not the vendor runtime. Claude uses CLAUDE.md, settings.json registrations, native one-level skills, recursive Markdown agents, and explicit DreamerOS MCP calls.",
+  "control_groups_in_order": [
+    {"order": 1, "group": "authority_and_intent", "members": ["Current Human Conductor request", "__DREAMEROS_CLAUDE_HOME__/CLAUDE.md", "Applicable repository CLAUDE.md"]},
+    {"order": 2, "group": "runtime_and_enforcement", "members": ["__DREAMEROS_CLAUDE_HOME__/settings.json", "__DREAMEROS_CLAUDE_HOME__/hooks", "__DREAMEROS_CLAUDE_HOME__/rules"]},
+    {"order": 3, "group": "routing", "members": ["Native one-level skills", "UserPromptSubmit gate_prompt_submit.py", "Recursive native Markdown agents"]},
+    {"order": 4, "group": "execution", "members": ["Matched skill", "Named native agent", "Local tools or an exposed DreamerOS MCP tool", "Named task files"]},
+    {"order": 5, "group": "proof_and_continuity", "members": ["Stop gates", "Destination checks", "DreamerOS receipt and handoff when available", "Offline Repo and Git when authorized"]}
+  ],
+  "session_flow": ["SessionStart loads registered direction controls.", "UserPromptSubmit repeats the session-package requirement until a transcript shows a real MCP call, then surfaces the narrowest matching skills.", "Stop holds an open receipt process that has no explicit tie or terminal state.", "A hook file is not active unless settings.json registers it."],
+  "package_scope": "Portable source payload. No credentials, sessions, caches, transcript data, whole repositories, or customer runtime state are included."
+}

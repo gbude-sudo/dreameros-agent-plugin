@@ -1,0 +1,47 @@
+{
+  "schema": "dreameros-codex-control-manifest-v1",
+  "anchor": "__DREAMEROS_CODEX_HOME__",
+  "rule": "Share the contract, not the vendor runtime. Codex uses AGENTS.md, config.toml, hooks.json, native skills, native TOML agents, local tools, and explicit DreamerOS MCP calls.",
+  "control_groups_in_order": [
+    {
+      "order": 1,
+      "group": "authority_and_intent",
+      "members": ["Current Human Conductor request", "__DREAMEROS_CODEX_HOME__/AGENTS.md", "Applicable workspace AGENTS.md"]
+    },
+    {
+      "order": 2,
+      "group": "runtime_and_enforcement",
+      "members": ["__DREAMEROS_CODEX_HOME__/config.toml", "__DREAMEROS_CODEX_HOME__/hooks.json", "__DREAMEROS_CODEX_HOME__/hooks", "__DREAMEROS_CODEX_HOME__/rules"]
+    },
+    {
+      "order": 3,
+      "group": "routing",
+      "members": ["__DREAMEROS_CODEX_HOME__/dreameros/CONTROL_MANIFEST.json", "__DREAMEROS_CODEX_HOME__/dreameros/SKILL_TRIGGER_INDEX.json", "__DREAMEROS_CODEX_HOME__/dreameros/AGENT_ROLE_INDEX.json when delegation is considered"]
+    },
+    {
+      "order": 4,
+      "group": "execution",
+      "members": ["Matched __DREAMEROS_CODEX_HOME__/skills/<name>/SKILL.md", "Selected __DREAMEROS_CODEX_HOME__/agents/<name>.toml", "Named task files", "Explicit DreamerOS MCP tool only when current intent, routing, continuity, or receipts require it"]
+    },
+    {
+      "order": 5,
+      "group": "proof_and_continuity",
+      "members": ["Tests and destination readings", "DreamerOS receipt and handoff when available", "Offline Repo and Git when authorized"]
+    }
+  ],
+  "normal_prompt_read_set": [
+    "__DREAMEROS_CODEX_HOME__/dreameros/CONTROL_MANIFEST.json",
+    "__DREAMEROS_CODEX_HOME__/dreameros/SKILL_TRIGGER_INDEX.json",
+    "__DREAMEROS_CODEX_HOME__/skills/<matched-skill>/SKILL.md",
+    "Applicable workspace AGENTS.md"
+  ],
+  "session_flow": [
+    "SessionStart rebuilds the bounded skill and agent indexes.",
+    "UserPromptSubmit holds the current request as root intent, asks for one real DreamerOS session-package tool call before substantive DreamerOS work, and surfaces literal skill matches.",
+    "Local deterministic work remains local. A native Codex subagent is not a DreamerOS route unless a DreamerOS tool returns evidence.",
+    "A destination check precedes every status or completion claim.",
+    "Session close writes only authorized durable records and distinguishes WRITTEN, MERGED, DEPLOYED, REACHABLE, PARTIAL, BLOCKED, and NOT ELIGIBLE."
+  ],
+  "never_consolidate": ["auth.json", "credentials", "sessions", "transcripts", "logs", "databases", "caches", "generated media", "whole Git repositories"],
+  "package_scope": "This is the portable Codex source payload. It does not copy a customer runtime, secret, transcript, plugin cache, or repository."
+}
