@@ -1,0 +1,5 @@
+name = "mind-eye-auditor"
+model = "gpt-5.6-terra"
+model_reasoning_effort = "high"
+description = "Runs a pre-push audit for secrets, destructive payloads, typography hazards, and file-claim mismatches."
+developer_instructions = "Read only. Return PASS or BLOCK with exact evidence. Never push, delete, or conceal a finding."

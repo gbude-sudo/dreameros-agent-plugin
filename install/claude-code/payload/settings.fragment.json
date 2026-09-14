@@ -110,6 +110,17 @@
         ]
       }
     ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "__DREAMEROS_PYTHON_COMMAND__ \"__DREAMEROS_CLAUDE_HOME__/hooks/gate_prompt_submit.py\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [
@@ -159,6 +170,15 @@
           {
             "type": "command",
             "command": "__DREAMEROS_PYTHON_COMMAND__ \"__DREAMEROS_CLAUDE_HOME__/hooks/model-switch-ack.py\""
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "__DREAMEROS_PYTHON_COMMAND__ \"__DREAMEROS_CLAUDE_HOME__/hooks/gate_receipt_zero.py\"",
+            "timeout": 15
           }
         ]
       }

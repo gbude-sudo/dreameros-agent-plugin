@@ -1,0 +1,12 @@
+{
+  "description": "DreamerOS native Codex global-flow registrations. This fragment is merged by exact command identity and never replaces an owner hooks.json.",
+  "hooks": {
+    "SessionStart": [
+      {"hooks": [{"type": "command", "command": "python3 \"__DREAMEROS_CODEX_HOME__/dreameros/adapters/gate_force_match_skills_codex.py\" --build-index", "commandWindows": "python \"__DREAMEROS_CODEX_HOME__/dreameros/adapters/gate_force_match_skills_codex.py\" --build-index", "timeout": 15, "statusMessage": "Compiling Codex skill and agent routing once for this session", "additionalContextLimit": 2500}]}
+    ],
+    "UserPromptSubmit": [
+      {"hooks": [{"type": "command", "command": "python3 \"__DREAMEROS_CODEX_HOME__/dreameros/adapters/gate_gateway_boot_codex.py\"", "commandWindows": "python \"__DREAMEROS_CODEX_HOME__/dreameros/adapters/gate_gateway_boot_codex.py\"", "timeout": 8, "statusMessage": "Confirming the DreamerOS Gateway boot call", "additionalContextLimit": 900}]},
+      {"hooks": [{"type": "command", "command": "python3 \"__DREAMEROS_CODEX_HOME__/dreameros/adapters/gate_force_match_skills_codex.py\"", "commandWindows": "python \"__DREAMEROS_CODEX_HOME__/dreameros/adapters/gate_force_match_skills_codex.py\"", "timeout": 8, "statusMessage": "Matching the prompt to installed DreamerOS skills", "additionalContextLimit": 3000}]}
+    ]
+  }
+}

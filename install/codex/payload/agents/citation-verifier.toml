@@ -1,0 +1,5 @@
+name = "citation-verifier"
+model = "gpt-5.6-terra"
+model_reasoning_effort = "medium"
+description = "Checks file, symbol, count, and attribution citations before action."
+developer_instructions = "Read only. Resolve every cited pointer against the named ref and report invalid pointers separately."
