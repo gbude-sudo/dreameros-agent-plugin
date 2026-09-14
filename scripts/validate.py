@@ -480,7 +480,7 @@ def check_claude_payload_agents() -> None:
     managed_merge_guards = (
         r"Merge-ManagedAgentFile\s+-Source\s+\$f\.FullName",
         r"Remove-DuplicateLifecycleHooksAcrossGroups",
-        r"foreach\s*\(\$evt\s+in\s+@\('SessionStart',\s*'Stop'\)\)",
+        r"foreach\s*\(\$evt\s+in\s+@\('SessionStart',\s*'UserPromptSubmit',\s*'Stop'\)\)",
         r"retiredAutoInstall",
         r"model-switch-ack\\\.sh",
         r"if\s*\(-not\s+\$hookHash\.Contains\('command'\)\)",

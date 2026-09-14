@@ -123,6 +123,7 @@ $ownerHomeBash = "bash `"$homeUnix/hooks/owner hook fires.sh`""
 $ownerOutsideBash = 'bash "C:/owner/outside hook.sh"'
 $sessionPackage = "bash `"$homeUnix/hooks/dreameros-session-start.sh`""
 $openLoop = "bash `"$homeUnix/hooks/open-loop-surface.sh`""
+$combinedSessionBoot = "python `"$homeUnix/hooks/gate_session_boot.py`""
 $verifyOnly = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:/Users/PC/Documents/Codex/dreameros-agent-plugin/bootpack/build-boot-pack.ps1" -VerifyInstalled'
 $retiredInstall = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:/Users/PC/Documents/Codex/dreameros-agent-plugin/bootpack/build-boot-pack.ps1" -Install'
 $ownerNearInstall = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:/owner/owner-build-boot-pack.ps1" -Install'
@@ -137,6 +138,8 @@ $stackStop = "bash `"$homeUnix/hooks/dreameros-agent-stack-stop.sh`""
 $phase = "bash `"$homeUnix/hooks/model-phase-boundary.sh`""
 $switchShell = "bash `"$homeUnix/hooks/model-switch-ack.sh`""
 $switchPython = "python `"$homeUnix/hooks/model-switch-ack.py`""
+$promptSubmitPython = "python `"$homeUnix/hooks/gate_prompt_submit.py`""
+$receiptZeroPython = "python `"$homeUnix/hooks/gate_receipt_zero.py`""
 $lockstepPython = "python `"$homeUnix/hooks/gateway_lockstep.py`""
 $ownerNearSwitch = "bash `"$homeUnix/hooks/owner-model-switch-ack.sh`""
 $sharedPreTool = "python `"$homeUnix/hooks/shared-pretool.py`""
@@ -148,6 +151,8 @@ $renderedClaim = Render-BashCommand $claim
 $renderedStackStop = Render-BashCommand $stackStop
 $renderedPhase = Render-BashCommand $phase
 $renderedSwitchPython = $PythonCommandPrefix + $switchPython.Substring(6)
+$renderedPromptSubmitPython = $PythonCommandPrefix + $promptSubmitPython.Substring(6)
+$renderedReceiptZeroPython = $PythonCommandPrefix + $receiptZeroPython.Substring(6)
 $renderedLockstepPython = $PythonCommandPrefix + $lockstepPython.Substring(6)
 
 $fixture = [ordered]@{
@@ -159,6 +164,7 @@ $fixture = [ordered]@{
     hooks = [ordered]@{
         SessionStart = @(
             [ordered]@{ hooks = @(
+                [ordered]@{ type = 'command'; command = $combinedSessionBoot; owner = 'combined-session-boot' },
                 [ordered]@{ type = 'command'; command = $sessionPackage; owner = 'session-package-first' },
                 [ordered]@{ type = 'command'; command = $openLoop; timeout = 99; owner = 'open-loop-first' }
             ) },
@@ -185,6 +191,7 @@ $fixture = [ordered]@{
                 [ordered]@{ type = 'command'; command = $stackStop; owner = 'stack-first' },
                 [ordered]@{ type = 'command'; command = $phase; owner = 'phase-first' },
                 [ordered]@{ type = 'command'; command = $switchShell; owner = 'retired-wrapper' },
+                [ordered]@{ type = 'command'; command = $receiptZeroPython; owner = 'existing-receipt-zero' },
                 [ordered]@{ type = 'command'; command = "python `"$homeUnix/hooks/owner-stop-a.py`""; owner = 'unique-base' }
             ) },
             [ordered]@{ matcher = '*'; label = 'keep-star-group'; hooks = @(
@@ -209,6 +216,11 @@ $fixture = [ordered]@{
             [ordered]@{ matcher = 'Bash'; label = 'keep-bash'; hooks = @([ordered]@{ type = 'command'; command = $sharedPreTool; owner = 'bash-copy' }) },
             [ordered]@{ matcher = 'Write'; label = 'keep-write'; hooks = @([ordered]@{ type = 'command'; command = $sharedPreTool; owner = 'write-copy' }) }
         )
+        UserPromptSubmit = @(
+            [ordered]@{ hooks = @(
+                [ordered]@{ type = 'command'; command = $promptSubmitPython; owner = 'existing-prompt-submit' }
+            ) }
+        )
         PostToolUse = @(
             [ordered]@{ matcher = 'owner'; label = 'keep-owner-shells'; hooks = @(
                 [ordered]@{ type = 'command'; command = $ownerHomeBash; timeout = 17; owner = 'home-bash' },
@@ -232,8 +244,6 @@ $beforeMcpServers = Get-CanonicalJson $before.mcpServers
 $beforeEnv = Get-CanonicalJson $before.env
 $beforeNotification = Get-CanonicalJson $before.hooks.Notification
 $beforePostToolUse = Get-CanonicalJson $before.hooks.PostToolUse
-$expectedFirstOpenLoop = Get-CanonicalJson (Find-CommandHook $before 'SessionStart' 'open-loop-surface\.sh') | ConvertFrom-Json
-$expectedFirstOpenLoop.command = $renderedOpenLoop
 $expectedFirstClaim = Get-CanonicalJson (Find-CommandHook $before 'Stop' 'gate-claim-verification\.sh') | ConvertFrom-Json
 $expectedFirstClaim.command = $renderedClaim
 
@@ -264,23 +274,25 @@ foreach ($eventName in @('PreToolUse', 'SessionStart', 'Stop')) {
 Assert-True ($afterDuplicateCount -eq 0) 'cross-group lifecycle duplicates remain'
 Assert-True ($null -ne (Find-CommandHook $after 'UserPromptSubmit' 'gate_prompt_submit\.py')) 'consolidated prompt-submit gate is not registered'
 Assert-True ($null -ne (Find-CommandHook $after 'Stop' 'gate_receipt_zero\.py')) 'receipt-zero closure gate is not registered'
-Assert-True (@($sessionCommands | Where-Object { $_ -ceq $renderedSessionPackage }).Count -eq 1) 'session package launcher is not the quoted Git Bash path'
-Assert-True (@($sessionCommands | Where-Object { $_ -ceq $renderedOpenLoop }).Count -eq 1) 'open-loop launcher is not the quoted Git Bash path'
+Assert-True (@(Get-HookCommands $after 'UserPromptSubmit' | Where-Object { $_ -match 'gate_prompt_submit\.py' }).Count -eq 1) 'prompt-submit gate was duplicated after Python launcher normalization'
+Assert-True (@($stopCommands | Where-Object { $_ -match 'gate_receipt_zero\.py' }).Count -eq 1) 'receipt-zero gate was duplicated after Python launcher normalization'
+Assert-True (@(Get-HookCommands $after 'UserPromptSubmit' | Where-Object { $_ -ceq $renderedPromptSubmitPython }).Count -eq 1) 'prompt-submit gate did not use the verified quoted Python interpreter'
+Assert-True (@($stopCommands | Where-Object { $_ -ceq $renderedReceiptZeroPython }).Count -eq 1) 'receipt-zero gate did not use the verified quoted Python interpreter'
+Assert-True (@($sessionCommands | Where-Object { $_ -ceq $combinedSessionBoot }).Count -eq 1) 'combined SessionStart gate was removed or changed'
+Assert-True (@($sessionCommands | Where-Object { $_ -match 'dreameros-session-start\.sh|open-loop-surface\.sh' }).Count -eq 0) 'retired split SessionStart hooks remain beside the combined gate'
 Assert-True (@($stopCommands | Where-Object { $_ -ceq $renderedGateStop }).Count -eq 1) 'stop gate launcher is not the quoted Git Bash path'
 Assert-True (@($stopCommands | Where-Object { $_ -ceq $renderedClaim }).Count -eq 1) 'claim launcher is not the quoted Git Bash path'
 Assert-True (@($stopCommands | Where-Object { $_ -ceq $renderedStackStop }).Count -eq 1) 'stack stop launcher is not the quoted Git Bash path'
 Assert-True (@($stopCommands | Where-Object { $_ -ceq $renderedPhase }).Count -eq 1) 'phase launcher is not the quoted Git Bash path'
 Assert-True (@($stopCommands | Where-Object { $_ -ceq $renderedLockstepPython }).Count -eq 1) 'Gateway Lockstep hook did not use the verified quoted Python interpreter'
 Assert-True (Test-Path -LiteralPath (Join-Path $FixtureHookDir 'gateway_lockstep.py') -PathType Leaf) 'Gateway Lockstep verifier was not installed'
-Assert-True ($managedShellCommands.Count -eq 10) 'managed shell registration count is not ten'
+Assert-True ($managedShellCommands.Count -eq 8) 'managed shell registration count is not eight after split SessionStart retirement'
 Assert-True (@($managedShellCommands | Where-Object { -not $_.StartsWith($BashCommandPrefix + ' ', [StringComparison]::Ordinal) }).Count -eq 0) 'a managed shell registration did not use the one quoted Git Bash launcher'
-Assert-True (@($sessionCommands | Where-Object { $_ -match 'open-loop-surface\.sh' }).Count -eq 1) 'open-loop SessionStart count is not one'
 Assert-True (@($stopCommands | Where-Object { $_ -match 'gate-claim-verification\.sh' }).Count -eq 1) 'claim verification Stop count is not one'
 Assert-True (@($stopCommands | Where-Object { $_ -match 'dreameros-agent-stack-stop\.sh' }).Count -eq 1) 'agent stack Stop count is not one'
 Assert-True (@($stopCommands | Where-Object { $_ -match 'model-phase-boundary\.sh' }).Count -eq 1) 'model phase Stop count is not one'
 Assert-True (@($sessionCommands | Where-Object { $_ -ceq $retiredInstall }).Count -eq 0) 'retired SessionStart auto-install remains'
 Assert-True (@($sessionCommands | Where-Object { $_ -match 'build-boot-pack\.ps1.*-VerifyInstalled' }).Count -eq 1) 'verify-only SessionStart hook was removed'
-Assert-True (@($sessionCommands | Where-Object { $_ -match 'dreameros-session-start\.sh' }).Count -eq 1) 'session-package bootstrap hook was removed or duplicated'
 Assert-True (@($stopCommands | Where-Object { $_ -ceq $switchShell }).Count -eq 0) 'retired model-switch shell wrapper remains registered'
 Assert-True (@($stopCommands | Where-Object { $_ -ceq $renderedSwitchPython }).Count -eq 1) 'model-switch hook did not use the verified quoted Python interpreter'
 Assert-True (@($sessionCommands | Where-Object { $_ -ceq $ownerNearInstall }).Count -eq 1) 'near-name owner build hook was removed'
@@ -292,7 +304,6 @@ $samePromptHooks = @($after.hooks.Stop | ForEach-Object { $_.hooks } | Where-Obj
 Assert-True ($samePromptHooks.Count -eq 2) 'same-prompt agent hooks were deduped across lifecycle matcher groups'
 $secondAgentGroup = @($after.hooks.Stop | Where-Object { [string]$_.matcher -eq 'agent-two' })
 Assert-True ($secondAgentGroup.Count -eq 1 -and [string]$secondAgentGroup[0].label -eq 'keep-second-agent-group') 'second same-prompt agent matcher group was removed'
-Assert-True ((Get-CanonicalJson (Find-CommandHook $after 'SessionStart' 'open-loop-surface\.sh')) -ceq (Get-CanonicalJson $expectedFirstOpenLoop)) 'first open-loop hook changed beyond its Bash launcher'
 Assert-True ((Get-CanonicalJson (Find-CommandHook $after 'Stop' 'gate-claim-verification\.sh')) -ceq (Get-CanonicalJson $expectedFirstClaim)) 'first claim hook changed beyond its Bash launcher'
 Assert-True ((Get-CanonicalJson $after.ownerMetadata) -ceq $beforeOwnerMetadata) 'unrelated owner metadata changed'
 Assert-True ((Get-CanonicalJson $after.enabledPlugins) -ceq $beforeEnabledPlugins) 'enabledPlugins changed'
@@ -305,21 +316,20 @@ $cloudGroup = @($after.hooks.SessionStart | Where-Object { [string]$_.matcher -e
 Assert-True ($cloudGroup.Count -eq 1 -and [string]$cloudGroup[0].label -eq 'keep-cloud-group') 'nonduplicate SessionStart matcher group was not preserved'
 $customGroup = @($after.hooks.Stop | Where-Object { [string]$_.matcher -eq 'custom' })
 Assert-True ($customGroup.Count -eq 1 -and [string]$customGroup[0].label -eq 'keep-custom-group') 'nonduplicate Stop matcher group was not preserved'
-Assert-True ($first.Text -match 'hooks.SessionStart removed 1 duplicate hook') 'SessionStart duplicate receipt missing'
 Assert-True ($first.Text -match 'hooks.Stop removed 3 duplicate hook') 'Stop duplicate receipt missing'
-Assert-True ($first.Text -match 'hooks.SessionStart removed 3 retired hook') 'retired SessionStart receipt missing'
+Assert-True ($first.Text -match 'hooks.SessionStart removed 6 retired hook') 'retired SessionStart receipt missing'
 Assert-True ($first.Text -match 'hooks.Stop removed 1 retired hook') 'retired shell-wrapper receipt missing'
-Assert-True ($first.Text -match 'hooks updated 10 Claude-home Bash launcher') 'managed Bash launcher update receipt missing'
-Assert-True ($first.Text -match 'hooks updated 1 Claude-home Python launcher') 'managed Python launcher update receipt missing'
+Assert-True ($first.Text -match 'hooks updated 10 Claude-home Bash launcher') 'managed Bash launcher update receipt missing before split SessionStart retirement'
+Assert-True ($first.Text -match 'hooks updated 3 Claude-home Python launcher') 'managed Python launcher update receipt missing'
 Assert-True ($first.Text -match [regex]::Escape("Git Bash verified at $VerifiedBashPath")) 'verified Git Bash preflight receipt missing'
 Assert-True ($first.Text -match [regex]::Escape("Python verified at $VerifiedPythonPath")) 'verified Python preflight receipt missing'
 
-$sessionStartAfter = Find-CommandHook $after 'SessionStart' 'dreameros-session-start\.sh'
+$sessionStartAfter = Find-CommandHook $after 'SessionStart' 'gate_session_boot\.py'
 $sessionStartProbe = @'
-#!/usr/bin/env bash
-printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"SessionStart","permissionDecision":"allow"}}'
+import json
+print(json.dumps({"hookSpecificOutput":{"hookEventName":"SessionStart","permissionDecision":"allow"}}))
 '@
-[IO.File]::WriteAllText((Join-Path $FixtureHookDir 'dreameros-session-start.sh'), $sessionStartProbe, (New-Object Text.UTF8Encoding($false)))
+[IO.File]::WriteAllText((Join-Path $FixtureHookDir 'gate_session_boot.py'), $sessionStartProbe, (New-Object Text.UTF8Encoding($false)))
 $priorPreference = $ErrorActionPreference
 try {
     $ErrorActionPreference = 'Continue'

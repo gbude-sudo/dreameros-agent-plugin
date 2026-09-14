@@ -797,20 +797,33 @@ function Update-ClaudeHomePythonHookLaunchers {
     }
     $updated = 0
     foreach ($eventName in @($Hooks.Keys)) {
+        $updatedGroups = New-Object System.Collections.ArrayList
         foreach ($group in @($Hooks[$eventName])) {
-            foreach ($hook in @((ConvertTo-OrderedHash $group)['hooks'])) {
-                $hookHash = ConvertTo-OrderedHash $hook
-                if (-not $hookHash.Contains('command')) { continue }
-                $command = [string]$hookHash['command']
-                if ([string]::IsNullOrWhiteSpace($command)) { continue }
-                $parts = Get-ClaudeHomePythonInvocation -Command $command
-                $managedKey = if ($null -ne $parts) { Get-ManagedBashRegistrationKey -EventName $eventName -CommandTail $parts.Rest } else { $null }
-                if ($null -ne $managedKey -and $managedCommands.ContainsKey($managedKey) -and $hookHash['command'] -cne $managedCommands[$managedKey]) {
-                    $hookHash['command'] = $managedCommands[$managedKey]
-                    $updated++
-                }
+            $groupHash = ConvertTo-OrderedHash $group
+            if (-not $groupHash.Contains('hooks') -or $null -eq $groupHash['hooks']) {
+                [void]$updatedGroups.Add($groupHash)
+                continue
             }
+            $updatedHooks = New-Object System.Collections.ArrayList
+            foreach ($hook in @($groupHash['hooks'])) {
+                $hookHash = ConvertTo-OrderedHash $hook
+                if ($hookHash.Contains('command')) {
+                    $command = [string]$hookHash['command']
+                    if (-not [string]::IsNullOrWhiteSpace($command)) {
+                        $parts = Get-ClaudeHomePythonInvocation -Command $command
+                        $managedKey = if ($null -ne $parts) { Get-ManagedBashRegistrationKey -EventName $eventName -CommandTail $parts.Rest } else { $null }
+                        if ($null -ne $managedKey -and $managedCommands.ContainsKey($managedKey) -and $hookHash['command'] -cne $managedCommands[$managedKey]) {
+                            $hookHash['command'] = $managedCommands[$managedKey]
+                            $updated++
+                        }
+                    }
+                }
+                [void]$updatedHooks.Add($hookHash)
+            }
+            $groupHash['hooks'] = $updatedHooks
+            [void]$updatedGroups.Add($groupHash)
         }
+        $Hooks[$eventName] = $updatedGroups
     }
     return $updated
 }
@@ -917,6 +930,20 @@ function Remove-RetiredLifecycleHooks {
     $sessionRemoved = 0
     $stopRemoved = 0
 
+    $combinedSessionBootPresent = $false
+    if ($Hooks.Contains('SessionStart')) {
+        foreach ($group in @($Hooks['SessionStart'])) {
+            foreach ($hook in @((ConvertTo-OrderedHash $group)['hooks'])) {
+                $hookHash = ConvertTo-OrderedHash $hook
+                $command = if ($hookHash.Contains('command')) { [string]$hookHash['command'] } else { '' }
+                $pythonInvocation = if ([string]::IsNullOrWhiteSpace($command)) { $null } else { Get-ClaudeHomePythonInvocation -Command $command }
+                if ($null -ne $pythonInvocation -and $command -match '(?i)(?:^|[\s\\/"''])gate_session_boot\.py(?:["'']|\s|$)') {
+                    $combinedSessionBootPresent = $true
+                }
+            }
+        }
+    }
+
     if ($Hooks.Contains('SessionStart')) {
         $updatedGroups = New-Object System.Collections.ArrayList
         foreach ($group in @($Hooks['SessionStart'])) {
@@ -927,7 +954,8 @@ function Remove-RetiredLifecycleHooks {
                 $command = if ($hookHash.Contains('command')) { [string]$hookHash['command'] } else { '' }
                 $retiredHydration = $command -match '(?i)(?:^|[\s\\/"''])(?:operator-standing-orders|dreameros-agent-stack-session-start)\.sh(?:["'']|\s|$)'
                 $retiredAutoInstall = $command -match '(?i)(?:^|[\s\\/"''])build-boot-pack\.ps1["'']?\s+-Install(?:\s|$)'
-                if ($retiredHydration -or $retiredAutoInstall) {
+                $retiredSplitBoot = $combinedSessionBootPresent -and $command -match '(?i)(?:^|[\s\\/"''])(?:dreameros-session-start|open-loop-surface)\.sh(?:["'']|\s|$)'
+                if ($retiredHydration -or $retiredAutoInstall -or $retiredSplitBoot) {
                     $sessionRemoved++
                     continue
                 }
@@ -1034,8 +1062,11 @@ function Merge-Settings {
         }
     }
     $retiredHooks = Remove-RetiredLifecycleHooks -Hooks $hooks
-    foreach ($evt in @('SessionStart', 'Stop')) {
-        $retiredCount = [int]$retiredHooks.$evt
+    foreach ($evt in @('SessionStart', 'UserPromptSubmit', 'Stop')) {
+        $retiredCount = 0
+        if ($evt -in @('SessionStart', 'Stop')) {
+            $retiredCount = [int]$retiredHooks.$evt
+        }
         if ($retiredCount -gt 0) {
             [void]$changes.Add("hooks.$evt removed $retiredCount retired hook(s)")
         }
