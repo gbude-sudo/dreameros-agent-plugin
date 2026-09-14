@@ -139,6 +139,7 @@ $phase = "bash `"$homeUnix/hooks/model-phase-boundary.sh`""
 $switchShell = "bash `"$homeUnix/hooks/model-switch-ack.sh`""
 $switchPython = "python `"$homeUnix/hooks/model-switch-ack.py`""
 $promptSubmitPython = "python `"$homeUnix/hooks/gate_prompt_submit.py`""
+$turnCheckPython = "python `"$homeUnix/hooks/dreameros_turn_check.py`""
 $receiptZeroPython = "python `"$homeUnix/hooks/gate_receipt_zero.py`""
 $lockstepPython = "python `"$homeUnix/hooks/gateway_lockstep.py`""
 $ownerNearSwitch = "bash `"$homeUnix/hooks/owner-model-switch-ack.sh`""
@@ -152,6 +153,7 @@ $renderedStackStop = Render-BashCommand $stackStop
 $renderedPhase = Render-BashCommand $phase
 $renderedSwitchPython = $PythonCommandPrefix + $switchPython.Substring(6)
 $renderedPromptSubmitPython = $PythonCommandPrefix + $promptSubmitPython.Substring(6)
+$renderedTurnCheckPython = $PythonCommandPrefix + $turnCheckPython.Substring(6)
 $renderedReceiptZeroPython = $PythonCommandPrefix + $receiptZeroPython.Substring(6)
 $renderedLockstepPython = $PythonCommandPrefix + $lockstepPython.Substring(6)
 
@@ -278,6 +280,9 @@ Assert-True (@(Get-HookCommands $after 'UserPromptSubmit' | Where-Object { $_ -m
 Assert-True (@($stopCommands | Where-Object { $_ -match 'gate_receipt_zero\.py' }).Count -eq 1) 'receipt-zero gate was duplicated after Python launcher normalization'
 Assert-True (@(Get-HookCommands $after 'UserPromptSubmit' | Where-Object { $_ -ceq $renderedPromptSubmitPython }).Count -eq 1) 'prompt-submit gate did not use the verified quoted Python interpreter'
 Assert-True (@($stopCommands | Where-Object { $_ -ceq $renderedReceiptZeroPython }).Count -eq 1) 'receipt-zero gate did not use the verified quoted Python interpreter'
+Assert-True (@(Get-HookCommands $after 'UserPromptSubmit' | Where-Object { $_ -match 'dreameros_turn_check\.py' }).Count -eq 1) 'per-message DreamerOS check is not registered exactly once under UserPromptSubmit'
+Assert-True (@(Get-HookCommands $after 'UserPromptSubmit' | Where-Object { $_ -ceq $renderedTurnCheckPython }).Count -eq 1) 'per-message DreamerOS check did not use the verified quoted Python interpreter'
+Assert-True (Test-Path -LiteralPath (Join-Path $FixtureHookDir 'dreameros_turn_check.py') -PathType Leaf) 'per-message DreamerOS check hook file was not installed'
 Assert-True (@($sessionCommands | Where-Object { $_ -ceq $combinedSessionBoot }).Count -eq 1) 'combined SessionStart gate was removed or changed'
 Assert-True (@($sessionCommands | Where-Object { $_ -match 'dreameros-session-start\.sh|open-loop-surface\.sh' }).Count -eq 0) 'retired split SessionStart hooks remain beside the combined gate'
 Assert-True (@($stopCommands | Where-Object { $_ -ceq $renderedGateStop }).Count -eq 1) 'stop gate launcher is not the quoted Git Bash path'
