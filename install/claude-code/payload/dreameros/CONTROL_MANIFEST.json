@@ -5,7 +5,7 @@
   "control_groups_in_order": [
     {"order": 1, "group": "authority_and_intent", "members": ["Current Human Conductor request", "__DREAMEROS_CLAUDE_HOME__/CLAUDE.md", "Applicable repository CLAUDE.md"]},
     {"order": 2, "group": "runtime_and_enforcement", "members": ["__DREAMEROS_CLAUDE_HOME__/settings.json", "__DREAMEROS_CLAUDE_HOME__/hooks", "__DREAMEROS_CLAUDE_HOME__/rules"]},
-    {"order": 3, "group": "routing", "members": ["Native one-level skills", "UserPromptSubmit gate_prompt_submit.py", "Recursive native Markdown agents"]},
+    {"order": 3, "group": "routing", "members": ["Native one-level skills", "UserPromptSubmit gate_prompt_submit.py", "UserPromptSubmit dreameros_turn_check.py (gateway check on every message)", "Recursive native Markdown agents"]},
     {"order": 4, "group": "execution", "members": ["Matched skill", "Named native agent", "Local tools or an exposed DreamerOS MCP tool", "Named task files"]},
     {"order": 5, "group": "proof_and_continuity", "members": ["Stop gates", "Destination checks", "DreamerOS receipt and handoff when available", "Offline Repo and Git when authorized"]}
   ],

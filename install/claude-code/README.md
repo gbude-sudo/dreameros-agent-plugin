@@ -96,6 +96,7 @@ ambiguous managed region fails closed instead of requiring `-Force`.
 | --- | --- | --- |
 | dreameros-session-start.sh | SessionStart | loads the portable session package contract |
 | open-loop-surface.sh | SessionStart | surfaces uncommitted and unmerged work |
+| dreameros_turn_check.py | UserPromptSubmit | checks every message against the DreamerOS gateway and shows the result |
 | gate-local-merge-first.sh | PreToolUse Bash | refuses a push that skips local main |
 | gate-destructive-write.sh | PreToolUse Write | refuses a write that erases most of a file |
 | gate-anchor-size.sh | PreToolUse remember | refuses an anchor the substrate will reject |
