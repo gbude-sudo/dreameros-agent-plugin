@@ -45,6 +45,52 @@ that removes the link, not the repository.
 The MCP entry in `.mcp.json` carries no credential. A client that needs a
 bearer follows the Authentication section of the root README.
 
+## Policy layer (install this first)
+
+`dreameros-policy-setup.ps1` writes a machine-wide managed settings file:
+`C:\Program Files\ClaudeCode\managed-settings.json`. Claude Code loads it
+above every user and project file, in the terminal, the IDE extensions, the
+Desktop app's Code tab and Agent SDK sessions. A user edit cannot remove it.
+
+Why it comes first: one wrong-typed value in `~/.claude/settings.json` makes
+Claude Code skip that whole file with no visible error. That happened on
+2026-09-16 and silently turned off every hook and the deny list. The policy
+layer keeps the deny list and two startup checks alive even then:
+
+- `validate_claude_settings.py --hook` reports any settings file Claude Code
+  would skip, and any single rule it would ignore.
+- `gate_live_canon.py` fetches the live DreamerOS session package and reports
+  HYDRATED, CONFLICT or BLOCKED for the local boot canon.
+
+Steps:
+
+```
+powershell -ExecutionPolicy Bypass -File install\claude-code\dreameros-policy-setup.ps1 -DryRun
+```
+
+Read the printed policy. Then, from PowerShell opened with Run as
+administrator:
+
+```
+powershell -ExecutionPolicy Bypass -File install\claude-code\dreameros-policy-setup.ps1
+```
+
+The script merges with an existing managed file, backs it up, validates the
+policy before and after writing, and rolls back on failure. It prints the
+undo command. Open a new Claude Code session: `/status` lists
+`Enterprise managed settings (file)`, and the session starts with a
+`DreamerOS boot:` line.
+
+Check any settings file by hand:
+
+```
+python install\claude-code\payload\hooks\validate_claude_settings.py %USERPROFILE%\.claude\settings.json
+```
+
+Exit 1 means a file-level error: Claude Code is ignoring that whole file.
+
+Test: `python install/claude-code/tests/policy_setup_test.py` (runs in CI).
+
 ## What it installs
 
 ```
