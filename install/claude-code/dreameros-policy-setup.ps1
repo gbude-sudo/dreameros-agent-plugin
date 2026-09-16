@@ -175,7 +175,13 @@ if ($LASTEXITCODE -ne 0) {
     else { Remove-Item -LiteralPath $ManagedFile -Force; Say 'ROLLED BACK: removed new file' }
     throw 'post-write validation failed'
 }
-$hash = (Get-FileHash -LiteralPath $ManagedFile -Algorithm SHA256).Hash.ToLower()
+# .NET hash: Get-FileHash is missing when Windows PowerShell 5.1 is started
+# from PowerShell 7 (module path mismatch, seen on GitHub runners 2026-09-16).
+$sha = [System.Security.Cryptography.SHA256]::Create()
+try {
+    $bytes = [IO.File]::ReadAllBytes($ManagedFile)
+    $hash = ([BitConverter]::ToString($sha.ComputeHash($bytes))).Replace('-', '').ToLower()
+} finally { $sha.Dispose() }
 Say "installed: $ManagedFile"
 Say "sha256: $hash"
 Say 'Next: open a NEW Claude Code session. /status should list "Enterprise managed settings (file)",'
