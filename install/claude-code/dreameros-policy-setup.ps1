@@ -175,6 +175,22 @@ if ($LASTEXITCODE -ne 0) {
     else { Remove-Item -LiteralPath $ManagedFile -Force; Say 'ROLLED BACK: removed new file' }
     throw 'post-write validation failed'
 }
+# 7. Lock the managed directory. C:\Program Files grants CREATOR OWNER full
+# control, so the account that ran this elevated installer otherwise owns the
+# policy and can edit it without elevation (measured 2026-09-16: the user and
+# CodexSandboxUsers had write access). Only SYSTEM and Administrators may
+# write; Users may read and run the hooks.
+if ($defaultTarget) {
+    $acl = & icacls $TargetDir /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' '*S-1-5-32-545:(OI)(CI)RX' /T /C 2>&1
+    if ($LASTEXITCODE -ne 0) { throw "could not lock $TargetDir : $acl" }
+    $check = (& icacls $ManagedFile) -join "`n"
+    $bad = ($check -split "`n") | Where-Object {
+        $_ -match ':\(' -and $_ -notmatch 'SYSTEM|Administrators' -and $_ -match '\((F|M|W)\)|\(M,|,W\)|\(W,'
+    }
+    if ($bad) { throw "policy file is still writable by a non-admin: $($bad -join '; ')" }
+    Say 'locked: only SYSTEM and Administrators can change the policy'
+}
+
 # .NET hash: Get-FileHash is missing when Windows PowerShell 5.1 is started
 # from PowerShell 7 (module path mismatch, seen on GitHub runners 2026-09-16).
 $sha = [System.Security.Cryptography.SHA256]::Create()
