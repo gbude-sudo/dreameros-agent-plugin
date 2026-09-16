@@ -45,7 +45,9 @@
 param(
     [switch] $DryRun,
     [string] $PythonPath,
-    [string] $TargetDir = 'C:\Program Files\ClaudeCode'
+    [string] $TargetDir = 'C:\Program Files\ClaudeCode',
+    # Tests only: apply the ACL lock to a non-default -TargetDir.
+    [switch] $LockForTest
 )
 
 Set-StrictMode -Version Latest
@@ -180,15 +182,45 @@ if ($LASTEXITCODE -ne 0) {
 # policy and can edit it without elevation (measured 2026-09-16: the user and
 # CodexSandboxUsers had write access). Only SYSTEM and Administrators may
 # write; Users may read and run the hooks.
-if ($defaultTarget) {
-    $acl = & icacls $TargetDir /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' '*S-1-5-32-545:(OI)(CI)RX' /T /C 2>&1
-    if ($LASTEXITCODE -ne 0) { throw "could not lock $TargetDir : $acl" }
-    $check = (& icacls $ManagedFile) -join "`n"
-    $bad = ($check -split "`n") | Where-Object {
-        $_ -match ':\(' -and $_ -notmatch 'SYSTEM|Administrators' -and $_ -match '\((F|M|W)\)|\(M,|,W\)|\(W,'
+#
+# How, and why in this order (2026-09-16 lesson): set the explicit grants on
+# the DIRECTORY only, then /reset the children so every file inherits them.
+# The first version ran /inheritance:r /grant:r (OI)(CI) with /T: on files the
+# (OI)(CI) grants do not apply, so every file was left with NO access entries
+# and nobody, Claude Code included, could read the policy.
+if ($defaultTarget -or $LockForTest) {
+    # Build the directory ACL from nothing: exactly three entries, inheritance
+    # off. icacls /grant:r only replaces the named accounts and would keep any
+    # other explicit entry (for example OWNER RIGHTS full control).
+    $sec = New-Object System.Security.AccessControl.DirectorySecurity
+    $sec.SetAccessRuleProtection($true, $false)
+    $inherit = [System.Security.AccessControl.InheritanceFlags]'ContainerInherit, ObjectInherit'
+    $prop = [System.Security.AccessControl.PropagationFlags]::None
+    $allow = [System.Security.AccessControl.AccessControlType]::Allow
+    foreach ($pair in @(
+        @('S-1-5-18', 'FullControl'),
+        @('S-1-5-32-544', 'FullControl'),
+        @('S-1-5-32-545', 'ReadAndExecute')
+    )) {
+        $sid = New-Object System.Security.Principal.SecurityIdentifier($pair[0])
+        $rights = [System.Security.AccessControl.FileSystemRights]$pair[1]
+        $sec.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule($sid, $rights, $inherit, $prop, $allow)))
     }
-    if ($bad) { throw "policy file is still writable by a non-admin: $($bad -join '; ')" }
-    Say 'locked: only SYSTEM and Administrators can change the policy'
+    (New-Object System.IO.DirectoryInfo($TargetDir)).SetAccessControl($sec)
+    $out = & icacls (Join-Path $TargetDir '*') /reset /T /C 2>&1
+    if ($LASTEXITCODE -ne 0) { throw "could not propagate the lock under $TargetDir : $out" }
+
+    foreach ($f in @($ManagedFile, (Join-Path $HookDir 'gate_live_canon.py'))) {
+        $lines = @(& icacls $f 2>&1)
+        if ($LASTEXITCODE -ne 0) { throw "cannot read the ACL of $f after locking: $($lines -join ' ')" }
+        $text = $lines -join "`n"
+        if ($text -notmatch 'Users:\(I\)\(RX\)') { throw "Users cannot read $f after locking: $text" }
+        $bad = $lines | Where-Object {
+            $_ -match ':\(' -and $_ -notmatch 'SYSTEM|Administrators' -and $_ -match '\((F|M|W)\)|\(M,|,W\)|\(W,'
+        }
+        if ($bad) { throw "$f is still writable by a non-admin: $($bad -join '; ')" }
+    }
+    Say 'locked: only SYSTEM and Administrators can change the policy; Users can read it'
 }
 
 # .NET hash: Get-FileHash is missing when Windows PowerShell 5.1 is started

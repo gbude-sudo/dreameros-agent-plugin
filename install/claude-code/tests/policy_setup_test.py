@@ -8,6 +8,8 @@ twice, and checks:
      and left untouched
   4. the validator flags a wrong-typed fallbackModel (the 2026-09-16 defect)
      and passes a correct file
+  5. the real ACL lock (-LockForTest) leaves the policy readable, with
+     Users read-only and no non-admin write entry
 
 Run: python install/claude-code/tests/policy_setup_test.py
 Exit 0 on success.
@@ -31,6 +33,37 @@ def run_installer(target):
          "-TargetDir", target, "-PythonPath", sys.executable],
         capture_output=True, text=True, timeout=180,
     )
+
+
+def lock_test(failures):
+    """Run the real ACL lock on a temp dir and prove the policy stays READABLE.
+
+    2026-09-16: the first lock left every file with no access entries, so
+    Claude Code could not read the policy it was meant to protect.
+    """
+    tmp = tempfile.mkdtemp(prefix="dreameros-lock-test-")
+    managed = os.path.join(tmp, "managed-settings.json")
+    try:
+        r = subprocess.run(
+            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", SCRIPT,
+             "-TargetDir", tmp, "-PythonPath", sys.executable, "-LockForTest"],
+            capture_output=True, text=True, timeout=180,
+        )
+        if r.returncode != 0 or "locked:" not in r.stdout:
+            failures.append(f"lock run failed: {r.stdout[-300:]} {r.stderr[-300:]}")
+            return
+        try:
+            with open(managed, encoding="utf-8") as fh:
+                json.load(fh)
+        except OSError as exc:
+            failures.append(f"policy unreadable after lock: {exc}")
+        acl = subprocess.run(["icacls", managed], capture_output=True, text=True).stdout
+        if "Users:(I)(RX)" not in acl:
+            failures.append(f"Users read entry missing after lock: {acl}")
+    finally:
+        subprocess.run(["icacls", tmp, "/reset", "/T", "/C", "/Q"], capture_output=True)
+        subprocess.run(["icacls", tmp, "/inheritance:e", "/T", "/C", "/Q"], capture_output=True)
+        shutil.rmtree(tmp, ignore_errors=True)
 
 
 def validate(path):
@@ -86,12 +119,14 @@ def main():
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
+    lock_test(failures)
+
     if failures:
         print("FAIL")
         for f in failures:
             print("  " + f)
         return 1
-    print("PASS policy installer and settings validator (4 checks)")
+    print("PASS policy installer, settings validator and ACL lock (5 checks)")
     return 0
 
 
