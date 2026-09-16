@@ -82,6 +82,14 @@ If the evidence does not establish a winner, output:
 NO CLEAR WINNER
 and identify the smallest missing fact that would decide it.
 
+## Default answer shape (HC, 2026-09-16)
+
+Every DreamerOS answer defaults to actionable, straightforward next steps,
+written for a person with a high IQ who is new to the topic they asked
+about. Assume sharp reasoning, not prior knowledge: define a term the first
+time it appears, skip filler, and end with the concrete steps to take. The
+research rounds above feed that answer; they do not replace it.
+
 ## How DreamerOS applies it
 
 - A state or fact about the running system counts as research too. The
