@@ -1347,6 +1347,7 @@ def check_claude_code_plugin_surface() -> None:
         f"claude plugin install {plugin_name}@{market_name}",
         f"claude plugin update {plugin_name}@{market_name}",
         "/mcp",
+        str(claude.get("privacyPolicyUrl", "https://dreameros.app/privacy")),
     ):
         if needle not in readme:
             fail(f"claude plugin surface: README missing {needle!r}")

@@ -29,6 +29,8 @@ sign in with your DreamerOS account in the browser. Until you sign in, the
 server shows "needs authentication" and no DreamerOS tool runs. Skills load
 under the `dreameros:` prefix, for example `/dreameros:dreameros-boot`.
 
+Privacy policy: https://dreameros.app/privacy
+
 The plugin adds skills and one MCP connection. It adds no hooks and no
 agents. The machine-wide Windows setup in `install/claude-code/` is a
 separate, optional step.
