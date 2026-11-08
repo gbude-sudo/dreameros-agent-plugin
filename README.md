@@ -13,15 +13,17 @@ The installed client connects to DreamerOS's intent-verified gateway:
 
 ## Claude Code quick start
 
-Three commands (tested on Claude Code 2.1.317):
+Install and update commands (tested on Claude Code 2.1.317):
 
 ```
 claude plugin marketplace add gbude-sudo/dreameros-agent-plugin
 claude plugin install dreameros@dreameros
+claude plugin marketplace update dreameros
 claude plugin update dreameros@dreameros
 ```
 
-The third command is for later: it fetches a newer version when one ships.
+The last two commands are for later: they fetch a newer version when one
+ships. Restart Claude Code after an update.
 After install, start Claude Code, run `/mcp`, pick the `dreameros` server and
 sign in with your DreamerOS account in the browser. Until you sign in, the
 server shows "needs authentication" and no DreamerOS tool runs. Skills load
