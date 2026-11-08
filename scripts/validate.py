@@ -1356,6 +1356,21 @@ def check_claude_code_plugin_surface() -> None:
             fail(f"claude plugin surface: README does not list skill {skill_dir.name}")
 
 
+def check_no_internal_kimi_wording() -> None:
+    """Public skills may name customer-owned Kimi connections, never an internal Kimi route."""
+    banned = re.compile(r"(?i)internal\s+kimi|kimi\s+has\s+two|internal\s+dreameros-funded")
+    roots = (
+        ROOT / "skills",
+        ROOT / "install" / "claude-code" / "payload" / "skills",
+    )
+    for root in roots:
+        for path in sorted(root.rglob("*.md")):
+            text = path.read_text(encoding="utf-8")
+            match = banned.search(text)
+            if match:
+                fail(f"internal Kimi wording {match.group(0)!r} in {path.relative_to(ROOT).as_posix()}")
+
+
 def check_customer_copy_vocabulary() -> None:
     forbidden = re.compile(r"(?i)\b(?:governance|governed|governs|govern|DAIM|EDE|IFP)\b")
     for path in (ROOT / "README.md", ROOT / "plugin.json", ROOT / ".cursor-plugin" / "plugin.json"):
@@ -1547,6 +1562,7 @@ def main() -> int:
     check_cursor_component_name_uniqueness()
     check_cursor_portability()
     check_claude_code_plugin_surface()
+    check_no_internal_kimi_wording()
     check_customer_copy_vocabulary()
     check_hydration_preconditions()
     check_codex_stop_hook()

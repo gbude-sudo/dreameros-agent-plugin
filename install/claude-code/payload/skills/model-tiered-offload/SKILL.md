@@ -30,7 +30,7 @@ Requested route is intent. Served route is evidence. If the response omits a fie
 
 ## Keep customer and platform credentials separate
 
-Kimi has two valid DreamerOS doors: an internal DreamerOS-funded route and a customer-owned DreamWeaver connection. Never let failure of a customer-owned Kimi credential fall back to a DreamerOS platform key. A BYO call must remain customer-key-only, fail closed, and identify its key origin in the receipt.
+A customer-owned Kimi connection is the member's own DreamWeaver connection. Never let failure of a customer-owned Kimi credential fall back to a DreamerOS platform key. A BYO call must remain customer-key-only, fail closed, and identify its key origin in the receipt.
 
 ## Provider-specific work
 

@@ -14,15 +14,11 @@ Start with these maintained sources, then follow the current API reference and c
 
 Documentation proves what a provider offers. A live model catalog proves what the current account may request. A successful bounded probe proves what that account served at that moment. Keep those three evidence levels separate.
 
-## Kimi: two doors, one hard boundary
-
-Internal Kimi and customer-owned Kimi serve different purposes.
-
-The internal door may use a DreamerOS-managed credential or an approved routing provider. It can gather, generate, or review work according to the current routing policy. Its receipt must disclose the actual provider and model and must not present platform spend as customer-owned spend.
+## Kimi: customer-owned connection, one hard boundary
 
 The DreamWeaver BYO door uses only the member's vaulted Kimi credential. Its lifecycle is connect, verify, select, call, inspect receipt, and revoke. It must never read or fall back to the DreamerOS platform credential. If the member credential fails, the call fails closed or moves only to another route the member explicitly owns and allowed.
 
-For either door, preserve provider reasoning or tool-call state exactly as the current Kimi API requires. Discover that requirement from the current official schema rather than freezing request fields here.
+Preserve provider reasoning or tool-call state exactly as the current Kimi API requires. Discover that requirement from the current official schema rather than freezing request fields here.
 
 ## Fireworks: choose the routing shape deliberately
 
