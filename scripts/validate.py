@@ -1312,6 +1312,49 @@ def check_cursor_portability() -> None:
             fail(f"Cursor portability: hardcoded Windows user path in {path.relative_to(ROOT)}")
 
 
+def check_claude_code_plugin_surface() -> None:
+    """A new Claude Code user installs from the marketplace and reads the README."""
+    claude_manifest = ROOT / ".claude-plugin" / "plugin.json"
+    try:
+        claude = json.loads(claude_manifest.read_text(encoding="utf-8"))
+        portable = json.loads((ROOT / "plugin.json").read_text(encoding="utf-8"))
+        market = json.loads((ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
+    except Exception as e:
+        fail(f"claude plugin surface: manifest unreadable ({e})")
+        return
+    if claude.get("version") != portable.get("version"):
+        fail("claude plugin surface: .claude-plugin/plugin.json version differs from plugin.json")
+    privacy = claude.get("privacyPolicyUrl")
+    if not isinstance(privacy, str) or not privacy.startswith("https://"):
+        fail("claude plugin surface: privacyPolicyUrl missing (plugin connects to a remote MCP server)")
+    icon = ROOT / ".claude-plugin" / "icon.png"
+    if not icon.is_file():
+        fail("claude plugin surface: .claude-plugin/icon.png missing")
+    else:
+        raw = icon.read_bytes()
+        if raw[:8] != b"\x89PNG\r\n\x1a\n":
+            fail("claude plugin surface: icon.png is not a PNG")
+        else:
+            width = int.from_bytes(raw[16:20], "big")
+            height = int.from_bytes(raw[20:24], "big")
+            if width != height or not 512 <= width <= 2048 or len(raw) >= 2 * 1024 * 1024:
+                fail(f"claude plugin surface: icon.png must be square 512-2048 px under 2 MB, got {width}x{height}")
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    market_name = market.get("name", "")
+    plugin_name = claude.get("name", "")
+    for needle in (
+        "claude plugin marketplace add gbude-sudo/dreameros-agent-plugin",
+        f"claude plugin install {plugin_name}@{market_name}",
+        f"claude plugin update {plugin_name}@{market_name}",
+        "/mcp",
+    ):
+        if needle not in readme:
+            fail(f"claude plugin surface: README missing {needle!r}")
+    for skill_dir in sorted((ROOT / "skills").iterdir()):
+        if skill_dir.is_dir() and (skill_dir / "SKILL.md").exists() and f"{skill_dir.name}/" not in readme:
+            fail(f"claude plugin surface: README does not list skill {skill_dir.name}")
+
+
 def check_customer_copy_vocabulary() -> None:
     forbidden = re.compile(r"(?i)\b(?:governance|governed|governs|govern|DAIM|EDE|IFP)\b")
     for path in (ROOT / "README.md", ROOT / "plugin.json", ROOT / ".cursor-plugin" / "plugin.json"):
@@ -1502,6 +1545,7 @@ def main() -> int:
     check_cursor_plugin()
     check_cursor_component_name_uniqueness()
     check_cursor_portability()
+    check_claude_code_plugin_surface()
     check_customer_copy_vocabulary()
     check_hydration_preconditions()
     check_codex_stop_hook()

@@ -11,6 +11,26 @@ The installed client connects to DreamerOS's intent-verified gateway:
 - **Multi-engine routing** - DreamerOS sends hard questions to the best-fit
   engine or at least two independent engines. It shows disagreements.
 
+## Claude Code quick start
+
+Three commands (tested on Claude Code 2.1.317):
+
+```
+claude plugin marketplace add gbude-sudo/dreameros-agent-plugin
+claude plugin install dreameros@dreameros
+claude plugin update dreameros@dreameros
+```
+
+The third command is for later: it fetches a newer version when one ships.
+After install, start Claude Code, run `/mcp`, pick the `dreameros` server and
+sign in with your DreamerOS account in the browser. Until you sign in, the
+server shows "needs authentication" and no DreamerOS tool runs. Skills load
+under the `dreameros:` prefix, for example `/dreameros:dreameros-boot`.
+
+The plugin adds skills and one MCP connection. It adds no hooks and no
+agents. The machine-wide Windows setup in `install/claude-code/` is a
+separate, optional step.
+
 ## What is inside
 
 ```
@@ -23,6 +43,10 @@ dreameros/
     dreameros-continuity/        compatibility mode for continuity
     dreameros-verified-answers/  compatibility mode for verification
     dreameros-verified-routing/  compatibility mode for model routing
+    adversarial-research/        never accept the first answer
+    first-principles-decomposition/  rebuild a problem from basic facts
+    model-tiered-offload/        route work to models by verification risk
+    session-intent-audit/        find instructions a session dropped
 ```
 
 ## Shared vendor boot pack
