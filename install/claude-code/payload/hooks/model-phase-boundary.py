@@ -4,9 +4,9 @@
 The reason this file exists: a prior session wrote a canon rule (Digital
 Buoyancy Ballast, constraint 7/8) describing how a model-downshift advisory
 should behave, then violated that same rule four separate times inside one
-working session, including after writing it. The operator's own words on
-being told a fifth time to "remember" it: "THIS IS YOUR FUCKING JOB TO TELL
-ME... WHY IS THIS NOT IN CANON LIVE RUNTIME." Prose does not enforce itself.
+working session, including after writing it. When told a fifth time to
+remember it, the operator asked why the rule was prose and not a live
+runtime check. That is the right question. Prose does not enforce itself.
 This does, mechanically, every turn, with no reliance on the assistant
 choosing to check.
 
