@@ -7,17 +7,7 @@ block, never rely on the model remembering to check itself).
 
 WHY THIS EXISTS. R19 in the boot canon already bans "governance", "DAIM",
 "EDE", "IFP" in customer-facing copy, in favor of intent-fidelity
-vocabulary - and this exact complaint is R14 item 5, counted NINE TIMES
-before this hook was written. On 2026-08-21, in the same session that
-propagated R19 to every repo and every global surface, a customer
-positioning pitch ("moat-making... money-making opportunities") used
-"governed" and "governance" as the core framing, repeatedly. HC: "I DONT
-KNOW HOW MANY TIMES I NEED TO SAY WE DONT EVER SAY WE GOVERN THINGS."
-
-Prose failed. R19 was live, in context, freshly written by the same
-session that broke it minutes later. That is the same shape as R17's own
-postmortem (engine-switch acknowledgment): a written rule does not fire
-by being written. Only a hook fires.
+vocabulary. A written rule needs an executable gate.
 
 WHAT IT DOES NOT DO. It does not block. It cannot un-send a message that
 already violated the rule. R19's own internal/external line stays intact
