@@ -39,7 +39,6 @@ $BackupRoot = Join-Path $PluginRoot 'backups'
 $Assets = @(
     '.cursor-plugin',
     'bootpack\out\cursor',
-    'bootpack\out\evidence',
     'gates',
     'skills',
     'cursor'
