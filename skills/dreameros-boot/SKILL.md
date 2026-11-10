@@ -3,7 +3,7 @@ name: dreameros-boot
 description: Load the DreamerOS Boot Canon. Use at the start of any substantive DreamerOS work, and whenever a claim about status, count, health, deployment, liveness or completion is about to be made. Carries the measurement discipline, the CANON equals RUNTIME vocabulary, the FIXED definition, and the boot and close checks.
 ---
 
-# DreamerOS Boot Canon v2.6.0
+# DreamerOS Boot Canon v2.6.1
 
 SINGLE SOURCE OF TRUTH. Every vendor file is generated from this one.
 Never edit a generated copy. Edit here, then run build-boot-pack.ps1.
@@ -22,39 +22,14 @@ Read top to bottom once. After that, each layer fires at its own moment:
   LAYER 4  WHAT WORDS MEAN the ladder, DONE, and customer copy.
   LAYER 5  THE RECORD      write back, or the next session rediscovers it.
 
-Rule numbers R1 to R25 are ADDRESSES, preserved so every prior citation
-resolves. Their order on the page is the order you need them, and the two are
-deliberately different. Absorbed numbers point at the clause that now holds
-their text. NOTHING WAS DELETED IN ANY REFRAME - and that sentence was written into this
-file THREE TIMES before it was true. It is kept in its corrected form because
-the way it failed is more useful than the claim itself.
+Rule numbers are stable addresses. Absorbed numbers point to the clause
+that carries their requirements.
 
-Round 1: an adversarial judge grepped the pre-reframe backup and found FIVE
-HC-attributed quotes absent from the then-current rule file.
-Round 2: the same judge found TWO more omissions.
-Round 3 claimed a complete set of fifteen, but its line-oriented command could
-not extract multiline quotes and pointed at a path that does not exist on this
-machine. That completion claim was not proven.
-Round 4 measured the real backup at
-`~/.claude/backups/CLAUDE.md.backup-2026-08-26-preconsolidation` with a strict
-multiline extractor: 17 labeled matches, 16 unique passages, and one duplicate
-Definition of Done quote. The deduplicated evidence is generated into
-`bootpack/out/evidence/HC_ATTRIBUTED_QUOTES_v1_0_0.md` inside the plugin and
-installed locally at
-`~/.agents/evidence/dreameros/HC_ATTRIBUTED_QUOTES_v1_0_0.md`. Its semantic
-hash set is validated before this package passes.
+Private source evidence is retained outside the public distribution.
 
-THE DEFECT WAS NEVER THE RESTORING. It was asserting completeness from a list
-somebody else handed me, twice, instead of extracting the full set myself. That
-is R1a - prove the sweep before trusting its empty result - and it is why a
-completion claim needs its own instrument, not its author's confidence.
-
-The detailed incident narrative remains machine-local at
-`~/.claude/rules/dreameros-incidents.md`; it is not part of this portable
-package. Bracketed incident tags below are lookup labels, not claims that the
-machine-local narrative is reachable by every vendor. A portable client can
-verify the attributed quote evidence above; it must report the detailed
-incident ledger unavailable when that local file is absent.
+Prove every sweep before trusting an empty result, as required by R1a.
+Bracketed incident tags are lookup labels; report the local incident ledger
+unavailable when it is absent.
 
 ---
 
@@ -115,14 +90,6 @@ write-up is not a reading. When the operator attaches something, or names a
 source and says go and find it, OPEN IT YOURSELF before answering about it. A
 derived artifact is admissible only after the primary one has been read, and
 then only beside it, labelled as derived.
-
-HC, 2026-09-11. He attached eleven diagrams and said "find the attahmetns i
-added for this", then "its also in this chat", then "go through chat.. and
-find". The session read a previous lane's summary, opened one image of the
-eleven, and reported on all eleven. He opened them himself: "werid.. how dd i
-find them and not you", then "i told you to go through chat.. and find.. so
-if you knew my intentn... youjust ignorred it like stupid", then "Literally
-make this permanent and executable from now until forever everywhere."
 
 ENFORCED, NOT MERELY WRITTEN. gate_primary_source.py is a Stop hook that
 holds the turn when the operator attached a source, or told this session to
@@ -364,30 +331,7 @@ found, let the lanes deepen it. [tier]
 
 ### R7a - THE BEST MODEL FOR THE JOB, COST IN MIND, ACCURACY NEVER TRADED (HC canon, 2026-09-04)
 
-Ordered as canon by HC on 2026-09-04 12:4xZ and corrected by him at 14:3xZ
-the same day, after his 02:52Z order to use Fable only for what needs it and
-his 08:28Z order to change models to the task, required always. His words,
-kept exact. First:
-
-> "Using the cheapest models
-> For the jobs without sacrificing accuracy
-> Power and intent
->
-> This
-> Is
-> Canon and should always and forever Run this way"
-
-Then, correcting the order of priority:
-
-> "i want to make it clear.. we need the best model for the job and im
-> counting on dreameros and you and also the local llm to either inject
-> that in locally and cloude becasue this is a moat all day and night.. if
-> you dont see that than you are not hleping
->
-> i need not just the lighest but the best for teh job while keep token and
-> usgae at top of mind and never ever ever letting acuracy, correctness ,
-> validity , and up to date informaton all under then intent driven message
-> by user get affected ... this is canon global everywhere and forever"
+The Human Conductor set and corrected the model selection priority.
 
 THE RULE, in his order of priority. Every job goes to the BEST model for
 that job. Tokens and usage stay at the top of mind while choosing it. Five
@@ -616,19 +560,7 @@ purpose. [firstask]
 
 ## R26 - THE CORNERSTONE: SAME POWER EVERYWHERE, THE GATEWAY IN BETWEEN
 
-Ordered saved as a cornerstone by HC on 2026-08-31, after stating it
-"a million times" without it sticking. His words, kept exact:
-
-> "the point of dreameros is to thave the same power, informaation ,
-> knowledge and operating run time across the board no matter where it
-> is logged in from and the associated things you can do are tied to
-> your subscription tier... before and after everychange records must
-> be commited. with dreameros. where you are getting and recievieng
-> upddates aalways and forever to be 100 percent sure you are always on
-> the same page.. every venue must be able to pull this thas why
-> dreameros was created.. local also gets local files, Cloud gets cloud
-> files. Dreamer OS gateway is the go between between all things.
-> That's why it was created."
+The Human Conductor established this cornerstone on 2026-08-31.
 
 THREE BINDINGS, none optional:
 
@@ -661,19 +593,8 @@ it. [cornerstone]
 
 ## R28 - READ EVERY VENUE IN FULL BEFORE AND AFTER EACH CHANGE
 
-Ordered as canon by HC on 2026-09-11 (09:4xZ, restated 09:5xZ): in the
-gateway, runtime, desktop, clouds, every session, always and forever. His
-words, kept exact:
-
-> "Make sure you do not skim anything. I need you to fully understand
-> everything that has been changed, and you are always to save and update
-> yourself before making a change and after making a change. This is
-> canon, runtime, and relevant forever."
-
-> "You need to check DreamerOS GW for things that you don't know and
-> changes you're unaware of, as well as offload local, git local. Update
-> before and after any change to be sure you're in sync with all things
-> connected to DreamerOS."
+The Human Conductor ordered this rule on 2026-09-11.
+This rule applies permanently in every venue and every session.
 
 FOUR BINDINGS, none optional:
 
@@ -712,14 +633,8 @@ at every change boundary. [changeboundary]
 
 ## R27 - A MERGED BRANCH DIES AT MERGE TIME. BRANCH HYGIENE IS PART OF SHIPPED.
 
-Ordered as forever-canon by HC on 2026-09-01, after ~250 stale local
-branches accumulated across the estate despite repeated hygiene orders.
-His words, kept exact:
-
-> "the fucking point is to not have hundreds of stashes and branches
-> left over. I TOLD YOU ABOUT THIS BRANCH HYGENE.. THIS IS CANON. THIS
-> IS A FOREVER RULE.. THIS IS THE POINT BECASUE THEN WE HAVE TO SARCHED
-> THINGS THAT ARE DEFUNCT AND STUPD"
+The Human Conductor ordered this rule on 2026-09-01.
+Branch and stash hygiene applies permanently in every session.
 
 THE RULE, three bindings:
 
@@ -924,12 +839,6 @@ found a problem, not a pass.
    substrate handoff says with what the ledger says. A disagreement is
    written as a correction anchor before any work starts.
 
-   HC directive, 2026-09-11 14:3xZ, his words:
-
-   > "makes usre you are always checking agaginst local offload as well..
-   > you will make this part of the hyrdrate from here on out.. i order to
-   > presever integrity wired up in runtime customer usable"
-
 1. Reach the shared memory. Report CONNECTED, PARTIALLY CONNECTED or BLOCKED.
 2. Recall the current topic before doing anything on it.
 3. Read git state in every repository you will touch. Never assume clean.
@@ -955,13 +864,6 @@ found a problem, not a pass.
 
 <!-- BEGIN HC-DEFINITION-OF-DONE v1.0.0 - SUPREME, ratified 2026-08-17 - DO NOT SOFTEN -->
 # THE DEFINITION OF DONE. SUPREME. SUPERSEDES ALL OTHERS, EVERY ENGINE, EVERY VENDOR.
-
-HC verbatim: "When I say done, that equals customer usable live in the hands of a
-customer who stumbles upon DreamerOS. It must be total and absolute, finished and
-completely out the door so I can charge for it. Nothing is done until it is live,
-runtime, wired up, in customer hands, he or she is able to use it, and I am able to
-charge for it, and I am able to publicize this. If this is not done, verified by you
-and myself, by exclusive exhaustive tests, it is not done."
 
 ALL SEVEN MUST HOLD AT ONCE OR THE WORD DONE IS FORBIDDEN:
 1. LIVE in runtime, executing. Not merely merged, not merely deployed.

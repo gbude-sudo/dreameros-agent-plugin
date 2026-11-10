@@ -8,8 +8,7 @@ check itself).
 
 WHY THIS EXISTS. R19 already says "never parrot the operator... take the
 intent, write it in his register, keep his actual words only when he says
-copy me verbatim." HC named this exact gap live, in his own words: "I
-always have to say things like 'dont copy and paste what i say'" - meaning
+copy me verbatim." The recurring failure shows
 the written rule is not reliably firing, the same shape of failure R21
 already fixed for the governance-vocabulary ban. This hook is the same fix
 applied to the parrot rule: R19 was already correct prose; prose alone did

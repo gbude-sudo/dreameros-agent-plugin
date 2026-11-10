@@ -55,6 +55,12 @@ dreameros/
 
 ## Shared vendor boot pack
 
+The build and validator run synthetic scanner controls. Without a private
+local baseline, they report private-quote coverage as unverified. To check
+known private text windows locally, set `DREAMEROS_PRIVATE_QUOTE_BASELINE`
+to a protected baseline file outside the repository. That check does not
+cover unknown or shorter passages, binaries, or Git history.
+
 `bootpack/SOURCE-dreameros-boot-canon.md` is the single Git-backed source for
 installed boot files. The live MCP session package supplies current runtime
 context. `bootpack/build-boot-pack.ps1` builds the native format each vendor

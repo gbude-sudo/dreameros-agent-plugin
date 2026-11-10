@@ -171,56 +171,91 @@ def check_boot_source_floor() -> None:
             fail(f"bootpack source: differs from external current floor {external}")
 
 
-def check_quote_evidence() -> None:
-    source_path = ROOT / "bootpack" / "evidence" / "HC_ATTRIBUTED_QUOTES_v1_0_0.md"
-    generated_path = ROOT / "bootpack" / "out" / "evidence" / "HC_ATTRIBUTED_QUOTES_v1_0_0.md"
-    floor_path = ROOT / "bootpack" / "known-good-hc-quotes.json"
-    boot_source_path = ROOT / "bootpack" / "SOURCE-dreameros-boot-canon.md"
-    try:
-        text = source_path.read_text(encoding="utf-8").replace("\r\n", "\n").replace("\r", "\n")
-        floor = json.loads(floor_path.read_text(encoding="utf-8"))
-        boot_source = boot_source_path.read_text(encoding="utf-8")
-    except Exception as exc:
-        fail(f"quote evidence: unreadable ({exc})")
-        return
+def private_quote_window_hits(text: str, fingerprints: set[str], width: int,
+                              allowed_contexts: set[tuple[str, str]] | None = None) -> int:
+    # JSON strings encode line breaks. Normalize them so runtime exports are scanned too.
+    normalized = text.replace(chr(92) + "n", " ").replace(chr(92) + "r", " ").replace(chr(92) + chr(34), " ")
+    words = re.findall(r"[a-z0-9]+", normalized.lower())
+    hits = 0
+    for i in range(len(words) - width + 1):
+        window_hash = hashlib.sha256(" ".join(words[i:i + width]).encode("utf-8")).hexdigest()
+        if window_hash not in fingerprints:
+            continue
+        context_hash = hashlib.sha256(" ".join(words[max(0, i - 20):i + width + 20]).encode("utf-8")).hexdigest()
+        if (window_hash, context_hash) not in (allowed_contexts or set()):
+            hits += 1
+    return hits
 
-    semantic_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
-    if semantic_hash != floor.get("semantic_sha256"):
-        fail("quote evidence: semantic file hash differs from reviewed floor")
-    pattern = re.compile(r'HC (?:verbatim|directive|asked)[^:\r\n]*:\s*"[^"]*"', re.DOTALL)
-    quotes = sorted({re.sub(r"\s+", " ", match.group(0)).strip() for match in pattern.finditer(text)})
-    quote_hashes = {hashlib.sha256(quote.encode("utf-8")).hexdigest() for quote in quotes}
-    expected_hashes = set(floor.get("quote_sha256", []))
-    expected_count = int(floor.get("unique_quote_count", 0))
-    if len(quotes) != expected_count or quote_hashes != expected_hashes:
-        fail("quote evidence: unique quote hash set differs from reviewed floor")
-    if expected_count != 16:
-        fail("quote evidence: reviewed unique quote count must remain 16")
-    if generated_path.is_file():
-        generated = generated_path.read_text(encoding="utf-8").replace("\r\n", "\n").replace("\r", "\n")
-        if generated != text:
-            fail("quote evidence: generated plugin copy differs from source evidence")
-    else:
-        fail("quote evidence: generated plugin copy missing")
-    for required_path in (
-        "bootpack/out/evidence/HC_ATTRIBUTED_QUOTES_v1_0_0.md",
-        "~/.agents/evidence/dreameros/HC_ATTRIBUTED_QUOTES_v1_0_0.md",
-    ):
-        if required_path not in boot_source:
-            fail(f"quote evidence: boot source does not name reachable carrier path {required_path}")
-    if "CLAUDE.md.backup-2026-08-26-preconsolidation" in boot_source and "~/.claude/backups/" not in boot_source:
-        fail("quote evidence: boot source cites the old nonexistent backup path")
 
-    manifest_path = ROOT / "bootpack" / "out" / "manifest" / "dreameros-boot-canon.json"
-    try:
-        metadata = json.loads(manifest_path.read_text(encoding="utf-8")).get("evidence", {})
-    except Exception as exc:
-        fail(f"quote evidence: generated manifest unreadable ({exc})")
+def check_private_quote_windows() -> None:
+    # This public synthetic canary verifies the scanner, not private-data coverage.
+    canary = "alpha bravo charlie delta echo foxtrot golf hotel"
+    canary_hash = hashlib.sha256(canary.encode("utf-8")).hexdigest()
+    if (private_quote_window_hits(canary, {canary_hash}, 8) != 1
+            or private_quote_window_hits("unrelated public text", {canary_hash}, 8) != 0):
+        fail("private quote scan: synthetic canary failed")
         return
-    if metadata.get("hc_attributed_quotes") != "evidence/HC_ATTRIBUTED_QUOTES_v1_0_0.md":
-        fail("quote evidence: generated manifest path mismatch")
-    if metadata.get("unique_quote_count") != 16:
-        fail("quote evidence: generated manifest count mismatch")
+    baseline_path = os.environ.get("DREAMEROS_PRIVATE_QUOTE_BASELINE", "").strip()
+    if not baseline_path:
+        print("PRIVATE QUOTE COVERAGE UNVERIFIED: no private local baseline supplied; synthetic canary passed.")
+        return
+    try:
+        baseline_file = Path(baseline_path).expanduser().resolve(strict=True)
+        if baseline_file.is_relative_to(ROOT.resolve()):
+            raise ValueError("private baseline must be outside the public repository")
+        baseline = json.loads(baseline_file.read_text(encoding="utf-8"))
+        width = baseline["window_words"]
+        fingerprints = set(baseline["sha256"])
+        short_width = baseline["targeted_window_words"]
+        short_fingerprints = set(baseline["targeted_sha256"])
+        allowed_contexts = {(entry["window_sha256"], entry["context_sha256"]) for entry in baseline["allowed_targeted_contexts"]}
+        extra_windows = [(entry["window_words"], set(entry["sha256"])) for entry in baseline.get("extra_windows", [])]
+        if (width != 12 or short_width != 8 or not fingerprints or not short_fingerprints
+                or any(not re.fullmatch(r"[0-9a-f]{64}", h) for h in fingerprints | short_fingerprints)
+                or any(window not in short_fingerprints or not re.fullmatch(r"[0-9a-f]{64}", context) for window, context in allowed_contexts)
+                or any(not isinstance(n, int) or not 4 <= n <= 12 or not values or any(not re.fullmatch(r"[0-9a-f]{64}", h) for h in values) for n, values in extra_windows)):
+            raise ValueError("invalid fingerprint baseline")
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        fail(f"private quote scan: cannot read baseline ({type(exc).__name__})")
+        return
+    try:
+        listing = subprocess.check_output(["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"], cwd=ROOT)
+        names = listing.decode("utf-8").split("\0")
+    except (OSError, UnicodeDecodeError, subprocess.CalledProcessError):
+        # Exported source packages may not include Git metadata or the Git CLI.
+        # Scan every available file in that case, without traversing Git metadata.
+        names = []
+        try:
+            def traversal_error(exc: OSError) -> None:
+                raise exc
+            for directory, subdirs, files in os.walk(ROOT, onerror=traversal_error):
+                subdirs[:] = [name for name in subdirs if name != ".git"]
+                names.extend(str((Path(directory) / name).relative_to(ROOT)) for name in files)
+        except OSError as exc:
+            fail(f"private quote scan: cannot enumerate files ({type(exc).__name__})")
+            return
+    for name in names:
+        if not name:
+            continue
+        path = ROOT / name
+        if not path.is_file():
+            continue
+        try:
+            data = path.read_bytes()
+            if data.startswith((b"\xff\xfe", b"\xfe\xff")):
+                text = data.decode("utf-16")
+            elif b"\0" in data:
+                continue  # Binary data; this is a text scan, not an image or archive scan.
+            else:
+                text = data.decode("utf-8")
+        except (OSError, UnicodeDecodeError):
+            fail(f"private quote scan: unreadable text candidate in {name}")
+            continue
+        if (private_quote_window_hits(text, fingerprints, width)
+                or private_quote_window_hits(text, short_fingerprints, short_width, allowed_contexts)
+                or any(private_quote_window_hits(text, values, n) for n, values in extra_windows)):
+            fail(f"private quote scan: protected passage candidate in {name}")
+    print("PRIVATE BASELINE CHECKED: known exact text windows only; shorter or unknown passages and binaries remain unverified.")
 
 
 def check_skills() -> None:
@@ -1551,7 +1586,7 @@ def main() -> int:
     check_plugin_json()
     check_mcp_json()
     check_boot_source_floor()
-    check_quote_evidence()
+    check_private_quote_windows()
     check_cursor_project_pointer()
     check_project_adapters()
     check_skills()
