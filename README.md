@@ -24,6 +24,9 @@ claude plugin update dreameros@dreameros
 
 The last two commands are for later: they fetch a newer version when one
 ships. Restart Claude Code after an update.
+Claude Code does not update third-party marketplaces by itself. To turn that
+on, open `/plugin`, pick Marketplaces, and use the "Enable auto-update" toggle
+for `dreameros` (source: code.claude.com/docs/en/plugins/loading).
 After install, start Claude Code, run `/mcp`, pick the `dreameros` server and
 sign in with your DreamerOS account in the browser. Until you sign in, the
 server shows "needs authentication" and no DreamerOS tool runs. Skills load
