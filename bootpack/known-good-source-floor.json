@@ -1,20 +1,22 @@
 {
-    "minimum_version":  "2.6.0",
-    "semantic_sha256":  "3fa61b2d3be67e2a433624f22b1ced3c16d5984119026ff27e99295d8c6f4050",
-    "measured_from":  "v2.6.0 at merged commit c065aae: R1n adds the HC-directed primary-source requirement to the existing offload-in-hydrate source. The source contains exactly one R1n heading. This floor repair changes no canonical source text; it makes the reviewed floor and generated outputs match the source already on origin/main.",
-    "required_clauses":  [
-                             "## LAYER 0 - AUTHORITY. SETTLE THIS BEFORE ANYTHING ELSE.",
-                             "### R1g - An error is not an inventory",
-                             "### R1n - Open the primary source the operator named",
-                             "### R1l - Prove every claim against the definition of done",
-                             "## RULE ADDRESSES PRESERVED",
-                             "## LAYER 3 - THE OUTPUT GATE. NOTHING SHIPS UNCHECKED.",
-                             "## LAYER 3b - MAXIMUM COGNITIVE LOAD. MULTI-PASS OR DO NOT ANSWER.",
-                             "## R26 - THE CORNERSTONE: SAME POWER EVERYWHERE, THE GATEWAY IN BETWEEN",
-                             "## R27 - A MERGED BRANCH DIES AT MERGE TIME. BRANCH HYGIENE IS PART OF SHIPPED.",
-                             "Write the session handoff with dreameros_session_handoff_write",
-                             "Show the instrument beside the claim",
-                             "## R28 - READ EVERY VENUE IN FULL BEFORE AND AFTER EACH CHANGE",
-                             "Read the local offload before any work: the fixed-path session ledger"
-                         ]
+  "minimum_version": "2.6.1",
+  "semantic_sha256": "9b9aa6348bfe5ca7c35431e9acb03e5381e1315494aeed1c9cfc0067de56f073",
+  "measured_from": "Public-safe source draft. Review required before use as an approved source floor.",
+  "required_clauses": [
+    "## LAYER 0 - AUTHORITY. SETTLE THIS BEFORE ANYTHING ELSE.",
+    "### R1g - An error is not an inventory",
+    "### R1n - Open the primary source the operator named",
+    "### R1l - Prove every claim against the definition of done",
+    "## RULE ADDRESSES PRESERVED",
+    "## LAYER 3 - THE OUTPUT GATE. NOTHING SHIPS UNCHECKED.",
+    "## LAYER 3b - MAXIMUM COGNITIVE LOAD. MULTI-PASS OR DO NOT ANSWER.",
+    "## R26 - THE CORNERSTONE: SAME POWER EVERYWHERE, THE GATEWAY IN BETWEEN",
+    "## R27 - A MERGED BRANCH DIES AT MERGE TIME. BRANCH HYGIENE IS PART OF SHIPPED.",
+    "Write the session handoff with dreameros_session_handoff_write",
+    "Show the instrument beside the claim",
+    "## R28 - READ EVERY VENUE IN FULL BEFORE AND AFTER EACH CHANGE",
+    "Read the local offload before any work: the fixed-path session ledger",
+    "This rule applies permanently in every venue and every session.",
+    "Branch and stash hygiene applies permanently in every session."
+  ]
 }

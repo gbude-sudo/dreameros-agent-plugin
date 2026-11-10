@@ -40,9 +40,7 @@ alone. Then a reader can verify it or refuse it.
 
 # FIXED means customer-usable. Nothing else. (HC, 2026-08-10)
 
-HC verbatim: "Fixed = problem that was broken or not working for end user live
-runtime, is now working in customer running runtime and live for use and
-expendature. If it doesnt = that then its not fixed."
+The Human Conductor requires a customer-facing verification standard.
 
 All six must hold: something was BROKEN, for an END USER, in LIVE RUNTIME, and
 it is now WORKING, in CUSTOMER RUNTIME, usable including for expenditure.

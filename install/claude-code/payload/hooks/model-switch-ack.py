@@ -2,14 +2,7 @@
 """Engine-switch acknowledgment. A Stop hook, not a memory. Sibling to
 model-phase-boundary.py - same proven pattern, different trigger.
 
-The reason this file exists: the operator switched models mid-session
-(opus-5 -> sonnet-5) and got no acknowledgment until asking for one
-directly. His words: "why the fuck do i have to be the one that
-remembers?!" A written rule (engine-switch-banner.md memory entry) already
-described the desired behavior and did not fire, because prose is not
-enforcement - proven again, the same lesson model-phase-boundary.py was
-built to close for the downshift-advisory case. This closes it for the
-switch-happened case.
+An unacknowledged model change prompted this check.
 
 WHAT IT CHECKS, deterministically, from the actual transcript: the model
 recorded on the most recent real assistant turn versus the model recorded

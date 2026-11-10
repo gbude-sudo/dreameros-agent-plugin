@@ -25,13 +25,10 @@ param(
 $ErrorActionPreference = 'Stop'
 $Root   = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Source = Join-Path $Root 'SOURCE-dreameros-boot-canon.md'
-$QuoteEvidenceSource = Join-Path $Root 'evidence\HC_ATTRIBUTED_QUOTES_v1_0_0.md'
 $Out    = Join-Path $Root 'out'
 
 if (-not (Test-Path $Source)) { throw "source missing: $Source" }
-if (-not (Test-Path $QuoteEvidenceSource)) { throw "quote evidence missing: $QuoteEvidenceSource" }
 $Payload = Get-Content $Source -Raw
-$QuoteEvidencePayload = Get-Content $QuoteEvidenceSource -Raw
 $VersionMatch = [regex]::Match($Payload, '(?m)^# DreamerOS Boot Canon v([0-9]+\.[0-9]+\.[0-9]+)\s*$')
 if (-not $VersionMatch.Success) { throw 'boot canon source has no semantic version heading.' }
 $VersionNumber = $VersionMatch.Groups[1].Value
@@ -290,6 +287,54 @@ function ConvertTo-JsonString([string]$Text) {
     }
     [void]$escaped.Append('"')
     return $escaped.ToString()
+}
+
+# Public synthetic controls test this scanner; they do not prove private-data coverage.
+# A private baseline may be supplied locally, outside this public repository.
+function Test-PrivacyWindow([string]$Text, [int]$Width, [object[]]$Hashes, [object[]]$AllowedContexts) {
+    $fingerprints = New-Object 'System.Collections.Generic.HashSet[string]'
+    foreach ($hash in $Hashes) {
+        if ([string]$hash -notmatch '^[0-9a-f]{64}$') { throw 'invalid private quote fingerprint' }
+        [void]$fingerprints.Add([string]$hash)
+    }
+    $words = @([regex]::Matches($Text.ToLowerInvariant(), '[a-z0-9]+') | ForEach-Object { $_.Value })
+    for ($i = 0; $i -le $words.Count - $Width; $i++) {
+        $windowHash = Get-TextSha (($words[$i..($i + $Width - 1)]) -join ' ')
+        if ($fingerprints.Contains($windowHash)) {
+            $start = [Math]::Max(0, $i - 20)
+            $end = [Math]::Min($words.Count - 1, $i + $Width + 19)
+            $contextHash = Get-TextSha (($words[$start..$end]) -join ' ')
+            $allowed = $false
+            foreach ($candidate in $AllowedContexts) {
+                if ($candidate.window_sha256 -ceq $windowHash -and $candidate.context_sha256 -ceq $contextHash) { $allowed = $true; break }
+            }
+            if (-not $allowed) { return $true }
+        }
+    }
+    return $false
+}
+$syntheticCanary = 'alpha bravo charlie delta echo foxtrot golf hotel'
+$syntheticHash = Get-TextSha $syntheticCanary
+if (-not (Test-PrivacyWindow $syntheticCanary 8 @($syntheticHash) @()) -or (Test-PrivacyWindow 'unrelated public text' 8 @($syntheticHash) @())) {
+    throw 'private quote scan synthetic canary failed'
+}
+if ($env:DREAMEROS_PRIVATE_QUOTE_BASELINE) {
+    $PrivacyFloorFile = (Resolve-Path -LiteralPath $env:DREAMEROS_PRIVATE_QUOTE_BASELINE).Path
+    $RepoPrivacyRoot = [IO.Path]::GetFullPath((Split-Path -Parent $Root)).TrimEnd([char[]]'\/') + [IO.Path]::DirectorySeparatorChar
+    if ($PrivacyFloorFile.StartsWith($RepoPrivacyRoot, [StringComparison]::OrdinalIgnoreCase)) { throw 'private baseline must be outside the public repository' }
+    $PrivacyFloor = Get-Content -Raw -LiteralPath $PrivacyFloorFile | ConvertFrom-Json
+    if ($PrivacyFloor.window_words -ne 12 -or $PrivacyFloor.targeted_window_words -ne 8 -or @($PrivacyFloor.sha256).Count -eq 0 -or @($PrivacyFloor.targeted_sha256).Count -eq 0) { throw 'invalid private quote fingerprint baseline' }
+    if ((Test-PrivacyWindow $Payload 12 @($PrivacyFloor.sha256) @()) -or (Test-PrivacyWindow $Payload 8 @($PrivacyFloor.targeted_sha256) @($PrivacyFloor.allowed_targeted_contexts))) {
+        throw 'source contains a protected passage candidate'
+    }
+    foreach ($extra in @($PrivacyFloor.extra_windows)) {
+        if ($null -eq $extra) { continue }
+        if ($extra.window_words -lt 4 -or $extra.window_words -gt 12 -or @($extra.sha256).Count -eq 0) { throw 'invalid private quote fingerprint baseline' }
+        if (Test-PrivacyWindow $Payload ([int]$extra.window_words) @($extra.sha256) @()) { throw 'source contains a protected passage candidate' }
+    }
+    Write-Host 'Private local baseline checked against source; coverage is limited to its fingerprints.'
+} else {
+    Write-Host 'PRIVATE QUOTE COVERAGE UNVERIFIED: no private local baseline supplied; synthetic canary passed.'
 }
 
 # This is the check outside the generator/checksum loop. A generated set can
@@ -728,11 +773,6 @@ $PayloadTargets += @{
 }
 
 $Targets += @{
-    Path = Join-Path $Out 'evidence\HC_ATTRIBUTED_QUOTES_v1_0_0.md'
-    Text = $QuoteEvidencePayload
-}
-
-$Targets += @{
     Path = Join-Path $Out 'project\DREAMEROS_CENTRAL_BOOT_GENERATOR_POINTER.ps1.block'
     Text = @"
 # DREAMEROS-CENTRAL-BOOT-GENERATOR-POINTER v1.0.0
@@ -772,6 +812,11 @@ description: Load the DreamerOS Boot Canon. Use at the start of any substantive 
 
 $Payload
 "@
+}
+
+$PayloadTargets += @{
+    Path = Join-Path (Split-Path -Parent $Root) 'skills\dreameros-boot\SKILL.md'
+    Text = $Targets[-1].Text
 }
 
 $Targets += @{
@@ -839,11 +884,6 @@ $manifest.project_adapters = [ordered]@{
     verified_handoff = 'cursor/dreameros-first.adapter.mdc'
     claude_session_start = 'claude/dreameros-session-start.sh'
     historical_generator_pointer = 'project/DREAMEROS_CENTRAL_BOOT_GENERATOR_POINTER.ps1.block'
-}
-$manifest.evidence = [ordered]@{
-    hc_attributed_quotes = 'evidence/HC_ATTRIBUTED_QUOTES_v1_0_0.md'
-    unique_quote_count = 16
-    purpose = 'Portable evidence only. Not a second rule surface.'
 }
 $manifest.runtime_export = [ordered]@{
     schema_version = 'dreameros-session-package-stable-prefix-v1'
@@ -920,7 +960,7 @@ if ($VerifyGenerated) {
         else { Write-Host ("  ok     " + $rel) -ForegroundColor Green }
     }
     foreach ($t in $PayloadTargets) {
-        $label = 'install\\claude-code\\payload\\hooks\\' + (Split-Path -Leaf $t.Path)
+        $label = $t.Path.Substring((Split-Path -Parent $Root).Length).TrimStart([char[]]'\/')
         if (-not (Test-Path $t.Path)) { Write-Host ("  MISSING " + $label) -ForegroundColor Red; $fail++; continue }
         if ((Get-Sha $t.Path) -ne (Get-TextSha $t.Text)) { Write-Host ("  DRIFT  " + $label + " differs from current renderer") -ForegroundColor Red; $fail++ }
         else { Write-Host ("  ok     " + $label) -ForegroundColor Green }
@@ -971,7 +1011,6 @@ if ($VerifyInstalled) {
         @{ Source = Join-Path $Out 'skill\dreameros-boot\SKILL.md'; Path = Join-Path $env:USERPROFILE '.codex\skills\dreameros-boot\SKILL.md'; Label = 'Codex boot skill'; Id = 'codex_boot_skill' },
         @{ Source = Join-Path $Out 'skill\dreameros-boot\SKILL.md'; Path = Join-Path $env:USERPROFILE '.agents\skills\dreameros-boot\SKILL.md'; Label = 'Shared boot skill'; Id = 'shared_boot_skill' },
         @{ Source = Join-Path $Out 'skill\dreameros-boot\SKILL.md'; Path = Join-Path $repoRoot 'skills\dreameros-boot\SKILL.md'; Label = 'Agent Plugin boot skill'; Id = 'agent_plugin_boot_skill' },
-        @{ Source = Join-Path $Out 'evidence\HC_ATTRIBUTED_QUOTES_v1_0_0.md'; Path = Join-Path $env:USERPROFILE '.agents\evidence\dreameros\HC_ATTRIBUTED_QUOTES_v1_0_0.md'; Label = 'Shared quote evidence'; Id = 'shared_quote_evidence' },
         @{ Source = Join-Path $Out 'claude\dreameros-session-start.sh'; Path = Join-Path $env:USERPROFILE '.claude\hooks\dreameros-session-start.sh'; Label = 'Claude SessionStart adapter'; Id = 'claude_session_start_hook' }
     )
     $registeredCursorRule = Get-RegisteredCursorPluginRuleDest
@@ -998,7 +1037,7 @@ if ($VerifyInstalled) {
         Write-Host '  ok      Claude SessionStart registration' -ForegroundColor Green
         [void]$verifiedCarrierIds.Add('claude_session_start_registration')
     }
-    $requiredCarrierIds = @('claude_global_boot','codex_global_boot','cursor_global_pointer','cursor_registered_plugin_rule','claude_boot_skill','codex_boot_skill','shared_boot_skill','agent_plugin_boot_skill','shared_quote_evidence','claude_session_start_hook','claude_session_start_registration')
+    $requiredCarrierIds = @('claude_global_boot','codex_global_boot','cursor_global_pointer','cursor_registered_plugin_rule','claude_boot_skill','codex_boot_skill','shared_boot_skill','agent_plugin_boot_skill','claude_session_start_hook','claude_session_start_registration')
     $verifiedSorted = @($verifiedCarrierIds | Sort-Object -Unique)
     $requiredSorted = @($requiredCarrierIds | Sort-Object)
     if (($verifiedSorted -join ',') -cne ($requiredSorted -join ',')) {
@@ -1008,7 +1047,7 @@ if ($VerifyInstalled) {
     if ($fail -gt 0) { throw "$fail installed DreamerOS carrier(s) are missing or drifted." }
     $receipt = [ordered]@{ schema_version = 'dreameros-verify-installed-v1'; ok = $true; boot_canon = [ordered]@{ version = $Version; sha256 = $SourceSemanticSha }; required_carriers = $requiredSorted; verified_carriers = $verifiedSorted }
     Write-Output ('DREAMEROS_VERIFY_INSTALLED_JSON=' + ($receipt | ConvertTo-Json -Compress))
-    Write-Host "  VERIFIED installed Claude, Codex, Cursor pointer, Cursor registered plugin rule, skills, evidence, and Claude hook" -ForegroundColor Green
+    Write-Host "  VERIFIED installed Claude, Codex, Cursor pointer, Cursor registered plugin rule, skills and Claude hook" -ForegroundColor Green
 }
 
 # --- install ------------------------------------------------------------------
@@ -1115,11 +1154,6 @@ if ($Install) {
             source = Join-Path $Out 'skill\dreameros-boot\SKILL.md'
             dest = Join-Path $repoRoot 'skills\dreameros-boot\SKILL.md'
             engine = 'Agent Plugin clients'
-        }
-        @{
-            source = Join-Path $Out 'evidence\HC_ATTRIBUTED_QUOTES_v1_0_0.md'
-            dest = Join-Path $env:USERPROFILE '.agents\evidence\dreameros\HC_ATTRIBUTED_QUOTES_v1_0_0.md'
-            engine = 'Shared DreamerOS quote evidence'
         }
         @{
             source = Join-Path $Out 'claude\dreameros-session-start.sh'
