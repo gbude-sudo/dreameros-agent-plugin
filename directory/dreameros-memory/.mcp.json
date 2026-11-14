@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "dreameros": {
+      "type": "http",
+      "url": "https://mcp.dreameros.app/mcp/public"
+    }
+  }
+}

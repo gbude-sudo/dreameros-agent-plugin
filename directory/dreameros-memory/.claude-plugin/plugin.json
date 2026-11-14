@@ -1,0 +1,20 @@
+{
+  "name": "dreameros-memory",
+  "displayName": "DreamerOS Memory",
+  "version": "0.1.0",
+  "description": "Save where you stopped, pick it up in a later session, search the notes you saved, and scan drafts for filler. Works through your DreamerOS account. Nothing is saved unless you ask.",
+  "author": {
+    "name": "DreamerOS",
+    "url": "https://dreameros.app"
+  },
+  "homepage": "https://dreameros.app",
+  "privacyPolicyUrl": "https://dreameros.app/privacy",
+  "repository": "https://github.com/gbude-sudo/dreameros-agent-plugin",
+  "keywords": [
+    "memory",
+    "handoff",
+    "notes",
+    "continuity",
+    "mcp"
+  ]
+}
