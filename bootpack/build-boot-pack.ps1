@@ -337,6 +337,24 @@ if ($env:DREAMEROS_PRIVATE_QUOTE_BASELINE) {
     Write-Host 'PRIVATE QUOTE COVERAGE UNVERIFIED: no private local baseline supplied; synthetic canary passed.'
 }
 
+# Structural check, needs no private baseline: the public payload must hold no
+# paragraph made only of quote lines (lines that start with '>'). The private
+# fingerprint scan above covers only the passages a local baseline lists; this
+# one covers the shape every leaked operator quote took before PR 65.
+function Test-QuoteOnlyParagraph([string]$Text) {
+    foreach ($paragraph in (($Text -replace "`r`n", "`n") -split "`n`n")) {
+        $lines = @($paragraph -split "`n" | Where-Object { $_.Trim() })
+        if ($lines.Count -gt 0 -and @($lines | Where-Object { $_ -notmatch '^>' }).Count -eq 0) { return $true }
+    }
+    return $false
+}
+if (-not (Test-QuoteOnlyParagraph "plain`n`n> a quoted line`n> a second quoted line`n`nplain") -or (Test-QuoteOnlyParagraph "plain`n`nplain with > inside`n`nplain")) {
+    throw 'quote-only paragraph scan synthetic canary failed'
+}
+if (Test-QuoteOnlyParagraph $Payload) {
+    throw 'source contains a quote-only paragraph'
+}
+
 # This is the check outside the generator/checksum loop. A generated set can
 # be perfectly self-consistent while its source is stale. The reviewed floor
 # pins the current source version, semantic hash, and structural canaries. On
