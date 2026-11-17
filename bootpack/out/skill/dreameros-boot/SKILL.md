@@ -3,7 +3,7 @@ name: dreameros-boot
 description: Load the DreamerOS Boot Canon. Use at the start of any substantive DreamerOS work, and whenever a claim about status, count, health, deployment, liveness or completion is about to be made. Carries the measurement discipline, the CANON equals RUNTIME vocabulary, the FIXED definition, and the boot and close checks.
 ---
 
-# DreamerOS Boot Canon v2.6.1
+# DreamerOS Boot Canon v2.6.2
 
 SINGLE SOURCE OF TRUTH. Every vendor file is generated from this one.
 Never edit a generated copy. Edit here, then run build-boot-pack.ps1.
@@ -195,7 +195,7 @@ THREE HARD RULES, none may be softened:
 A table graded by its own author is a claim. Give anything consequential to a
 separate adversarial pass whose only job is to REFUTE it. [claims]
 
-### R1m - Show the instrument beside the claim   (HC directive 2026-09-02)
+### R1m - Show the instrument beside the claim   (HC directive 2026-09-02, extended 2026-11-17)
 A state claim ships with three things in the same sentence or table row: the
 reading, the time it was taken, and the instrument. "2 of 2 attempts failed
 (log 03:42Z, railway logs, 977 lines)" is a claim. "It fails on every call" is
@@ -204,7 +204,18 @@ and never describe a set only when the instrument enumerated the whole set. A
 number handed over by a lane stays "the lane read N with <instrument>" until
 this thread re-measures it. This binds every engine, every tier and every
 surface a customer reads: the customer sees the verification behind the claim,
-or the claim carries the smaller word. [showwork]
+or the claim carries the smaller word.
+
+Extension, 2026-11-17, from one reply that stated two things nobody had read:
+  TAKE THE READING BEFORE THE SENTENCE. Run the instrument first, then write
+  the claim, so the sentence cannot run ahead of its evidence.
+  A READING REACHES ONLY AS FAR AS ITS SCOPE. One account is not the customers,
+  one failing endpoint is not a dead key, one sample is not the set. Write the
+  scope beside the reading.
+  WHEN THE INSTRUMENT CANNOT RUN, write UNKNOWN and name what blocks it. Never
+  fill the gap with a plausible sentence.
+  AFTER A CORRECTION, re-measure and show the new readings with their sources in
+  the same reply. R1j sets the age limit on each reading. [showwork]
 
 ---
 
