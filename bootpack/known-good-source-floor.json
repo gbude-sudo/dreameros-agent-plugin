@@ -1,11 +1,13 @@
 {
-  "minimum_version": "2.6.1",
-  "semantic_sha256": "6dcfd32207ee1e6a24f87dd70d7655c4b9bb6603d80c65160ba8fa9cef7f120d",
+  "minimum_version": "2.6.3",
+  "semantic_sha256": "98228fde415c721be88f68daf6e7244858d3d582edf7e1eb3d45af4da2e6d860",
   "measured_from": "Public-safe source draft. Review required before use as an approved source floor.",
   "required_clauses": [
     "## LAYER 0 - AUTHORITY. SETTLE THIS BEFORE ANYTHING ELSE.",
     "### R1g - An error is not an inventory",
     "### R1n - Open the primary source the operator named",
+    "READ THE WHOLE INPUT BEFORE ACTING.",
+    "ACCOUNT BOUNDARY. The founder is the Human Conductor",
     "### R1l - Prove every claim against the definition of done",
     "## RULE ADDRESSES PRESERVED",
     "## LAYER 3 - THE OUTPUT GATE. NOTHING SHIPS UNCHECKED.",
