@@ -1,4 +1,4 @@
-# Who DreamerOS serves: five audiences (PROPOSED v0.1.0)
+# Who DreamerOS serves, and how deep they go (PROPOSED v0.2.0)
 
 STATUS: PROPOSED. Not canon until the Human Conductor ratifies it. Nothing
 here changes the boot canon source or its reviewed floor yet.
@@ -6,123 +6,107 @@ here changes the boot canon source or its reviewed floor yet.
 Measured 2026-11-20 on main (gateway origin/main, plugin main 7d8b42c,
 frontend origin/main). Each "today" line names the file it was read from.
 
-## Why this exists
+## The idea, in the Human Conductor's terms
 
-The boot canon (bootpack/SOURCE-dreameros-boot-canon.md) is written for one
-reader: the person building DreamerOS. It has 0 lines that say "pro",
-"elite" or "light", and no section that names an audience. The paste file
-for other AI tools (bootpack/out/paste/PASTE-INTO-ANY-LLM.txt, 1046 lines)
-is that same builder rulebook, so a customer who pastes it gets internal
-rules about branch cleanup and HC actions.
+DreamerOS began as the Human Conductor's own local system. It is shared so
+other people get the same power without the trials it took to build it.
 
-One source stays the rule. This file names the readers so each output can
-carry the part that fits its reader.
+It must be an easy button: it just works, the way an iPhone or Zscaler
+just works. And anyone who wants to can go down into the weeds, the way
+Android or Palo Alto lets you. Same power, training wheels on by default,
+training wheels off when you choose. Money, skill or aptitude never decide
+who gets the power. The plan decides what is included. The depth setting
+decides how much you see and control.
 
-## 1. HC Architect (the founder building DreamerOS)
+## 1. HC: the Human Conductor (one person)
 
-What it is: the person who designs, builds and ratifies DreamerOS itself.
-Final authority on canon, infrastructure, spend and keys.
+What it is: the founder. Builds DreamerOS and uses it every day. Final
+authority on canon, keys, spend and other members' plans.
 
 Today: gateway governance/00_CORE/HC_TIER_DEFINITION_v1_0_0.md (ratified
-2026-05-07) defines the hc tier: founder, architect, governance authority,
-the only override power. tier_gate.py TIER_HIERARCHY ends with "hc";
-UNLIMITED_TIERS is {"hc"}.
+2026-05-07): "HC also USES DreamerOS daily as an operator - the same way a
+paying customer would." tier_gate.py: tier "hc", UNLIMITED_TIERS {"hc"}.
 
-Rules that bind here: the whole current boot canon (R1 to R29). Examples:
-R5 "if we claim it, we must do it" (build the claim true, never reword it),
-R27 branch hygiene, R29 name the exact value for every HC action.
+THE SAME-TIME RULE. What HC finds, makes or sees reaches members in the same
+change, gated only by plan. A capability that exists for HC and not for any
+member is a defect with a ship date, not a perk. Only authority stays with
+HC: ratifying canon, holding keys, spending, changing another member's plan.
+This is boot canon R26 (same power everywhere, the only differentiator is
+plan) said from HC's side.
 
-How to present: never to customers. Internal only.
+Checking a plan: gateway/app/founder_walk.py lets HC step down into light,
+dreamweaver_solo, dreamweaver_duo, pro or elite for 60 to 480 minutes
+without changing the account. It refuses free.
 
-## 2. HC User (the founder using and testing the product)
+## 2. Test accounts (separate from HC)
 
-What it is: the same person, using DreamerOS daily like a customer, with no
-limits, and able to step down into any paid plan to judge what that plan
-really delivers.
+What it is: member accounts used for in-depth testing, never the founder's
+account. They prove what a real member sees.
 
-Today: gateway/app/founder_walk.py. A founder starts a walk as light,
-dreamweaver_solo, dreamweaver_duo, pro or elite for 60 minutes by default,
-480 at most. Every gateway door answers as that plan; the users table does
-not change; hc-only tools refuse during the walk. Routes:
-gateway/app/routes_founder_walk.py (POST, GET, DELETE).
+Today: the nightly member walk signs in with DreamerOS_TestLogin and
+DreamerOS_TestPass (gateway/app/member_walk_cron.py:245,254), with a
+secondary login MEMBER_WALK_SECONDARY_LOGIN (line 263).
+
+Gap: one test account per plan (free, light, pro, elite) so every plan is
+walked, not only one.
+
+## 3. Members, every plan: two depths, same power
+
+Every member is the Human Conductor of their own DreamerOS instance, never
+of the system (boot canon R26, ACCOUNT BOUNDARY).
+
+SIMPLE (default, training wheels on):
+- It just works on first sign-in. No setup choices before value.
+- One answer, one plain line saying what DreamerOS did, one receipt.
+- Plain words only. No internal names.
+- Safe defaults: checks on, approvals on for anything that sends, spends
+  or deletes.
+
+ADVANCED (chosen, training wheels off):
+- Every check, every score, every engine choice visible and adjustable.
+- The signed receipt in full, the hash chain, the raw record.
+- Their own rulebook (direction set), exported to any AI tool.
+- Connect from their own machine, server or CI: MCP address, key, one test
+  command, one receipt check, member rulebook as AGENTS.md, CLAUDE.md or
+  .cursorrules for Linux, macOS and Windows.
+- Running locally never unlocks a higher plan.
+
+Today (pieces of this already exist, per surface, not as one setting):
+- Sidebar progressive disclosure, calm by default
+  (frontend src/components/AppSidebar.tsx:293).
+- Receipt four-step disclosure ladder
+  (frontend src/components/GovernanceRibbon.tsx:1822).
+- Connector drawer progressive disclosure
+  (frontend src/components/connect/CapabilityDrawer.tsx:37).
+- Rules export: Direction Set Workshop, Pro and above (gateway
+  routes_direction_set.py refuses below Pro with 403).
 
 Gaps (agent work, after ratification):
-- A walk as Free is refused by design (founder_walk.py WALKABLE_TIERS).
-  Testing the Free plan needs either Free added to the walk list or a
-  separate test member.
-- The app has no button to start or end a walk (frontend src: 0 hits for
-  walk_as or founder_walk). Today it needs an API call.
-- Every receipt and answer during a walk should say "walking as Pro" so a
-  test result is never mistaken for an hc result.
+- One Simple/Advanced switch per member that every surface reads, instead
+  of each surface deciding alone.
+- The paste-into-any-AI file today is the full 1046-line builder rulebook
+  (bootpack/out/paste/PASTE-INTO-ANY-LLM.txt). Members need a member pack
+  instead: Simple and Advanced versions.
+- A self-host guide for Advanced members on any plan.
 
-How to present: internal only.
+How to present, in customer words (draft):
+- Simple: "It just works. Ask, and you get a checked answer and a receipt."
+- Advanced: "Open the hood. Every check, every engine, every record, on your
+  machine or ours."
+Plan limits come from gateway tier_gate.py at render time, never typed by
+hand. No plan is unlimited except hc (UNLIMITED_TIERS).
 
-## 3. Members: Free, Pro, Elite (and DreamWeaver Solo, Duo)
+## 4. Every AI engine
 
-What it is: paying or free customers. Each member is the Human Conductor
-of their own DreamerOS instance (boot canon R26, ACCOUNT BOUNDARY), never
-of the system.
-
-Today: one plugin install works on every plan; the gateway checks the plan
-on each call and the receipt shows what ran (plugin README.md, lines
-193-197). The rules export (Direction Set Workshop, app Profile > Settings
-> "Take what we know about you anywhere") is Pro and above: gateway
-routes_direction_set.py refuses below Pro with 403.
-
-What a member's AI should carry (the member canon, a subset):
-- R1 answer from measurement, R1m show the instrument beside the claim.
-- R19 plain words for the scared newbie and the engineer at once.
-- R20 act on the first ask.
-- R26 the gateway in between, same power on every device, limited only
-  by plan.
-- Their own direction set (fingerprint, voice, personal canon) on top.
-NOT carried: R27 branch hygiene, R29 HC actions, R7a model pinning, any
-rule about the founder's repos, keys or Railway.
-
-How to present, one line per plan, in customer words:
-- Free: "Your AI, checked. Answers come with a receipt." (Free mints
-  up to 25 new receipts a day: gateway receipt_quota.py.)
-- Pro: "Take your rules into any AI you use, with checks on the way in
-  and the way out."
-- Elite: "The highest plan: the most engines and checks DreamerOS
-  offers, and your own rulebook in every AI you use." (Draft wording.
-  Elite is not unlimited: tier_gate.py UNLIMITED_TIERS is {"hc"} only.
-  Which engines Elite gets must be read from TIER_ENGINES before this
-  line ships.)
-(Exact plan limits come from gateway tier_gate.py at render time, never
-typed by hand.)
-
-## 4. Advanced users, any plan (own machines, own servers)
-
-What it is: members who want to see under the hood: run agents locally,
-on their own servers or in their own CI, and call DreamerOS from there.
-
-Today: the MCP door https://mcp.dreameros.app/mcp authenticates each user
-(plugin README.md "Authentication"). The install folder is Windows
-PowerShell setup aimed at the founder (install/claude-code/README.md).
-
-What they need (agent work, after ratification):
-- A plain "connect from your own machine or server" guide: MCP URL, key,
-  one curl that proves the connection, one receipt check.
-- The member canon as a file they can drop into their own agent config
-  (AGENTS.md, CLAUDE.md, .cursorrules) on Linux, macOS and Windows.
-- Their plan still decides what runs; running locally never unlocks a
-  higher plan.
-
-How to present: "Run it your way. Your machine, your server, the same
-checks and receipts."
-
-## 5. Every AI engine
-
-What it is: Claude, Codex, Cursor, ChatGPT, Gemini, Grok and others that
-read the rules at the start of a session.
-
-Rule: each engine is told which audience it serves before it reads the
-rules. An engine serving a member never acts as the HC Architect.
+Claude, Codex, Cursor, ChatGPT, Gemini, Grok and others. Each engine is
+told who it serves (HC, a test account, or a member at Simple or Advanced
+depth) before it reads the rules. An engine serving a member never acts
+with HC authority.
 
 ## Output plan (after ratification)
 
-From the one source, the build makes two families:
-- Architect pack (today's outputs, unchanged): founder's own machines.
-- Member pack: member canon + plan line + their direction set; this
-  replaces the current PASTE-INTO-ANY-LLM.txt for customers.
+From the one boot canon source, the build makes:
+- HC pack: today's outputs, for the founder's machines.
+- Member pack, Simple: the short member rules and plain words.
+- Member pack, Advanced: the member rules plus the under-the-hood detail
+  and self-host guide.
