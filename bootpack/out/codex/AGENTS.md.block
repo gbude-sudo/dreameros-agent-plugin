@@ -1,11 +1,11 @@
-<!-- BEGIN DREAMEROS-BOOT-CANON v2.6.3 - GENERATED, DO NOT EDIT. Source: SOURCE-dreameros-boot-canon.md -->
+<!-- BEGIN DREAMEROS-BOOT-CANON v2.6.4 - GENERATED, DO NOT EDIT. Source: SOURCE-dreameros-boot-canon.md -->
 <dreameros_codex_client_adapter version="v1.0.0">
 Codex is a client surface for the DreamerOS chatgpt engine family.
 When calling dreameros_session_package from Codex, pass engine: "chatgpt".
 Do not pass engine: "codex"; that is a client name, not a package engine.
 </dreameros_codex_client_adapter>
 
-# DreamerOS Boot Canon v2.6.3
+# DreamerOS Boot Canon v2.6.4
 
 SINGLE SOURCE OF TRUTH. Every vendor file is generated from this one.
 Never edit a generated copy. Edit here, then run build-boot-pack.ps1.
@@ -261,6 +261,14 @@ corroboration limit. Mark only claims beyond that source's direct scope
 UNVERIFIED. Source count never overrules a current runtime measurement or a
 primary source. Surface conflicts and follow the authority order. Never
 manufacture a citation to satisfy a count.
+
+THE AGENT COUNTS AS ONE SOURCE AT MOST (HC standing order 2026-11-20, his
+words: "AT MINIMUM 2 WITH THE MAX SOURCE OF YOU = 1"). The agent's own command
+output, reasoning or lane report is never more than one of the two. Two reads
+of the same system (a CLI and its own API) are one source; say so. This binds
+every claim, not only a substantive factual answer. A rule HC types is saved
+the same turn to DreamerOS and to local memory, read back, and its ids are
+given to him.
 
 ---
 
@@ -958,4 +966,4 @@ revenue. HC worked 18 months with nothing in live production. That is the cost
 of speaking the smaller word as the bigger one. [done]
 <!-- END HC-DEFINITION-OF-DONE v1.0.0 -->
 
-<!-- END DREAMEROS-BOOT-CANON v2.6.3 -->
+<!-- END DREAMEROS-BOOT-CANON v2.6.4 -->
