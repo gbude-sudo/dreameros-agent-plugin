@@ -255,6 +255,14 @@ UNVERIFIED. Source count never overrules a current runtime measurement or a
 primary source. Surface conflicts and follow the authority order. Never
 manufacture a citation to satisfy a count.
 
+THE AGENT COUNTS AS ONE SOURCE AT MOST (HC standing order 2026-11-20, his
+words: "AT MINIMUM 2 WITH THE MAX SOURCE OF YOU = 1"). The agent's own command
+output, reasoning or lane report is never more than one of the two. Two reads
+of the same system (a CLI and its own API) are one source; say so. This binds
+every claim, not only a substantive factual answer. A rule HC types is saved
+the same turn to DreamerOS and to local memory, read back, and its ids are
+given to him.
+
 ---
 
 ## R2 - CANON, RUNTIME, LIVE and DONE ARE ONE WORD
