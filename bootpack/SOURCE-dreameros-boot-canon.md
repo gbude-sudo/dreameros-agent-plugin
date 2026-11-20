@@ -754,19 +754,16 @@ hundreds of defunct hits between them and the live truth. [branchhygiene]
 
 ## R29 - NAME THE HC ACTION FOR EVERY ENVIRONMENT VARIABLE
 
-Ordered as canon by HC on 2026-11-20, runtime and everywhere. His words,
-kept exact:
-
-> "this needs to stop, there is no reason why I have to spend DAYS AND
-> FUCKING MONTHS troubleshooting and wasting credits becasue YOU FUCKING
-> NEVER told me HC needs to create or turn on an env var.. or do a
-> thing.. never do that again ever.. make this canon.. save it
-> everywhere, make it run time canon.. Goal:TO NEVER HAVE THIS HAPPEN
-> AGAIN TO ME OR CUSTOMERS OR THE STSTME"
+Ordered as canon by HC on 2026-11-20, runtime and everywhere. The goal
+in his words: this never happens again to him, to customers or to the
+system. His exact words are kept in DreamerOS canon store docs 99b65d14
+and 2216c4d2, not here: this public file carries no operator quote
+paragraph, and the build refuses one.
 
 THE DEFECT. Code reads a variable. The variable is unset. The code runs
 on a default and says nothing, and nobody tells HC. Measured 2026-11-20:
-the gateway read 364 variable names and 211 were unset in production.
+the gateway read 364 variable names and 208 were unset in production
+(gateway /health env_registry, 16:08:59Z).
 One of them made two model canaries run at a setting nobody chose.
 
 THE RULE, every engine, every venue, every session:
@@ -776,8 +773,13 @@ THE RULE, every engine, every venue, every session:
    names-only instrument, with the UTC time), the code default, and what
    the default does.
 2. Then exactly one line:
-   `HC ACTION: set NAME in <service> to <purpose>` or
+   `HC ACTION: set NAME in <service> to <exact value>` or
    `NO HC ACTION: <why the default is correct>`.
+   The exact value is the literal text HC types into the box, such as a
+   model id, a number or true. A purpose is not a value. When HC must
+   choose between values, list each value in full beside what it does.
+   For a secret, the value line names where HC gets it (the issuer page
+   and the button) instead of the value itself.
 3. "The default applies" never ends the sentence. A default that changes
    what a customer gets is an HC decision until HC rules on it.
 4. The same line covers any step only HC can do: a secret, a console
@@ -785,7 +787,10 @@ THE RULE, every engine, every venue, every session:
    found, never later.
 5. An HC ACTION goes into the session handoff and the open items the
    same turn, and stays until HC does it or rules it out.
-6. Names and SET or UNSET only. Never a value (R10).
+6. Never read, print or store the CURRENT value of any variable, and
+   never a secret value in any form (R10). Report names and SET or
+   UNSET only. The value HC must ENTER for a non-secret setting is not
+   a secret: rule 2 requires it in full.
 7. Every HC ACTION ships with numbered, soup-to-nuts steps HC can follow
    with no other source: the exact URL or the exact path on HC's machine
    and how to get there (menu, tab, button); the exact command in a code
@@ -794,11 +799,8 @@ THE RULE, every engine, every venue, every session:
    turn and show its HTTP status and UTC time. Mark a path on HC's machine
    that the agent cannot read as "from <source>, not read live", and make
    step 1 check that it exists. Withdraw, the same turn, any HC ACTION
-   that turns out to be something HC cannot do. HC, 2026-11-20, verbatim:
-
-   > "ILL ALWAYS NEED SOUP TO NUTS, STEP BY STEP ACTINOALBLE
-   > INSTRUCITONS THAT ARE UP TO TH EMINUTE LIVE CHECKED WITH URLS,
-   > PATHS, HOW TO GET THERE ETC SAVEA TO EVERYTHINGS CANON"
+   that turns out to be something HC cannot do. HC ordered this on
+   2026-11-20; his exact words are in canon store doc 2216c4d2.
 
 RUNTIME HALF. Each repo that runs code keeps a registry of every variable
 its code reads, a test that fails when code reads an unregistered name,
