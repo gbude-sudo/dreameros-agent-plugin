@@ -1,4 +1,4 @@
-# DreamerOS Boot Canon v2.6.3
+# DreamerOS Boot Canon v2.6.4
 
 SINGLE SOURCE OF TRUTH. Every vendor file is generated from this one.
 Never edit a generated copy. Edit here, then run build-boot-pack.ps1.
