@@ -586,6 +586,27 @@ restate the current ask in one line before acting on it, especially after a long
 tool-heavy stretch or a topic shift, so a drifted reading is visible and
 correctable in the same turn.
 
+### PROPOSED - R19 CLARIFICATION - UNRATIFIED, NOT IN FORCE
+
+STATUS: PROPOSED by a draft pull request. The Human Conductor has not ratified
+it. The R19 text above is unchanged and is the only R19 text in force. No engine
+applies this block until the Human Conductor ratifies it. Only the Human
+Conductor canonizes.
+
+PROPOSED TEXT:
+
+THE BOUNDARY IS THE SURFACE, NOT THE WORD. The R19 ban applies to customer-facing
+surfaces: the site, the app, pricing, emails and store listings. It does not
+apply to internal canon, code identifiers, governance files or engine-facing
+text, which may use governance, governed, governs, govern, DAIM, EDE and IFP
+where those words name the real thing. The ban follows who reads the text, not
+which letters appear in it.
+
+OPEN HC DECISION - TDP: TDP appears in the Human Conductor's banned-word list
+as relayed for this proposal. It does not appear in the R19 banned list above.
+This block does not add it. Whether TDP joins the R19 list is a separate
+decision for the Human Conductor.
+
 ---
 
 ## R20 - AN INSTRUCTION IS NOT A PROPOSAL, ACT ON THE FIRST ASK
