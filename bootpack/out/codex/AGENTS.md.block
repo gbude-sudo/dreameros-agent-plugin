@@ -262,6 +262,14 @@ UNVERIFIED. Source count never overrules a current runtime measurement or a
 primary source. Surface conflicts and follow the authority order. Never
 manufacture a citation to satisfy a count.
 
+THE AGENT COUNTS AS ONE SOURCE AT MOST (HC standing order 2026-11-20, his
+words: "AT MINIMUM 2 WITH THE MAX SOURCE OF YOU = 1"). The agent's own command
+output, reasoning or lane report is never more than one of the two. Two reads
+of the same system (a CLI and its own API) are one source; say so. This binds
+every claim, not only a substantive factual answer. A rule HC types is saved
+the same turn to DreamerOS and to local memory, read back, and its ids are
+given to him.
+
 ---
 
 ## R2 - CANON, RUNTIME, LIVE and DONE ARE ONE WORD
@@ -585,6 +593,27 @@ restate the current ask in one line before acting on it, especially after a long
 tool-heavy stretch or a topic shift, so a drifted reading is visible and
 correctable in the same turn.
 
+### PROPOSED - R19 CLARIFICATION - UNRATIFIED, NOT IN FORCE
+
+STATUS: PROPOSED by a draft pull request. The Human Conductor has not ratified
+it. The R19 text above is unchanged and is the only R19 text in force. No engine
+applies this block until the Human Conductor ratifies it. Only the Human
+Conductor canonizes.
+
+PROPOSED TEXT:
+
+THE BOUNDARY IS THE SURFACE, NOT THE WORD. The R19 ban applies to customer-facing
+surfaces: the site, the app, pricing, emails and store listings. It does not
+apply to internal canon, code identifiers, governance files or engine-facing
+text, which may use governance, governed, governs, govern, DAIM, EDE and IFP
+where those words name the real thing. The ban follows who reads the text, not
+which letters appear in it.
+
+OPEN HC DECISION - TDP: TDP appears in the Human Conductor's banned-word list
+as relayed for this proposal. It does not appear in the R19 banned list above.
+This block does not add it. Whether TDP joins the R19 list is a separate
+decision for the Human Conductor.
+
 ---
 
 ## R20 - AN INSTRUCTION IS NOT A PROPOSAL, ACT ON THE FIRST ASK
@@ -729,6 +758,62 @@ THE RULE, three bindings:
 WHY: every stale label is a lie waiting to be searched. The cost is paid
 at the worst time - mid-incident, when someone greps the estate and gets
 hundreds of defunct hits between them and the live truth. [branchhygiene]
+
+## R29 - NAME THE HC ACTION FOR EVERY ENVIRONMENT VARIABLE
+
+Ordered as canon by HC on 2026-11-20, runtime and everywhere. The goal
+in his words: this never happens again to him, to customers or to the
+system. His exact words are kept in DreamerOS canon store docs 99b65d14
+and 2216c4d2, not here: this public file carries no operator quote
+paragraph, and the build refuses one.
+
+THE DEFECT. Code reads a variable. The variable is unset. The code runs
+on a default and says nothing, and nobody tells HC. Measured 2026-11-20:
+the gateway read 364 variable names and 208 were unset in production
+(gateway /health env_registry, 16:08:59Z).
+One of them made two model canaries run at a setting nobody chose.
+
+THE RULE, every engine, every venue, every session:
+
+1. When work adds, reads or depends on an environment variable, the same
+   reply names the variable, SET or UNSET in production (read with a
+   names-only instrument, with the UTC time), the code default, and what
+   the default does.
+2. Then exactly one line:
+   `HC ACTION: set NAME in <service> to <exact value>` or
+   `NO HC ACTION: <why the default is correct>`.
+   The exact value is the literal text HC types into the box, such as a
+   model id, a number or true. A purpose is not a value. When HC must
+   choose between values, list each value in full beside what it does.
+   For a secret, the value line names where HC gets it (the issuer page
+   and the button) instead of the value itself.
+3. "The default applies" never ends the sentence. A default that changes
+   what a customer gets is an HC decision until HC rules on it.
+4. The same line covers any step only HC can do: a secret, a console
+   switch, a store setting, a build HC must run. Name it the turn it is
+   found, never later.
+5. An HC ACTION goes into the session handoff and the open items the
+   same turn, and stays until HC does it or rules it out.
+6. Never read, print or store the CURRENT value of any variable, and
+   never a secret value in any form (R10). Report names and SET or
+   UNSET only. The value HC must ENTER for a non-secret setting is not
+   a secret: rule 2 requires it in full.
+7. Every HC ACTION ships with numbered, soup-to-nuts steps HC can follow
+   with no other source: the exact URL or the exact path on HC's machine
+   and how to get there (menu, tab, button); the exact command in a code
+   block with the folder it runs in; what HC sees when it worked and how
+   to check it; and what to do if it fails. Open each URL live the same
+   turn and show its HTTP status and UTC time. Mark a path on HC's machine
+   that the agent cannot read as "from <source>, not read live", and make
+   step 1 check that it exists. Withdraw, the same turn, any HC ACTION
+   that turns out to be something HC cannot do. HC ordered this on
+   2026-11-20; his exact words are in canon store doc 2216c4d2.
+
+RUNTIME HALF. Each repo that runs code keeps a registry of every variable
+its code reads, a test that fails when code reads an unregistered name,
+and a boot log line that names every registered variable running on its
+default. A venue without that registry reports it as a gap with an owner.
+[envaction]
 
 ## RULE ADDRESSES PRESERVED
 
