@@ -786,6 +786,19 @@ THE RULE, every engine, every venue, every session:
 5. An HC ACTION goes into the session handoff and the open items the
    same turn, and stays until HC does it or rules it out.
 6. Names and SET or UNSET only. Never a value (R10).
+7. Every HC ACTION ships with numbered, soup-to-nuts steps HC can follow
+   with no other source: the exact URL or the exact path on HC's machine
+   and how to get there (menu, tab, button); the exact command in a code
+   block with the folder it runs in; what HC sees when it worked and how
+   to check it; and what to do if it fails. Open each URL live the same
+   turn and show its HTTP status and UTC time. Mark a path on HC's machine
+   that the agent cannot read as "from <source>, not read live", and make
+   step 1 check that it exists. Withdraw, the same turn, any HC ACTION
+   that turns out to be something HC cannot do. HC, 2026-11-20, verbatim:
+
+   > "ILL ALWAYS NEED SOUP TO NUTS, STEP BY STEP ACTINOALBLE
+   > INSTRUCITONS THAT ARE UP TO TH EMINUTE LIVE CHECKED WITH URLS,
+   > PATHS, HOW TO GET THERE ETC SAVEA TO EVERYTHINGS CANON"
 
 RUNTIME HALF. Each repo that runs code keeps a registry of every variable
 its code reads, a test that fails when code reads an unregistered name,
