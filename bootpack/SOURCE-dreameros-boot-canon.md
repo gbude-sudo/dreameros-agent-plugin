@@ -752,6 +752,47 @@ WHY: every stale label is a lie waiting to be searched. The cost is paid
 at the worst time - mid-incident, when someone greps the estate and gets
 hundreds of defunct hits between them and the live truth. [branchhygiene]
 
+## R29 - NAME THE HC ACTION FOR EVERY ENVIRONMENT VARIABLE
+
+Ordered as canon by HC on 2026-11-20, runtime and everywhere. His words,
+kept exact:
+
+> "this needs to stop, there is no reason why I have to spend DAYS AND
+> FUCKING MONTHS troubleshooting and wasting credits becasue YOU FUCKING
+> NEVER told me HC needs to create or turn on an env var.. or do a
+> thing.. never do that again ever.. make this canon.. save it
+> everywhere, make it run time canon.. Goal:TO NEVER HAVE THIS HAPPEN
+> AGAIN TO ME OR CUSTOMERS OR THE STSTME"
+
+THE DEFECT. Code reads a variable. The variable is unset. The code runs
+on a default and says nothing, and nobody tells HC. Measured 2026-11-20:
+the gateway read 364 variable names and 211 were unset in production.
+One of them made two model canaries run at a setting nobody chose.
+
+THE RULE, every engine, every venue, every session:
+
+1. When work adds, reads or depends on an environment variable, the same
+   reply names the variable, SET or UNSET in production (read with a
+   names-only instrument, with the UTC time), the code default, and what
+   the default does.
+2. Then exactly one line:
+   `HC ACTION: set NAME in <service> to <purpose>` or
+   `NO HC ACTION: <why the default is correct>`.
+3. "The default applies" never ends the sentence. A default that changes
+   what a customer gets is an HC decision until HC rules on it.
+4. The same line covers any step only HC can do: a secret, a console
+   switch, a store setting, a build HC must run. Name it the turn it is
+   found, never later.
+5. An HC ACTION goes into the session handoff and the open items the
+   same turn, and stays until HC does it or rules it out.
+6. Names and SET or UNSET only. Never a value (R10).
+
+RUNTIME HALF. Each repo that runs code keeps a registry of every variable
+its code reads, a test that fails when code reads an unregistered name,
+and a boot log line that names every registered variable running on its
+default. A venue without that registry reports it as a gap with an owner.
+[envaction]
+
 ## RULE ADDRESSES PRESERVED
 
 These numbers were absorbed into stronger rules during the v2.0.0 reframe.
