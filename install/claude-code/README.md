@@ -177,7 +177,7 @@ stay unchanged. On non-Windows systems, registrations keep the portable
 | estate-branch-triage | classify every local branch and stash before any merge or cleanup |
 | estate-pulse | the seven-source morning sweep of the estate |
 | external-mcp-client-onboard | wire a third-party MCP client into the DreamerOS registration door |
-| image-critique | score an image against its prompt with the 3-engine vision quorum |
+| image-critique | send a picture-grading request to DreamerOS Media, where judging runs inside DreamerOS |
 | learning-prompts | turn a learn-this request into a ready-to-paste teaching prompt |
 | live-error-triage | triage a production error down to a minimal cited fix |
 | model-tiered-offload | pick the subagent model tier by who checks the output |
