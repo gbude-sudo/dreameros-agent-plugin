@@ -1,4 +1,4 @@
-# Who DreamerOS serves, and how deep they go (PROPOSED v0.2.0)
+# Who DreamerOS serves, and how deep they go (PROPOSED v0.3.0)
 
 STATUS: PROPOSED. Not canon until the Human Conductor ratifies it. Nothing
 here changes the boot canon source or its reviewed floor yet.
@@ -110,3 +110,66 @@ From the one boot canon source, the build makes:
 - Member pack, Simple: the short member rules and plain words.
 - Member pack, Advanced: the member rules plus the under-the-hood detail
   and self-host guide.
+
+## The soul, measured (added v0.3.0, 2026-11-20)
+
+The Human Conductor said this must live in the soul of DreamerOS, not in
+another blurb or checkbox. So it is written as four promises that a test
+can fail, read against what a new member meets today.
+
+### Promise 1: understood in 15 seconds
+Today (frontend origin/main b3bd6345):
+- Sign-in is the first screen, then /dreamland (src/app/page.tsx:126-137).
+- The first thing said: "You don't trust AI? It's OK. Neither do we."
+  (dreamland/page.tsx:2928-2930). The box says "Type it messy, like you'd
+  say it to a friend." (line 3608). This already is the voice.
+- First-screen words a newcomer must learn: "receipts", "engines"
+  (EmptyStatePrompts.tsx:70,81,83; page.tsx:353).
+- The welcome tour never opens: dreamland/page.tsx:589 starts it false and
+  line 1230 only sets it false. Its copy is stale: "5 AI engines instead of
+  1", "12 specialized tools", "DreamerOS GPT" (WelcomeTour.tsx:39,42,127).
+- The day-one helpers (NewHereLink, GettingStartedCard) are mounted only on
+  /dashboard (dashboard/page.tsx:19,20,647,817), not on /dreamland, where a
+  new member lands.
+
+### Promise 2: value in 30 seconds, zero setup
+Today:
+- In the app, the first answer needs only a question. No key, no plan, no
+  connector on the /dreamland path (first-screen read, 2026-11-20).
+- Bringing DreamerOS into the member's own AI is the hard part. The
+  desktop page says the installer is "Coming soon" and teaches 12 manual
+  steps across Claude Desktop, Cursor and Codex, each pasting JSON or TOML
+  with a Bearer key (connect/desktop/page.tsx:121-179, 350).
+- The easy path is already built and on in production: OAuth discovery and
+  client registration answered 200 / 405-route-exists at 19:32:36Z
+  (mcp.dreameros.app/.well-known/oauth-protected-resource/mcp,
+  /.well-known/oauth-authorization-server, POST /oauth/register). A member
+  can paste one address and sign in. The app does not tell them so.
+
+### Promise 3: the curtain lifts in plain words, at any depth
+Today, pieces that already do this:
+- One plain line per answer saying what DreamerOS did
+  (gateway what_we_did.py: past tense, no internal names).
+- The slip, behind the scenes of one answer, in plain words
+  (gateway receipt_slip.py:1).
+- One narrator voice for live thoughts (gateway plain_thoughts.py:42).
+- The four-step receipt ladder (frontend GovernanceRibbon.tsx:1822).
+Gap: the Dual-Audience UI Playbook is cited in 6+ frontend files but has
+no file in any repo; it lives only in substrate memory 6a3a05fa
+(2026-06-18). The soul is not written where code can read it.
+
+### Promise 4: same power, same time, any plan, any venue
+The depth a member chooses must follow them everywhere: the app, Claude,
+ChatGPT, Cursor, Codex. So it belongs in the gateway member profile, read
+by every door, not in one screen's state. Same-time rule: what HC gets,
+members get in the same change, gated only by plan.
+
+### How the soul is enforced (not a checklist)
+- The nightly member walk (gateway member_walk_cron.py) measures, per plan
+  test account: seconds from sign-in to first answer, setup steps before
+  value, and internal words on first screens. A rise fails the walk.
+- The vocabulary gate that already blocks DAIM/EDE/IFP in customer copy
+  (frontend tests/unit/messaging-framework-public-copy.test.ts) extends to
+  first-screen jargon.
+- Every new capability ships with its Simple line and its Advanced view in
+  the same change, or it does not ship.
