@@ -35,10 +35,18 @@ Proof that worked, with five checks, all passed at 19:45Z:
 4. The source file sha256 equals that value, and the full source text sits
    inside package_text.
 5. composed_at plus ttl_seconds (1800) has not run out.
-Gap: I did not find the wrapper begin and end markers by regex, so I did
-not hash the wrapper body on its own. The canon names a wrapper but gives no
-marker text. Proposal: name the exact marker strings in carrier B, and add
-these five checks as the overflow procedure.
+CORRECTION 2026-11-24 20:00Z. The first version of this item said the
+wrapper markers were not found. That was a limit of my search, which looked
+for BEGIN and END words. The wrapper is an XML tag pair: an opening tag named
+dreameros_boot_canon with the attributes schema_version, version, sha256,
+hash_normalization, canary_ids, source_repository, source_path and generator,
+and a closing tag with the same name. The package holds exactly one of each.
+The body between them is 52,084 characters. Its LF-normalized sha256 is
+a33b8115e340d709, equal to the pinned hash. So the wrapper hash check passes.
+Remaining gap: the canon text does not name the tag. The gateway composer
+emits it (gateway/app/governance_composer.py). Proposal: name the tag pair in
+carrier B, and add the five checks above, plus a sixth check that hashes the
+body between the tags, as the overflow procedure.
 
 ## N3. Four sessions started the same goal inside three minutes
 
@@ -62,16 +70,24 @@ instruction.
 Proposal: a parity check in the dreamerOS repo. It compares the skill file
 sha256 to the CHECKSUMS.txt entry in this plugin, and fails when they
 differ. Remove the pasted canon copy from .claude/CLAUDE.md, and keep the
-pointer. PR 287 in dreamerOS refreshes the skill file now.
+pointer.
+UPDATE 2026-11-24 20:15Z. PR 287 in dreamerOS merged and refreshed the skill
+file to v2.6.3. The block in .claude/CLAUDE.md is a generated block with
+BEGIN and END markers, so a refresh is what -Install does. dreamerOS PR 288
+refreshes it to v2.6.3 and moves the removed text to
+archive/boot-canon-history. Whether to remove the block, and keep carrier A
+by install only, stays an HC decision.
 
 ## N5. Tracked backup files in a skill folder
 
-Reading: git ls-files at 19:46Z counts 25 tracked files in dreamerOS
-.claude/skills/dreameros-boot. I read the first 20 names: SKILL.md and 19
-SKILL.md.bak-* files. I did not read the last 5 names. Each backup is a
-stale copy that a search will find. R27 says stale labels are lies waiting to be searched.
-Proposal: add each backup to the recoverable-originals folder, or delete it
-after HC confirms git history holds it.
+Reading: git ls-files at 20:13Z counts 25 tracked files in dreamerOS
+.claude/skills/dreameros-boot: SKILL.md and 24 SKILL.md.bak-* files,
+908,490 bytes in all. The first version of this item said I read only 20
+names. All 25 are read now. Each backup is a stale copy that a search will
+find. R27 says stale labels are lies waiting to be searched.
+Proposal: delete the 24 backups. Git history holds every blob.
+UPDATE 2026-11-24 20:14Z. dreamerOS PR 289 removes the 24 files. Nothing in
+the repo references them (grep, control proved).
 
 ## N6. One line that shows the boot state in the first reply
 
