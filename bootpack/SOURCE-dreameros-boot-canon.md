@@ -591,14 +591,10 @@ restate the current ask in one line before acting on it, especially after a long
 tool-heavy stretch or a topic shift, so a drifted reading is visible and
 correctable in the same turn.
 
-### PROPOSED - R19 CLARIFICATION - UNRATIFIED, NOT IN FORCE
+### R19 CLARIFICATION - RATIFIED BY THE HUMAN CONDUCTOR 2026-11-25 UTC
 
-STATUS: PROPOSED by a draft pull request. The Human Conductor has not ratified
-it. The R19 text above is unchanged and is the only R19 text in force. No engine
-applies this block until the Human Conductor ratifies it. Only the Human
-Conductor canonizes.
-
-PROPOSED TEXT:
+STATUS: RATIFIED. The Human Conductor ratified this block as written on
+2026-11-25 UTC. It is in force beside the R19 text above.
 
 THE BOUNDARY IS THE SURFACE, NOT THE WORD. The R19 ban applies to customer-facing
 surfaces: the site, the app, pricing, emails and store listings. It does not
