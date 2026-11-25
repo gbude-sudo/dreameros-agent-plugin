@@ -107,6 +107,24 @@ jobs:
         run: ./install/claude-code/tests/managed-agent-merge.tests.ps1
       - shell: pwsh
         run: ./install/claude-code/tests/managed-agent-merge.tests.ps1
+      # When a step above fails, rebuild the carriers from source and upload
+      # the result as a patch. A person can then apply it without a Windows
+      # PC. The patch is evidence only; the next run's -Verify checks it.
+      - name: Rebuild carriers after a failure
+        if: failure()
+        shell: pwsh
+        run: |
+          ./bootpack/build-boot-pack.ps1
+          git add -A bootpack/out
+          git diff --cached --binary | Out-File -Encoding ascii rebuilt-carriers.patch
+          git diff --cached --stat
+      - name: Upload rebuilt carriers
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rebuilt-carriers
+          path: rebuilt-carriers.patch
+          if-no-files-found: warn
 
   # Cursor installer tests: about 6 of the 8.5 minutes on 2026-09-16. They run
   # in their own job, in parallel, and on a pull request only when a file they
