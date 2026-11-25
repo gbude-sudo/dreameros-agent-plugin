@@ -115,7 +115,7 @@ jobs:
         shell: pwsh
         run: |
           ./bootpack/build-boot-pack.ps1
-          git add -A bootpack/out
+          git add -A bootpack/out cursor/rules skills install
           git diff --cached --binary | Out-File -Encoding ascii rebuilt-carriers.patch
           git diff --cached --stat
       - name: Upload rebuilt carriers
