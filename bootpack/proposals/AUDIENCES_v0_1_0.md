@@ -4,7 +4,7 @@ STATUS: PROPOSED. Not canon until the Human Conductor ratifies it. Nothing
 here changes the boot canon source or its reviewed floor yet.
 
 Measured 2026-11-20 on main of the gateway, the plugin and the frontend. Each
-"today" line was read from the code. The file names are kept in the private record.
+"today" line was read from the code when the file was written. The file names are kept in the private record.
 
 ## The idea, in the Human Conductor's terms
 

@@ -1,6 +1,6 @@
 # Public canon wording proposal v0.1.0
 
-Status: RATIFIED by the owner, applied to the source in the canon wording
+Status: APPROVED by the owner in chat ("yes i like this do it"), applied to the source in the canon wording
 release (source v2.6.4). The generated copies change only when the boot pack
 is rebuilt on Windows.
 
@@ -38,3 +38,17 @@ now say "the independent verifier pool". Row 5 keeps its required opening
 sentence, so the source floor clause list is unchanged. The floor hash and the
 version (v2.6.3 to v2.6.4) were updated, and two version pins in
 `bootpack/tests/build-installed.tests.ps1` follow the new version.
+
+Applied wording that differs from the table, after clean-context review:
+- Row 5 as applied: "Read the newest session ledger in the local offload", and
+  "the newest audits index in the local offload, and the last cloud mirror
+  status line there". The required clause "Read the local offload before any
+  work: the fixed-path session ledger" is untouched, so the floor clause list
+  did not change.
+- Row 8, added: rule 15 now names its two instruments by role ("a
+  door-walking script", "a deep-door script") instead of by script file name.
+- Row 9, added: rule 29 no longer cites two private canon store document ids.
+  It says the exact words are in the private canon store.
+- Left for a later release: dated owner attributions in rule headings, such as
+  the ones on rules 1m and 7a. They are not private detail beyond a date, and
+  changing them is a wording decision for the owner.

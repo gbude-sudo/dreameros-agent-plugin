@@ -1,6 +1,6 @@
 {
   "minimum_version": "2.6.3",
-  "semantic_sha256": "57eee45f1f0be8755ca7ab9d191c2ced2d2f31f4a4bd5bafac3c54e588cbd497",
+  "semantic_sha256": "e3ae990150f1b4cf62bb7f43eb9ca0fc4c1e5bcc58841296ec8162a9ee5f69e6",
   "measured_from": "Public-safe source draft. Review required before use as an approved source floor.",
   "required_clauses": [
     "## LAYER 0 - AUTHORITY. SETTLE THIS BEFORE ANYTHING ELSE.",
