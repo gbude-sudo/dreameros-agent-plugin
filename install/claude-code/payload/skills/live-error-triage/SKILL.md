@@ -1,6 +1,6 @@
 ---
 name: live-error-triage
-description: Triage a production error from Sentry or logs down to a minimal cited fix, and sweep the same log window for secondary defects. Use when Sentry surfaces a new issue, when production logs show a traceback, when the operator pastes an error, or when a NameError or ImportError appears in a deployed service. Born 2026-08-13, when a function-local import gap and two invisible secondary defects came out of one log window.
+description: Triage a production error from Sentry or logs down to a minimal cited fix, and sweep the same log window for secondary defects. Use when Sentry surfaces a new issue, when production logs show a traceback, when the operator pastes an error, or when a NameError or ImportError appears in a deployed service.
 ---
 
 # live-error-triage

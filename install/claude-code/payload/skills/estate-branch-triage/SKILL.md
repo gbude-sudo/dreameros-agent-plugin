@@ -1,6 +1,6 @@
 ---
 name: estate-branch-triage
-description: Classify every local branch and stash as LANDED, REAL-UNLANDED, or CONFLICTED before merging anything. Use before any branch cleanup, before merging inherited branches, when the operator asks what is unmerged, or when a codex/* queue needs triage. Born 2026-08-13, when a stale local main produced false REAL-UNLANDED verdicts that nearly caused duplicate merges.
+description: Classify every local branch and stash as LANDED, REAL-UNLANDED, or CONFLICTED before merging anything. Use before any branch cleanup, before merging inherited branches, when the operator asks what is unmerged, or when a codex/* queue needs triage.
 ---
 
 # estate-branch-triage

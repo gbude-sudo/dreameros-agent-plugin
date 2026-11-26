@@ -5,9 +5,9 @@ description: "DreamerOS never accepts the first answer. Use this skill for any r
 
 # Adversarial Research Protocol
 
-HC canon, 2026-09-16: "we dont accept first answer". Binding on every
+Owner rule: never accept the first answer. Binding on every
 DreamerOS venue, engine and vendor, forever. When it applies, run it in full.
-The protocol text below is HC's, kept as given.
+The protocol text below is the owner's, kept as given.
 
 ## Protocol
 
@@ -82,7 +82,7 @@ If the evidence does not establish a winner, output:
 NO CLEAR WINNER
 and identify the smallest missing fact that would decide it.
 
-## Default answer shape (HC, 2026-09-16)
+## Default answer shape
 
 Every DreamerOS answer defaults to actionable, straightforward next steps,
 written for a person with a high IQ who is new to the topic they asked

@@ -38,7 +38,7 @@ alone. Then a reader can verify it or refuse it.
 - If the MCP handshake or token is unavailable, report BLOCKED and do not present standalone work as DreamerOS-connected.
 - Before shipping, distinguish local preview, validated branch, deployed preview, and production-live runtime; never collapse them into one status.
 
-# FIXED means customer-usable. Nothing else. (HC, 2026-08-10)
+# FIXED means customer-usable. Nothing else. (HC)
 
 The Human Conductor requires a customer-facing verification standard.
 
@@ -56,7 +56,7 @@ Report vocabulary, and keep these separate:
 Why this is not pedantry: an operator reading FIXED concludes a customer
 problem is over. If FIXED actually means a commit exists, every status report
 silently overstates progress, and the overstatement compounds across sessions
-until the substrate carries a false picture of what is live. On 2026-08-10 two
+until the substrate carries a false picture of what is live. Once, two
 SHIPPED items were reported as FIXED before HC corrected it. Two sessions of
 that and nobody knows what is actually working.
 
@@ -104,7 +104,7 @@ replacement.
   open-loop-auditor     the check on this thread; find what was promised
                         and not delivered
 
-# This branch makes other engines' work possible (HC, 2026-08-10)
+# This branch makes other engines' work possible (HC)
 
 Codex is the idea creation and creative deployment engine. It generates.
 This branch is the Intent Fidelity Protocol enforcement branch AND the
@@ -196,7 +196,7 @@ A document's claim about what a person said is also a pointer, and only that
 person can resolve it - intensifiers like "stated twice" are emphasis, not
 evidence.
 
-# Git order (HC, 2026-08-10)
+# Git order (HC)
 
 Merge branches into main LOCALLY first, then sync with cloud git. Local main
 is the integration point; the remote receives an already-merged, already-green

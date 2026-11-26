@@ -1,8 +1,8 @@
 # self-catch
 
 Find what our own gates caught us doing in the trailing week, and draft the
-honest post about it. Born 2026-08-12, first sweep found a direction-set
-drift issue open since 2026-06-14 with 106 silent bot comments and nobody
+honest post about it. The first sweep found a direction-set drift issue
+that had sat open for weeks with many silent bot comments and nobody
 acting on it. The recurring defect class this skill hunts is not the
 mistake. It is the mistake nobody read about after the gate caught it.
 
@@ -53,7 +53,7 @@ last post's incidents happened to live.
      issue thread, not just the latest run, for how long it has been
      firing and whether anyone has acted.
   2. The weekly filesystem sweep at
-     `governance/handoffs/WEEKLY_DRIFT_REPORT_<date>.md` in the same repo -
+     the weekly drift report in the same repo -
      compares `LIVING_INDEX.json` canonical entries against files on disk
      and direction-set hashes. Read the newest one for the current
      drifted-file count and severity driver.

@@ -31,7 +31,7 @@ release of the plugin yet, so entries are dated, not numbered.
 - R29: remove quote blocks that stop the build, require the exact value HC enters (#78)
 - image-critique skill points to DreamerOS Media instead of calling vendors (#79)
 - R29 rule 7: every HC ACTION ships with live-checked step-by-step instructions (#77)
-- R29: name the HC action for every environment variable (HC canon 2026-11-20) (#76)
+- R29: name the HC action for every environment variable (#76)
 - PROPOSED: R19 clarification - the boundary is the surface, not the word (unratified) (#74)
 - R1m: the agent counts as one source at most (HC standing order 2026-11-20) (#73)
 

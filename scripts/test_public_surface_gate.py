@@ -43,8 +43,21 @@ class PublicSurfaceGateTests(unittest.TestCase):
         self.assertFalse(any(secret in line for line in violations))
 
     def test_the_repository_is_not_above_its_baseline(self):
-        violations, _ = gate.compare(gate.scan_repo(), gate.load_baseline())
+        files, _known = gate.load_baseline()
+        violations, _ = gate.compare(gate.scan_repo(), files)
         self.assertEqual(violations, [])
+
+    def test_a_pattern_the_baseline_never_saw_is_not_checked_when_filtered_out(self):
+        violations, _ = gate.compare({"a.md": {"vendor_model_name": 5}}, {}, only={"owner_local_path"})
+        self.assertEqual(violations, [])
+
+    def test_a_pattern_missing_from_the_baseline_fails_a_normal_run(self):
+        violations, _ = gate.compare({"a.md": {"vendor_model_name": 5}}, {})
+        self.assertEqual(len(violations), 1)
+
+    def test_every_pattern_has_a_name_the_baseline_can_record(self):
+        self.assertTrue(set(gate.ORIGINAL_PATTERN_NAMES) <= set(gate.PATTERNS))
+        self.assertGreater(len(gate.PATTERNS), len(gate.ORIGINAL_PATTERN_NAMES))
 
 
 if __name__ == "__main__":

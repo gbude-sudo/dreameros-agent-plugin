@@ -411,8 +411,8 @@ if ($bad.Count -gt 0) {
 # checksums this same build wrote. That closed loop cannot catch a bad
 # source. This gate is the check outside the loop.
 #
-# Incident this exists to stop happening again: commit 7a4b699 dropped a
-# whole rule (R24) from the merged source, and a human caught it, not the
+# Incident this exists to stop happening again: one commit dropped a
+# whole rule from the merged source, and a human caught it, not the
 # pipeline.
 $MinPayloadChars = 5000
 $PayloadLen = $Payload.Length

@@ -23,7 +23,7 @@ sold as live Pro+ features.
    another document (documents drift together):
    - Endpoints: grep the gateway route files for the literal path; confirm the
      router is mounted (gateway_routers.py), and note the auth model on the handler.
-   - Tier claims: gateway/app/tier_gate.py is the arbiter (min_tier entries,
+   - Tier claims: the gateway tier table is the arbiter (min_tier entries,
      TIER_MEMORY_LIMITS, TIER_META prices), never a doc.
    - Frontend features: trace the import chain to a reachable page; a component on
      disk with zero imports is NOT live.

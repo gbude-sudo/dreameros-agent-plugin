@@ -1,6 +1,6 @@
 ---
 name: pr-unstick-behind
-description: Detect and clear GitHub auto-merge PRs stuck at mergeStateStatus BEHIND. Use after any merge to main, when an armed PR sits unmerged with green checks, when the operator asks why a PR did not land, or during any multi-PR sprint. Born 2026-08-13, when armed PRs silently fell to BEHIND seven or more times after sibling merges and never merged on their own.
+description: Detect and clear GitHub auto-merge PRs stuck at mergeStateStatus BEHIND. Use after any merge to main, when an armed PR sits unmerged with green checks, when the operator asks why a PR did not land, or during any multi-PR sprint.
 ---
 
 # pr-unstick-behind

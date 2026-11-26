@@ -1,6 +1,6 @@
 ---
 name: external-mcp-client-onboard
-description: Wire a third-party MCP client such as Slack, ChatGPT, or Cursor into the DreamerOS Dynamic Client Registration door. Use when a new external client needs MCP access, when a client's connect flow fails with invalid_redirect_uri, or when the operator asks to hook a new tool into DreamerOS. Born 2026-08-13 from the lived Slack onboarding sequence.
+description: Wire a third-party MCP client such as Slack, ChatGPT, or Cursor into the DreamerOS Dynamic Client Registration door. Use when a new external client needs MCP access, when a client's connect flow fails with invalid_redirect_uri, or when the operator asks to hook a new tool into DreamerOS.
 ---
 
 # external-mcp-client-onboard

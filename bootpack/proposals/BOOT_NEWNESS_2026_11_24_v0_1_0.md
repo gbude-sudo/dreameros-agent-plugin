@@ -4,7 +4,7 @@ STATUS: PROPOSED. UNRATIFIED. NOT IN FORCE. HC ratifies canon.
 This file is not read by the build. It changes no rule. It does not change
 bootpack/SOURCE-dreameros-boot-canon.md.
 
-Receipt zero: 08b70e68. Author session: 017THZwRpiF6Sv1VWVHuLaqr.
+Receipt zero and author session: recorded in DreamerOS.
 Base: origin/main 7d8b42c (source v2.6.3, semantic sha256 a33b8115e340d709).
 
 Every reading below has its UTC time and its instrument. A reading older
@@ -13,7 +13,7 @@ than five minutes is a recall (R1j). Read it again before you act on it.
 ## N1. A cloud session cannot run the boot check as written
 
 Reading: on the cloud sandbox at 2026-11-24 19:45Z, `ls ~/.claude/CLAUDE.md`
-and `ls ~/.codex/AGENTS.md` both failed (shell). The Offline_Repo folder
+and `ls ~/.codex/AGENTS.md` both failed (shell). The local record folder
 that BOOT CHECK step 0 names was not on the box.
 Cause: BOOT CHECK step 0, R13 and R15 name paths and PowerShell tools that
 exist only on HC's Windows machine.
@@ -44,14 +44,14 @@ and a closing tag with the same name. The package holds exactly one of each.
 The body between them is 52,084 characters. Its LF-normalized sha256 is
 a33b8115e340d709, equal to the pinned hash. So the wrapper hash check passes.
 Remaining gap: the canon text does not name the tag. The gateway composer
-emits it (gateway/app/governance_composer.py). Proposal: name the tag pair in
+emits it. Proposal: name the tag pair in
 carrier B, and add the five checks above, plus a sixth check that hashes the
 body between the tags, as the overflow procedure.
 
 ## N3. Four sessions started the same goal inside three minutes
 
 Reading: DreamerOS memory (dreameros_recall, 19:40Z) holds beacons or claims
-from sessions 01BV1zz2, 34fd731d, 1aef3edb and mine, written 19:38Z to
+from three other sessions and mine, written 19:38Z to
 19:40Z, all for the same HC goal. One session disclosed that it wrote to a
 PR branch before it read the other claims.
 Cause: BOOT CHECK step 5 asks for a claim only before editing a shared
@@ -71,9 +71,9 @@ Proposal: a parity check in the dreamerOS repo. It compares the skill file
 sha256 to the CHECKSUMS.txt entry in this plugin, and fails when they
 differ. Remove the pasted canon copy from .claude/CLAUDE.md, and keep the
 pointer.
-UPDATE 2026-11-24 20:15Z. PR 287 in dreamerOS merged and refreshed the skill
+UPDATE 2026-11-24 20:15Z. A dreamerOS pull request merged and refreshed the skill
 file to v2.6.3. The block in .claude/CLAUDE.md is a generated block with
-BEGIN and END markers, so a refresh is what -Install does. dreamerOS PR 288
+BEGIN and END markers, so a refresh is what -Install does. a second dreamerOS pull request
 refreshes it to v2.6.3 and moves the removed text to
 archive/boot-canon-history. Whether to remove the block, and keep carrier A
 by install only, stays an HC decision.
@@ -86,7 +86,7 @@ Reading: git ls-files at 20:13Z counts 25 tracked files in dreamerOS
 names. All 25 are read now. Each backup is a stale copy that a search will
 find. R27 says stale labels are lies waiting to be searched.
 Proposal: delete the 24 backups. Git history holds every blob.
-UPDATE 2026-11-24 20:14Z. dreamerOS PR 289 removes the 24 files. Nothing in
+UPDATE 2026-11-24 20:14Z. a third dreamerOS pull request removes the 24 files. Nothing in
 the repo references them (grep, control proved).
 
 ## N6. One line that shows the boot state in the first reply
