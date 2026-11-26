@@ -5,7 +5,7 @@ description: The full verify-then-ship loop for DreamerOS work - verify the defe
 
 # verified-sprint
 
-The distilled method from the 2026-08-10/11 marathon session: 12+ PRs shipped,
+The distilled method from a long marathon session: 12+ PRs shipped,
 five false findings caught before they caused damage, zero destructive
 mistakes. The loop below is what worked. The trap table is what failed and got
 caught.

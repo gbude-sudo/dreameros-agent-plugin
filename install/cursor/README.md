@@ -268,7 +268,7 @@ The Claude preflight resolves the newest supported executable even when
 Claude Code is logged out, it validates current help and gives HC the exact
 `auth login --claudeai` command. When the header-free DreamerOS MCP reports
 `Needs authentication`, it gives HC the exact `mcp login dreameros` command.
-HC completes both browser flows personally. The preflight then requires
+The owner completes both browser flows personally. The preflight then requires
 `loggedIn=true`, DreamerOS `Connected`, and an effective `/hooks` reading before
 the independent review can leave `HELD`.
 

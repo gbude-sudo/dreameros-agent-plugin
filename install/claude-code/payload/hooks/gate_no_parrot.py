@@ -92,7 +92,7 @@ def _last_assistant_text(entries: list[dict]) -> str:
     """Concatenated text of the most recent real assistant turn.
 
     Same turn-boundary logic as gate_no_governance_language.py, fixed
-    2026-08-21 in that hook and reused verbatim here: any entry that is
+    in that hook and reused verbatim here: any entry that is
     not an assistant entry and not a tool-result user replay
     (type=="user" with toolUseResult present) is a turn boundary, not
     only a genuinely typed message. See that hook's own docstring for the

@@ -25,7 +25,7 @@ Workflow and repo names drift. Confirm each path is still real before
 citing it; do not assume the name below is current.
 
 **Search every repo, not just the two most familiar ones.** The first
-2026-08-12 run of this skill searched only
+run of this skill searched only
 `gbude-sudo/dreameros-scs-gateway` and `gbude-sudo/dreameros-app-frontend`
 plus Sentry, and reported three real, already-merged incidents as
 unverified because each had happened in a different repository (a site

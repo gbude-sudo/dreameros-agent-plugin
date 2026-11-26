@@ -6,7 +6,7 @@ twice, and checks:
   2. a second run merges: no duplicate deny rules, no duplicate hooks
   3. a pre-existing managed file with a file-level type error is refused
      and left untouched
-  4. the validator flags a wrong-typed fallbackModel (the 2026-09-16 defect)
+  4. the validator flags a wrong-typed fallbackModel (the earlier defect)
      and passes a correct file
   5. the real ACL lock (-LockForTest) leaves the policy readable, with
      Users read-only and no non-admin write entry
@@ -38,7 +38,7 @@ def run_installer(target):
 def lock_test(failures):
     """Run the real ACL lock on a temp dir and prove the policy stays READABLE.
 
-    2026-09-16: the first lock left every file with no access entries, so
+    The first lock left every file with no access entries, so
     Claude Code could not read the policy it was meant to protect.
     """
     tmp = tempfile.mkdtemp(prefix="dreameros-lock-test-")

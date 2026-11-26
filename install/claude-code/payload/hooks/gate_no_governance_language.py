@@ -69,7 +69,7 @@ def _last_assistant_text(entries: list[dict]) -> str:
     assistant entries, not just the final single entry, so a violation
     inside an earlier text block of a multi-step turn is still caught.
 
-    BUG FOUND AND FIXED 2026-08-21, same session R21 shipped in: the
+    BUG FOUND AND FIXED in the same session R21 shipped in: the
     original reset condition only cleared the accumulator on a genuine
     TYPED user message (type=="user", toolUseResult is None). When
     several Stop events fire back to back with no fresh typed message

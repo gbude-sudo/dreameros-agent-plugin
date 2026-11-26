@@ -5,7 +5,7 @@ description: Wire a third-party MCP client such as Slack, ChatGPT, or Cursor int
 
 # external-mcp-client-onboard
 
-The lived sequence from 2026-08-13. A third-party client connects to
+The lived sequence. A third-party client connects to
 DreamerOS through Dynamic Client Registration. The one gate that fails in
 practice is the redirect allowlist. Everything else is form filling.
 

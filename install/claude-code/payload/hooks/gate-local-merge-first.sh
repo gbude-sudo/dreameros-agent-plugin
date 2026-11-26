@@ -66,7 +66,7 @@ REPO="${REPO%\"}"; REPO="${REPO#\"}"
 # looking for a different repo to judge instead.
 #
 # The first version of this fix fell back to the caller's cwd whenever the -C
-# target was unreadable. An audit on 2026-08-10 proved that reopened the same
+# target was unreadable. An audit proved that reopened the same
 # hole from the other side: when cwd happened to BE a clean repo, rev-parse
 # succeeded, the deny below never ran, and the gate judged the WRONG
 # repository - allowing `git -C $W push origin anything` from any clean

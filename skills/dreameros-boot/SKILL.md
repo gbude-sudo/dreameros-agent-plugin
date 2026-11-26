@@ -3,7 +3,7 @@ name: dreameros-boot
 description: Load the DreamerOS Boot Canon. Use at the start of any substantive DreamerOS work, and whenever a claim about status, count, health, deployment, liveness or completion is about to be made. Carries the measurement discipline, the CANON equals RUNTIME vocabulary, the FIXED definition, and the boot and close checks.
 ---
 
-# DreamerOS Boot Canon v2.6.3
+# DreamerOS Boot Canon v2.6.4
 
 SINGLE SOURCE OF TRUTH. Every vendor file is generated from this one.
 Never edit a generated copy. Edit here, then run build-boot-pack.ps1.
@@ -260,8 +260,7 @@ UNVERIFIED. Source count never overrules a current runtime measurement or a
 primary source. Surface conflicts and follow the authority order. Never
 manufacture a citation to satisfy a count.
 
-THE AGENT COUNTS AS ONE SOURCE AT MOST (HC standing order 2026-11-20, his
-words: "AT MINIMUM 2 WITH THE MAX SOURCE OF YOU = 1"). The agent's own command
+THE AGENT COUNTS AS ONE SOURCE AT MOST. The agent's own command
 output, reasoning or lane report is never more than one of the two. Two reads
 of the same system (a CLI and its own API) are one source; say so. This binds
 every claim, not only a substantive factual answer. A rule HC types is saved
@@ -333,11 +332,9 @@ The files that get read:
   per-repo AGENTS.md           Codex, that repo
   per-repo .cursor/rules/      Cursor, that repo
 
-MEASURED 2026-08-26: there are THIRTEEN per-repo CLAUDE.md files on this
-machine totalling 517,454 bytes. The gateway file alone is 173,876 bytes, more
-than twice the global file. Working in a repo means carrying the global file
-PLUS that repo's file. Changing the global file alone changes about 14 percent
-of what is actually read. [local] [density]
+Each repository can carry its own instruction file. Working in a repo means
+carrying the global file PLUS that repo's file, so changing the global file
+alone changes only part of what is actually read. [local] [density]
 
 ---
 
@@ -368,7 +365,7 @@ verify this output before acting on it.
 
 WORK THAT DOES NOT NEED THIS THREAD DOES NOT RUN IN THIS THREAD. Hand it to a
 lane, in this order: a subagent per independent surface dispatched in parallel;
-DreamerOS Live for anything the substrate answers better; the Fireworks pool for
+DreamerOS Live for anything the substrate answers better; the independent verifier pool for
 verification that must not share lineage with the engine that produced the
 answer; this thread only for deciding, resolving contradictions, and writing the
 answer the operator reads.
@@ -415,7 +412,7 @@ venue:
   Small tier (Haiku class)    counting, sweeps, file location, probes; never
                               a conclusion.
   Independent reviewers       a lineage that did not write the code: the
-                              Fireworks pool, Codex while its plan has credit,
+                              independent verifier pool, Codex while its plan has credit,
                               or a clean-context lane of a different tier;
                               when one is out the next takes the job the
                               same turn and the ledger says which.
@@ -472,10 +469,9 @@ live response, a log line from the runtime, a row in the database. Proof that
 THIS request executed, not that the layer is up. The first hop with no signature
 is the place where it does not execute.
 
-Instruments: `Offline_Repo/sync/walk-the-doors.ps1` walks every public door with
-a signature each. `Offline_Repo/sync/walk-dreamland.mjs` walks the deepest door
-signed in. Extend the walker with a door for every new capability, in the same
-change that ships it.
+Instruments: a door-walking script checks every public door for one signature
+each, and a second script walks the deepest door while signed in. Extend the
+walker with a door for every new capability, in the same change that ships it.
 
 DONE, IN ITS MOST LITERAL FORM: a STRANGER, through the PUBLIC DOOR, completed
 the intended action, and a runtime signature of THEIR action exists. Not our
@@ -491,8 +487,8 @@ page a customer sees. Reading the diff and running the suite is preparation for
 the walk, never a substitute.
 
 USE EVERY INSTRUMENT, IN THIS ORDER, AND SAY WHICH ONE ANSWERED:
-  1. walk-the-doors.ps1          every public door, one signature each
-  2. walk-dreamland.mjs          the deep door, signed in, real answer
+  1. a door-walking script       every public door, one signature each
+  2. a deep-door script          the deep door, signed in, real answer
   3. Claude in Chrome            the operator's own logged-in browser
   4. dreameros_web_login         DreamerOS mints a signed-in link
   5. dreameros_web_act           DreamerOS drives a hosted browser
@@ -702,14 +698,14 @@ FOUR BINDINGS, none optional:
    canon repo: every commit on the default branch since the last recorded
    reading with its whole diff, every open pull request with its whole
    diff, every uncommitted file in every worktree, and the local offload
-   (Offline_Repo ledgers and change records from any actor). A reader
+   (session ledgers and change records from any actor). A reader
    reports "commits read in full N of N, files read in full N of N";
    anything less is a skim and is rejected.
 2. CHECK THE DREAMEROS GATEWAY FOR WHAT YOU DO NOT KNOW. Before and after,
    pull what other actors wrote since your last reading (memory since the
    last boundary, state, the newest handoff). Another actor's record is a
    claim to verify against the diff and the runtime, never a substitute.
-   The local offload (Offline_Repo ledgers, audits, change records, mirror
+   The local offload (session ledgers, audits, change records, mirror
    status) is read at hydrate and at every change boundary beside the
    gateway, and the two are reconciled; neither is trusted over the other
    without a live reading.
@@ -762,15 +758,14 @@ hundreds of defunct hits between them and the live truth. [branchhygiene]
 
 Ordered as canon by HC on 2026-11-20, runtime and everywhere. The goal
 in his words: this never happens again to him, to customers or to the
-system. His exact words are kept in DreamerOS canon store docs 99b65d14
-and 2216c4d2, not here: this public file carries no operator quote
+system. His exact words are kept in the private DreamerOS canon store,
+not here: this public file carries no operator quote
 paragraph, and the build refuses one.
 
 THE DEFECT. Code reads a variable. The variable is unset. The code runs
-on a default and says nothing, and nobody tells HC. Measured 2026-11-20:
-the gateway read 364 variable names and 208 were unset in production
-(gateway /health env_registry, 16:08:59Z).
-One of them made two model canaries run at a setting nobody chose.
+on a default and says nothing, and nobody tells HC. Measure the count of unset
+variables from the gateway health report and show it with its time.
+An unset variable can make a model run at a setting nobody chose.
 
 THE RULE, every engine, every venue, every session:
 
@@ -806,7 +801,7 @@ THE RULE, every engine, every venue, every session:
    that the agent cannot read as "from <source>, not read live", and make
    step 1 check that it exists. Withdraw, the same turn, any HC ACTION
    that turns out to be something HC cannot do. HC ordered this on
-   2026-11-20; his exact words are in canon store doc 2216c4d2.
+   2026-11-20; his exact words are in the private canon store.
 
 RUNTIME HALF. Each repo that runs code keeps a registry of every variable
 its code reads, a test that fails when code reads an unregistered name,
@@ -979,7 +974,7 @@ found a problem, not a pass.
 ## BOOT CHECK - run these at the start of substantive work
 
 0. HYDRATE FIRST. Read the newest
-   `Offline_Repo/session-ledgers/SESSION_MASTER_*.md`, then run the
+   session ledger in the local offload, then run the
    dreameros-live-state skill, then recall substrate tag
    next-session-read-first. Say which of these you read. A session that opens
    without them is rediscovering the last one. Before any other recall, read
@@ -989,8 +984,8 @@ found a problem, not a pass.
 
    Read the local offload before any work: the fixed-path session ledger
    named in the last handoff (never the newest file by mtime), the newest
-   audits index under Offline_Repo/audits, and the last Drive mirror status
-   line in Offline_Repo/sync/CLOUD_MIRROR_LAST_STATUS.txt. Compare what the
+   audits index in the local offload, and the last cloud mirror status
+   line there. Compare what the
    substrate handoff says with what the ledger says. A disagreement is
    written as a correction anchor before any work starts.
 
@@ -1036,8 +1031,8 @@ Each names a STEP, never the finish. Use the smaller word instead:
 WRITTEN, MERGED, DEPLOYED, REACHABLE, PARTIAL, BLOCKED.
 An honest PARTIAL naming the failing condition outranks a confident DONE.
 
-WHY: on 2026-08-17 an agent repeatedly reported work as done because it was
+WHY: an agent once reported work as done because it was
 merged into main. Main is a branch name. It is not a customer and it is not
-revenue. HC worked 18 months with nothing in live production. That is the cost
+revenue. That is the cost
 of speaking the smaller word as the bigger one. [done]
 <!-- END HC-DEFINITION-OF-DONE v1.0.0 -->

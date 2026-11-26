@@ -73,7 +73,7 @@ differ. Remove the pasted canon copy from .claude/CLAUDE.md, and keep the
 pointer.
 UPDATE 2026-11-24 20:15Z. A dreamerOS pull request merged and refreshed the skill
 file to v2.6.3. The block in .claude/CLAUDE.md is a generated block with
-BEGIN and END markers, so a refresh is what -Install does. a second dreamerOS pull request
+BEGIN and END markers, so a refresh is what -Install does. A second dreamerOS pull request
 refreshes it to v2.6.3 and moves the removed text to
 archive/boot-canon-history. Whether to remove the block, and keep carrier A
 by install only, stays an HC decision.
@@ -86,7 +86,7 @@ Reading: git ls-files at 20:13Z counts 25 tracked files in dreamerOS
 names. All 25 are read now. Each backup is a stale copy that a search will
 find. R27 says stale labels are lies waiting to be searched.
 Proposal: delete the 24 backups. Git history holds every blob.
-UPDATE 2026-11-24 20:14Z. a third dreamerOS pull request removes the 24 files. Nothing in
+UPDATE 2026-11-24 20:14Z. A third dreamerOS pull request removes the 24 files. Nothing in
 the repo references them (grep, control proved).
 
 ## N6. One line that shows the boot state in the first reply

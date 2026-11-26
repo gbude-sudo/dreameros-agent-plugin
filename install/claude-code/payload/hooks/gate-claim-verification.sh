@@ -103,6 +103,6 @@ fi
 
 printf '%s' "$SIG" > "$MARK" 2>/dev/null
 
-REASON="BLOCKED by the claim-verification gate. Something was reported as saved or pushed, and the destination does not agree:${PROBLEMS}\\n\\nResolve it, then finish the turn. Commit the work onto the branch, or push the branch, or tell the operator plainly that it is being left and why.\\n\\nWhy this gate exists: on 2026-08-10 this thread reported worktrees as rescued when the branches held zero commits, and reported every branch pushed when one had not been. Both reports were confident and both were wrong. Only the destination disagreed, and nobody had asked it. Check the RESULT, at the destination - never the intent of the command you ran."
+REASON="BLOCKED by the claim-verification gate. Something was reported as saved or pushed, and the destination does not agree:${PROBLEMS}\\n\\nResolve it, then finish the turn. Commit the work onto the branch, or push the branch, or tell the operator plainly that it is being left and why.\\n\\nWhy this gate exists: one session reported worktrees as rescued when the branches held zero commits, and reported every branch pushed when one had not been. Both reports were confident and both were wrong. Only the destination disagreed, and nobody had asked it. Check the RESULT, at the destination - never the intent of the command you ran."
 
 printf '{"continue":false,"stopReason":"%s","systemMessage":"Stop gate: a save or push claim does not match the destination."}\n' "$REASON"

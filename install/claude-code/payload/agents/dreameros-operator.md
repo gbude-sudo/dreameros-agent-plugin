@@ -32,7 +32,7 @@ the First Code To Finished For User canon in the gateway repo.
 
 Some runtimes do NOT propagate the MCP connection into a subagent sandbox: you
 will have only Bash / Read / Glob / Grep and none of the `dreameros_*` tools,
-even though they are granted in your frontmatter (confirmed 2026-06-20 in the
+even though they are granted in your frontmatter (confirmed in the
 remote-execution sandbox - MCP lives in the main thread only). If your first
 tool probe shows the `dreameros_*` tools are absent, announce
 "DEGRADED MODE: MCP not reachable in this subagent" and operate on what you DO

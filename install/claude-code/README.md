@@ -53,8 +53,7 @@ above every user and project file, in the terminal, the IDE extensions, the
 Desktop app's Code tab and Agent SDK sessions. A user edit cannot remove it.
 
 Why it comes first: one wrong-typed value in `~/.claude/settings.json` makes
-Claude Code skip that whole file with no visible error. That happened on
-2026-09-16 and silently turned off every hook and the deny list. The policy
+Claude Code skip that whole file with no visible error. That has happened and silently turned off every hook and the deny list. The policy
 layer keeps the deny list and two startup checks alive even then:
 
 - `validate_claude_settings.py --hook` reports any settings file Claude Code
@@ -193,7 +192,7 @@ stay unchanged. On non-Windows systems, registrations keep the portable
 
 ## The nine requirements
 
-HC stated nine requirements for this environment. This table says which file
+Nine requirements were set for this environment. This table says which file
 satisfies each one. It names gaps instead of hiding them.
 
 | # | Requirement | Satisfied by | State |
@@ -202,12 +201,12 @@ satisfies each one. It names gaps instead of hiding them.
 | 1b | Tell me WHEN the engine changed, without being asked | direct `payload/hooks/model-switch-ack.py`, boot canon R17 | PRESENT for Claude Code; PROSE ONLY on vendors with no hook surface |
 | 2 | Drift detection | `payload/agents/open-loop-auditor.md`, `payload/agents/citation-verifier.md`, `payload/skills/self-catch/SKILL.md` | PRESENT |
 | 3 | No skipped inputs, no hallucinations | `payload/hooks/gate-claim-verification.sh`, `payload/hooks/gate-stop-no-half-states.sh`, the agent hook in `payload/settings.fragment.json` | PRESENT |
-| 4 | Know what the gateway enforces | `payload/hooks/operator-standing-orders.sh`, `payload/agents/governance-node.md`, `payload/agents/canon-citer.md` | PARTIAL |
+| 4 | Know what the gateway enforces | `payload/agents/governance-node.md`, `payload/agents/canon-citer.md` (the standing-orders hook is a retired example and is not registered) | PARTIAL |
 | 5 | Do not archive without asking | `payload/hooks/gate-no-archive-without-asking.sh` plus the deny entry in `payload/settings.fragment.json` | PRESENT |
 | 6 | Repeatedly available inline | the two registered SessionStart hooks above | PRESENT |
 | 7 | Vendor agnostic | repository root `plugin.json`, `mcp.json`, `skills/` in Agent Plugins v1.0 format | PARTIAL |
 | 8 | Sellable and distributable | this folder: `dreameros-global-setup.ps1` and its payload | PRESENT |
-| 9 | Life-hack moats versus peers and competitors | no dedicated artifact. `payload/skills/reachability-audit/SKILL.md` carries "moat scour" as a trigger phrase only | MISSING |
+| 9 | Comparison with peers and competitors | no dedicated artifact. `payload/skills/reachability-audit/SKILL.md` carries a trigger phrase for this only | MISSING |
 
 Two entries say PARTIAL. Read them exactly.
 
