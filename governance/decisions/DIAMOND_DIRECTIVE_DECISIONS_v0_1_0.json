@@ -1,8 +1,8 @@
 {
   "schema_version": "0.1.0",
   "status": "ratified",
-  "approved_draft_sha256": "9A02F8377B358219C1A6DDB3B4C6404185893256033818786BBCA1B705534FBB",
-  "approval_source_ref": "hc-chat:thread:01a0027f-62d3-7901-8348-b24bc75245f3:message:msg_01a04025-f4f2-7473-bca3-86dc32f32be5",
+  "approved_draft_sha256": "96334783C9A8533D8CF075D33955CF38284105AD94EDE668EBE2D6F0ED82D057",
+  "approval_source_ref": "hc-chat:diamond-decisions-0.1.0:approve-96334783",
   "ratified_authority_decisions": {
     "approved_draft_target_path": "governance/decisions/DIAMOND_DIRECTIVE_DECISIONS_DRAFT_v0_1_0.json",
     "decision_ledger_target_path": "governance/decisions/DIAMOND_DIRECTIVE_DECISIONS_v0_1_0.json",
@@ -374,7 +374,7 @@
       ],
       "resolution": "Proposed: ratify the reviewed target mapping for 176 non-conflict historical groups without deleting their source rows.",
       "resolution_by_clause": {},
-      "source_ref": "hc-chat:thread:01a0027f-62d3-7901-8348-b24bc75245f3:message:msg_01a04025-f4f2-7473-bca3-86dc32f32be5"
+      "source_ref": "hc-chat:diamond-decisions-0.1.0:approve-96334783"
     },
     {
       "decision_id": "diamond:known-conflicts:v0.1.0",
@@ -396,7 +396,7 @@
         "O:L0060-L0065:10E5BF5C7D21": "Retain current P R1e for branch-addition measurement. Preserve this O row as historical incident evidence; do not activate its two-dot form as the branch-addition rule.",
         "O:L0889-L0893:EA96367741BD": "Require separate clean-context adversarial review for consequential claims, architecture, security, canon, spend, public claims, and irreversible work. Routine low-risk claims need current deterministic verification but not a separate agent. Preserve the older universal threshold as history."
       },
-      "source_ref": "hc-chat:thread:01a0027f-62d3-7901-8348-b24bc75245f3:message:msg_01a04025-f4f2-7473-bca3-86dc32f32be5"
+      "source_ref": "hc-chat:diamond-decisions-0.1.0:approve-96334783"
     }
   ]
 }
