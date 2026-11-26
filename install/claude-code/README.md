@@ -269,7 +269,7 @@ warning because the other gates do not depend on it.
 | Property | Test | Result |
 | --- | --- | --- |
 | Idempotent | run twice against the same home | `settings.json` byte-identical, SHA256 unchanged, every file reported SKIP |
-| Merges, never clobbers | run against a copy of a 142-entry live settings.json | `additionalDirectories`, `enabledPlugins`, `extraKnownMarketplaces` and every other key preserved |
+| Merges, never clobbers | run against a copy of a large live settings.json | `additionalDirectories`, `enabledPlugins`, `extraKnownMarketplaces` and every other key preserved |
 | Lifecycle commands stay unique | seed duplicates across SessionStart and Stop matcher groups | first command kept, four later duplicates removed, PreToolUse matcher groups preserved |
 | Windows Bash path executes | render a Git Bash path and Claude home that contain spaces, then run the exact command through `cmd.exe` | hook writes its expected marker; a nonexistent launcher exits nonzero and cannot emit a valid hook result |
 | Retired auto-install removed | seed SessionStart `build-boot-pack.ps1 -Install` beside `-VerifyInstalled` | install command removed, verify command and session package kept |
@@ -291,7 +291,7 @@ Every run that changed a file wrote a timestamped backup folder. The path
 appears at the end of the run.
 
 ```powershell
-$b = "$env:USERPROFILE\.claude\backups\dreameros-install-20260813-020226"
+$b = "$env:USERPROFILE\.claude\backups\<folder-the-run-printed>"
 Copy-Item "$b\settings.json" "$env:USERPROFILE\.claude\settings.json" -Force
 ```
 

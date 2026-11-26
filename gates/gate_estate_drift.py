@@ -1,18 +1,13 @@
 """Estate drift gate. A Stop hook that runs the standing check the operator
 should never have had to ask for.
 
-WHY THIS EXISTS, and the count is the reason. On 2026-09-11 into 2026-09-12 the
-operator typed this sentence NINE times in one session, nearly word for word:
+WHY THIS EXISTS. In one long session the operator had to retype the same
+standing instruction many times: check the local record, git and DreamerOS,
+and keep as much work local as possible. He was not repeating himself for
+emphasis. He was reinstalling a standing instruction by hand, because the
+session kept dropping it, and each retype cost him a turn.
 
-    "you know what we were tyring to do.. check offload, git, dreamoeros..
-     keeping as much computer as possblie local"
-
-Turns 107, 111, 115, 120, 121, 123, 126, 129, and again after the inventory
-that counted the first eight. He was not repeating himself for emphasis. He was
-reinstalling a standing instruction by hand, because the session kept dropping
-it, and each retype cost him a turn.
-
-An instruction said once is a request. An instruction said nine times is a
+An instruction said once is a request. An instruction said many times is a
 thing the assistant cannot be trusted to remember, and the fix for that is not
 a better memory. It is a machine that does the check whether anybody remembers
 or not.
@@ -48,7 +43,9 @@ import subprocess
 import sys
 import time
 
-ROOT = r"C:\Users\PC\Documents\DreamerOS"
+ROOT = os.environ.get("DREAMEROS_ESTATE_ROOT") or os.path.join(
+    os.path.expanduser("~"), "Documents", "DreamerOS"
+)
 REPOS = [
     "dreameros-app-site",
     "dreameros-scs-gateway",
