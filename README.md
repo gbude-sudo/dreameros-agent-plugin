@@ -11,6 +11,37 @@ The installed client connects to DreamerOS's intent-verified gateway:
 - **Multi-engine routing** - DreamerOS sends hard questions to the best-fit
   engine or at least two independent engines. It shows disagreements.
 
+## What this repository is for
+
+This repository is how DreamerOS reaches the AI tools a person already uses.
+A person installs it once. Their tool then starts every session with the same
+DreamerOS rules and connects to the same DreamerOS account. It does five jobs:
+
+1. **Connect.** One plugin and one MCP connection (`https://mcp.dreameros.app/mcp`)
+   give Claude Code, Codex, Cursor and other Agent Plugins clients the same
+   memory, verified answers and routing, after the person signs in.
+2. **Start every session the same way.** `bootpack/SOURCE-dreameros-boot-canon.md`
+   is the single source of the boot rules. The build writes the native format
+   each tool reads, so no tool holds a hand-edited copy.
+3. **Prove it loaded.** The installers and checks report what a tool actually
+   loaded. They compare its boot rules with the live session package by
+   version and SHA-256. A tool that cannot show a match reports BLOCKED. It
+   does not claim DreamerOS is connected.
+4. **Ship the installers and the desktop agent.** `install/`, `desktop/` and
+   `release/` hold the installers and the release build. A stable release is
+   blocked unless every applicable signing value is present.
+5. **Offer a small public plugin.** `directory/dreameros-memory` is a separate
+   plugin with four skills: save where you stopped, resume it, search your
+   saved notes, and scan a draft for filler.
+
+What a person gets: the same DreamerOS in every tool they use, with the plan
+deciding what is included. The Gateway checks the plan on each call.
+
+What this repository does not do: it does not run DreamerOS. The Gateway does
+the work. This repository holds no credentials, and no file in it should
+reveal how the Gateway works inside. CI runs `scripts/public_surface_gate.py`
+to check that.
+
 ## Claude Code quick start
 
 Install and update commands (tested on Claude Code 2.1.317):
