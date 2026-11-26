@@ -22,9 +22,8 @@ try. It surfaces every long verbatim run and asks the next turn to make
 that judgment call explicitly, rather than silently deciding either way -
 identical philosophy to gate_no_governance_language.py.
 
-NAMED GAP, not solved here: HC also described two other lived failures in
-the same message - conversational topic drift over a long session ("we
-talking about this... you totally go off the reservation") and generally
+NAMED GAP, not solved here: HC also described two other failures in the
+same message: conversational topic drift over a long session, and generally
 spotty intent measurement. Neither has a reliable mechanical check the way
 a verbatim-substring match does; forcing a fragile heuristic in here would
 itself become "a gate that cannot fire reliably," the exact failure this

@@ -2,11 +2,11 @@
 # PreToolUse GATE on Write. Refuses a whole-file write that would silently
 # delete most of an existing file.
 #
-# Ported from gateway canon "Destructive Payload Guardrail", codified after
-# commit 725eb8c shipped with a correct-looking subject line and a payload that
-# erased 1497 lines from gateway/app/orchestrator.py. Railway deploys on push,
-# so production ran a broken orchestrator for roughly twenty minutes until an
-# emergency restore. The commit message described the surgery. The diff did not.
+# Ported from the Destructive Payload Guardrail, codified after one commit
+# shipped with a correct-looking subject line and a payload that erased most of
+# a large source file. The service deploys on push, so production ran a broken
+# build until an emergency restore. The commit message described the surgery.
+# The diff did not.
 #
 # The canon states the detection rule directly: a Write on an existing file
 # whose pre-write line count is much larger than the new content is almost
@@ -57,4 +57,4 @@ fi
 
 PCT=$(( LOST * 100 / OLDLINES ))
 
-printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"BLOCKED by the destructive-write gate. This Write targets an existing file and %s - a %s percent reduction, from %s lines to %s.\\n\\nThis is the shape that erased 1497 lines from orchestrator.py and broke production for twenty minutes. The commit subject described a surgical change; the diff did not match it.\\n\\nDo this instead: use Edit for a surgical change. Edit cannot silently drop the rest of the file, which is the whole reason to prefer it.\\n\\nIf you genuinely intend to replace the whole file, read the current content first, account for every section you are dropping, and tell the operator plainly what is being removed and why. A deletion the operator has agreed to is fine. A deletion nobody noticed is the failure this gate exists to stop."}}\n' "$TRIP" "$PCT" "$OLDLINES" "${NEWLINES:-0}"
+printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"BLOCKED by the destructive-write gate. This Write targets an existing file and %s - a %s percent reduction, from %s lines to %s.\\n\\nThis is the shape that once erased most of a large source file and broke production for twenty minutes. The commit subject described a surgical change; the diff did not match it.\\n\\nDo this instead: use Edit for a surgical change. Edit cannot silently drop the rest of the file, which is the whole reason to prefer it.\\n\\nIf you genuinely intend to replace the whole file, read the current content first, account for every section you are dropping, and tell the operator plainly what is being removed and why. A deletion the operator has agreed to is fine. A deletion nobody noticed is the failure this gate exists to stop."}}\n' "$TRIP" "$PCT" "$OLDLINES" "${NEWLINES:-0}"

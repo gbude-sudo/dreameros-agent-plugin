@@ -1,13 +1,13 @@
 ---
 name: runtime-first-verify
-description: Probe the live runtime before you list any blocker or ask the operator for an action. Use before reporting a missing env var, a missing credential, a stale deploy, or any blocker inherited from substrate, a prior session, or another agent. Also use when the operator asks "is X still blocked". Born 2026-08-13, when a two-command curl probe proved a blocker was already resolved after it was asked for repeatedly.
+description: Probe the live runtime before you list any blocker or ask the operator for an action. Use before reporting a missing env var, a missing credential, a stale deploy, or any blocker inherited from substrate, a prior session, or another agent. Also use when the operator asks "is X still blocked".
 ---
 
 # runtime-first-verify
 
-The lesson from 2026-08-13. IFAAS_TIER1_KEYS was asked for repeatedly while
-a two-command curl probe proved it was already set. The Slack credentials
-blocker sat stale in substrate after HC fixed it. Both asks were waste.
+The lesson: a required key was asked for repeatedly while a two-command curl
+probe proved it was already set. A credentials blocker sat stale in substrate
+after HC fixed it. Both asks were waste.
 The runtime already held the answer.
 
 The rule: a blocker written down is a claim about the past. The runtime is

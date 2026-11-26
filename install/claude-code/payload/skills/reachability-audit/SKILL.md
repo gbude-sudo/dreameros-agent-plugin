@@ -1,7 +1,7 @@
 # reachability-audit
 
-Find value that exists but reaches nobody. Born 2026-08-11/12, when one
-session found: six wired signals no customer ever saw, a code-complete proxy
+Find value that exists but reaches nobody. Born from one session that
+found: six wired signals no customer ever saw, a code-complete proxy
 with no deploy, a published spec behind a parked domain, an SDK nobody
 announced, a marketing auditor with no caller, four sub-sites with zero
 inbound links, and a canon file three agents were told to read that was

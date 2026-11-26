@@ -7,9 +7,9 @@ description: Run parallel work strands safely across multiple AI sessions and ag
 
 Distills three gateway canon docs (DIGITAL_BRAIDING_TECHNIQUE_v1_0_0,
 BRAID_PROTOCOL_v1_0_0, SYNCHRONIZED_SWIMMER_TECHNIQUE_v1_0_0) into the executable
-loop, as lived on 2026-08-05 when two strands (site copy batch, gateway IFP paper
-trail) ran in parallel to completion with zero collisions. The canonical texts live
-in the gateway repo under governance/00_CORE/ - read them for doctrine; use this for
+loop, as lived when two strands (a site copy batch and a gateway paper trail)
+ran in parallel to completion with zero collisions. The canonical texts live
+in the gateway repo - read them for doctrine; use this for
 execution.
 
 ## Before dispatching parallel strands: the independence audit

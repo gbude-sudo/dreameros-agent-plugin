@@ -3,9 +3,8 @@
 
 WHY: an MCP tool is something the model CHOOSES to call, so a model can
 skip it. A hook is run by Claude Code itself on every message, before the
-model sees the message, so the model cannot skip it. HC 2026-09-14 21:0xZ:
-"i need you to find a soluttion for it then.. not one a thing can skip..
-proof it..".
+model sees the message, so the model cannot skip it. The owner required a
+mechanism the model cannot skip, with proof that it runs.
 
 WHAT IT DOES, on every message:
 1. Calls the DreamerOS gateway twice, in parallel, with the member's key:

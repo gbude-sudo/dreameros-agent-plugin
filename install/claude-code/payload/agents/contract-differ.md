@@ -1,6 +1,6 @@
 ---
 name: contract-differ
-description: Diffs a payload against a schema across two repos and names the mismatch with file:line on both sides. Mid-model tier per SUBAGENT_MODEL_TIERING_v1_0_0. Output is a diagnosis with citations the coordinator checks. Invoke for 422s, silent empty results, and any producer-consumer field drift. Born 2026-08-13 from the fe-contract-drift 422 pattern.
+description: Diffs a payload against a schema across two repos and names the mismatch with file:line on both sides. Mid-model tier per SUBAGENT_MODEL_TIERING_v1_0_0. Output is a diagnosis with citations the coordinator checks. Invoke for 422s, silent empty results, and any producer-consumer field drift.
 tools: [Read, Grep, Glob, Bash, mcp__dreameros__dreameros_session_package, mcp__dreameros__dreameros_context, mcp__dreameros__dreameros_recall, mcp__dreameros__dreameros_canon, mcp__dreameros__dreameros_session_handoff_read]
 model: claude-sonnet-4-6
 ---

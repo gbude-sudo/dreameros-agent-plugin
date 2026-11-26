@@ -5,8 +5,8 @@
 # sync with cloud. Blocks `git push` of a feature branch whose commits are not
 # yet in local main.
 #
-# Written 2026-08-10 after the assistant recorded that exact rule in CLAUDE.md
-# and then violated it on PR #1922 in the same session - branch, push, remote
+# Written after the assistant recorded that exact rule in CLAUDE.md
+# and then violated it in the same session - branch, push, remote
 # merge, then pull main down. The rule existed. Nothing enforced it.
 #
 # Every other hook on this machine returns additionalContext, which is a
