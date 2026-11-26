@@ -17,8 +17,7 @@ WHAT IT DOES
 2. POSTs https://mcp.dreameros.app/api/v1/actions/session-package.
 3. Hashes the generated block in ~/.claude/CLAUDE.md (between the BEGIN and
    END DREAMEROS-BOOT-CANON markers, CRLF to LF, trailing whitespace trimmed,
-   one final newline). Measured 2026-09-16: that normalization reproduces the
-   live sha256 3fa61b2d... exactly.
+   one final newline). That normalization reproduces the live sha256 exactly.
 4. Compares it to package_components.boot_canon.sha256.
 5. Tells the session the result as added context, and tells the operator
    through systemMessage:

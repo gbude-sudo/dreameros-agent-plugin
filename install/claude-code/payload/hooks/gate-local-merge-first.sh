@@ -47,7 +47,7 @@ esac
 # keyword. Do NOT test the whole command: on Windows every `git -C C:/...`
 # carries a drive-letter colon, which matched here and turned this gate off for
 # every push made on this machine. The gate reported allow and looked healthy.
-# Found 2026-08-10 after it permitted two codex/* pushes it was built to refuse.
+# Found after it permitted two codex/* pushes it was built to refuse.
 PUSH_ARGS="${CMD#*push}"
 case "$PUSH_ARGS" in *":"*) allow ;; esac
 
@@ -59,7 +59,7 @@ REPO="${REPO%\"}"; REPO="${REPO#\"}"
 # `git -C "$W" push` arrives here with REPO set to the literal string $W.
 # The old code then failed `rev-parse` on that nonsense path and returned
 # allow, which meant ANY push written with a shell variable walked straight
-# through this gate. Found 2026-08-10: the gate denied a literal-path push
+# through this gate. The gate denied a literal-path push
 # and permitted the identical push written with a variable.
 #
 # Unresolvable target is NOT a reason to allow, and it is NOT a reason to go

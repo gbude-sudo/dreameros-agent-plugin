@@ -1,8 +1,8 @@
 #!/bin/bash
 # Stop GATE. This one REFUSES to let a turn end. It does not narrate.
 #
-# Built 2026-08-10 after the operator observed, correctly, that the existing
-# Stop hooks fired roughly forty times in one session and changed nothing.
+# Built because the existing Stop hooks fired many times in one session and
+# changed nothing.
 # They return additionalContext, which is a note handed to someone who may not
 # read it. This returns continue:false, which ends nothing until the state is
 # actually resolved.

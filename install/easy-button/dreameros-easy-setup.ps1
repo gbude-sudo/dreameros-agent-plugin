@@ -42,7 +42,7 @@
 #   install time, so a customer always gets the current boot contract:
 #     GET https://mcp.dreameros.app/api/v1/agent/manifest
 #       -> boot_contract.instruction_text
-#   Measured 2026-08-26: HTTP 200, instruction_text 1367 chars. When the
+#   A successful fetch returns HTTP 200 with the instruction text. When the
 #   fetch fails the embedded fallback below is used and the report says so.
 #
 # USAGE

@@ -8,7 +8,7 @@ description: Cross-check every specific product claim on a marketing or docs sur
 P37 canon: done means customer-usable, and mis-selling (copy claiming a capability
 that has not shipped) is a hard escalation, not a copy nitpick. This skill is the
 audit that finds it before a customer or an investor's diligence engineer does.
-Proven 2026-08-04/05 across three repos: it found a parked API domain, a key prefix
+Across three repos it has found a parked API domain, a key prefix
 that never existed, four marketed endpoints with zero code, and deleted components
 sold as live Pro+ features.
 
