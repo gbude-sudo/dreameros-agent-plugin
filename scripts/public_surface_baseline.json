@@ -12,55 +12,37 @@
    "dated_finding_story": 2
   },
   "bootpack/out/claude/CLAUDE.md.block": {
-   "dated_finding_story": 2,
    "memory_or_anchor_id": 2,
    "owner_dated_attribution": 1,
-   "owner_local_store": 7,
-   "owner_quote_marker": 2,
-   "vendor_model_name": 2
+   "owner_quote_marker": 2
   },
   "bootpack/out/codex/AGENTS.md.block": {
-   "dated_finding_story": 2,
    "memory_or_anchor_id": 2,
    "owner_dated_attribution": 1,
-   "owner_local_store": 7,
-   "owner_quote_marker": 2,
-   "vendor_model_name": 2
+   "owner_quote_marker": 2
   },
   "bootpack/out/cursor/dreameros-boot-canon.mdc": {
-   "dated_finding_story": 2,
    "memory_or_anchor_id": 2,
    "owner_dated_attribution": 1,
-   "owner_local_store": 7,
-   "owner_quote_marker": 2,
-   "vendor_model_name": 2
+   "owner_quote_marker": 2
   },
   "bootpack/out/manifest/dreameros-boot-canon.json": {
    "owner_dated_attribution": 1
   },
   "bootpack/out/paste/PASTE-INTO-ANY-LLM.txt": {
-   "dated_finding_story": 2,
    "memory_or_anchor_id": 2,
    "owner_dated_attribution": 1,
-   "owner_local_store": 7,
-   "owner_quote_marker": 2,
-   "vendor_model_name": 2
+   "owner_quote_marker": 2
   },
   "bootpack/out/runtime/dreameros-boot-canon-stable-prefix.json": {
-   "dated_finding_story": 1,
    "memory_or_anchor_id": 2,
    "owner_dated_attribution": 1,
-   "owner_local_store": 7,
-   "owner_quote_marker": 2,
-   "vendor_model_name": 2
+   "owner_quote_marker": 2
   },
   "bootpack/out/skill/dreameros-boot/SKILL.md": {
-   "dated_finding_story": 2,
    "memory_or_anchor_id": 2,
    "owner_dated_attribution": 1,
-   "owner_local_store": 7,
-   "owner_quote_marker": 2,
-   "vendor_model_name": 2
+   "owner_quote_marker": 2
   },
   "bootpack/proposals/AUDIENCES_v0_1_0.md": {
    "dated_finding_story": 1,
@@ -73,12 +55,9 @@
    "secret_private_key_block": 4
   },
   "cursor/rules/dreameros-boot-canon.mdc": {
-   "dated_finding_story": 2,
    "memory_or_anchor_id": 2,
    "owner_dated_attribution": 1,
-   "owner_local_store": 7,
-   "owner_quote_marker": 2,
-   "vendor_model_name": 2
+   "owner_quote_marker": 2
   },
   "gates/gate_estate_drift.py": {
    "owner_local_store": 1
@@ -217,12 +196,9 @@
    "vendor_model_name": 5
   },
   "skills/dreameros-boot/SKILL.md": {
-   "dated_finding_story": 2,
    "memory_or_anchor_id": 2,
    "owner_dated_attribution": 1,
-   "owner_local_store": 7,
-   "owner_quote_marker": 2,
-   "vendor_model_name": 2
+   "owner_quote_marker": 2
   }
  },
  "patterns": [
