@@ -3,8 +3,8 @@
 STATUS: PROPOSED. Not canon until the Human Conductor ratifies it. Nothing
 here changes the boot canon source or its reviewed floor yet.
 
-Measured 2026-11-20 on main (gateway origin/main, plugin main 7d8b42c,
-frontend origin/main). Each "today" line names the file it was read from.
+Measured 2026-11-20 on main of the gateway, the plugin and the frontend. Each
+"today" line was read from the code. The file names are kept in the private record.
 
 ## The idea, in the Human Conductor's terms
 
@@ -23,9 +23,9 @@ decides how much you see and control.
 What it is: the founder. Builds DreamerOS and uses it every day. Final
 authority on canon, keys, spend and other members' plans.
 
-Today: gateway governance/00_CORE/HC_TIER_DEFINITION_v1_0_0.md (ratified
-2026-05-07): "HC also USES DreamerOS daily as an operator - the same way a
-paying customer would." tier_gate.py: tier "hc", UNLIMITED_TIERS {"hc"}.
+Today: the HC tier definition in the gateway repo (ratified 2026-05-07): "HC
+also USES DreamerOS daily as an operator - the same way a paying customer
+would." The gateway tier table marks tier "hc" as unlimited.
 
 THE SAME-TIME RULE. What HC finds, makes or sees reaches members in the same
 change, gated only by plan. A capability that exists for HC and not for any
@@ -34,7 +34,7 @@ HC: ratifying canon, holding keys, spending, changing another member's plan.
 This is boot canon R26 (same power everywhere, the only differentiator is
 plan) said from HC's side.
 
-Checking a plan: gateway/app/founder_walk.py lets HC step down into light,
+Checking a plan: a gateway tool lets HC step down into light,
 dreamweaver_solo, dreamweaver_duo, pro or elite for 60 to 480 minutes
 without changing the account. It refuses free.
 
@@ -43,9 +43,8 @@ without changing the account. It refuses free.
 What it is: member accounts used for in-depth testing, never the founder's
 account. They prove what a real member sees.
 
-Today: the nightly member walk signs in with DreamerOS_TestLogin and
-DreamerOS_TestPass (gateway/app/member_walk_cron.py:245,254), with a
-secondary login MEMBER_WALK_SECONDARY_LOGIN (line 263).
+Today: the nightly member walk signs in with a dedicated test member, and a
+secondary login, both read from environment settings.
 
 Gap: one test account per plan (free, light, pro, elite) so every plan is
 walked, not only one.
@@ -72,14 +71,11 @@ ADVANCED (chosen, training wheels off):
 - Running locally never unlocks a higher plan.
 
 Today (pieces of this already exist, per surface, not as one setting):
-- Sidebar progressive disclosure, calm by default
-  (frontend src/components/AppSidebar.tsx:293).
-- Receipt four-step disclosure ladder
-  (frontend src/components/GovernanceRibbon.tsx:1822).
-- Connector drawer progressive disclosure
-  (frontend src/components/connect/CapabilityDrawer.tsx:37).
-- Rules export: Direction Set Workshop, Pro and above (gateway
-  routes_direction_set.py refuses below Pro with 403).
+- Sidebar progressive disclosure, calm by default.
+- Receipt four-step disclosure ladder.
+- Connector drawer progressive disclosure.
+- Rules export: Direction Set Workshop, Pro and above (the gateway
+  refuses below Pro with 403).
 
 Gaps (agent work, after ratification):
 - One Simple/Advanced switch per member that every surface reads, instead
@@ -93,7 +89,7 @@ How to present, in customer words (draft):
 - Simple: "It just works. Ask, and you get a checked answer and a receipt."
 - Advanced: "Open the hood. Every check, every engine, every record, on your
   machine or ours."
-Plan limits come from gateway tier_gate.py at render time, never typed by
+Plan limits come from the gateway tier table at render time, never typed by
 hand. No plan is unlimited except hc (UNLIMITED_TIERS).
 
 ## 4. Every AI engine
@@ -118,18 +114,17 @@ another blurb or checkbox. So it is written as four promises that a test
 can fail, read against what a new member meets today.
 
 ### Promise 1: understood in 15 seconds
-Today (frontend origin/main b3bd6345):
-- Sign-in is the first screen, then /dreamland (src/app/page.tsx:126-137).
+Today (frontend main):
+- Sign-in is the first screen, then /dreamland.
 - The first thing said: "You don't trust AI? It's OK. Neither do we."
-  (dreamland/page.tsx:2928-2930). The box says "Type it messy, like you'd
-  say it to a friend." (line 3608). This already is the voice.
-- First-screen words a newcomer must learn: "receipts", "engines"
-  (EmptyStatePrompts.tsx:70,81,83; page.tsx:353).
-- The welcome tour never opens: dreamland/page.tsx:589 starts it false and
-  line 1230 only sets it false. Its copy is stale: "5 AI engines instead of
-  1", "12 specialized tools", "DreamerOS GPT" (WelcomeTour.tsx:39,42,127).
+  The box says "Type it messy, like you'd say it to a friend." This already
+  is the voice.
+- First-screen words a newcomer must learn: "receipts", "engines".
+- The welcome tour never opens: the page starts it false and
+  only ever sets it false. Its copy is stale: "5 AI engines instead of
+  1", "12 specialized tools", "DreamerOS GPT".
 - The day-one helpers (NewHereLink, GettingStartedCard) are mounted only on
-  /dashboard (dashboard/page.tsx:19,20,647,817), not on /dreamland, where a
+  /dashboard, not on /dreamland, where a
   new member lands.
 
 ### Promise 2: value in 30 seconds, zero setup
@@ -139,7 +134,7 @@ Today:
 - Bringing DreamerOS into the member's own AI is the hard part. The
   desktop page says the installer is "Coming soon" and teaches 12 manual
   steps across Claude Desktop, Cursor and Codex, each pasting JSON or TOML
-  with a Bearer key (connect/desktop/page.tsx:121-179, 350).
+  with a Bearer key.
 - The easy path is already built and on in production: OAuth discovery and
   client registration answered 200 / 405-route-exists at 19:32:36Z
   (mcp.dreameros.app/.well-known/oauth-protected-resource/mcp,
@@ -149,11 +144,11 @@ Today:
 ### Promise 3: the curtain lifts in plain words, at any depth
 Today, pieces that already do this:
 - One plain line per answer saying what DreamerOS did
-  (gateway what_we_did.py: past tense, no internal names).
+  (gateway: past tense, no internal names).
 - The slip, behind the scenes of one answer, in plain words
-  (gateway receipt_slip.py:1).
-- One narrator voice for live thoughts (gateway plain_thoughts.py:42).
-- The four-step receipt ladder (frontend GovernanceRibbon.tsx:1822).
+  (gateway).
+- One narrator voice for live thoughts (gateway).
+- The four-step receipt ladder (frontend).
 Gap: the Dual-Audience UI Playbook is cited in 6+ frontend files but has
 no file in any repo; it lives only in substrate memory 6a3a05fa
 (2026-06-18). The soul is not written where code can read it.
@@ -165,11 +160,11 @@ by every door, not in one screen's state. Same-time rule: what HC gets,
 members get in the same change, gated only by plan.
 
 ### How the soul is enforced (not a checklist)
-- The nightly member walk (gateway member_walk_cron.py) measures, per plan
+- The nightly member walk (gateway) measures, per plan
   test account: seconds from sign-in to first answer, setup steps before
   value, and internal words on first screens. A rise fails the walk.
 - The vocabulary gate that already blocks DAIM/EDE/IFP in customer copy
-  (frontend tests/unit/messaging-framework-public-copy.test.ts) extends to
+  (a frontend test) extends to
   first-screen jargon.
 - Every new capability ships with its Simple line and its Advanced view in
   the same change, or it does not ship.
