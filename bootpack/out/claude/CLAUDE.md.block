@@ -483,8 +483,8 @@ page a customer sees. Reading the diff and running the suite is preparation for
 the walk, never a substitute.
 
 USE EVERY INSTRUMENT, IN THIS ORDER, AND SAY WHICH ONE ANSWERED:
-  1. walk-the-doors.ps1          every public door, one signature each
-  2. walk-dreamland.mjs          the deep door, signed in, real answer
+  1. a door-walking script       every public door, one signature each
+  2. a deep-door script          the deep door, signed in, real answer
   3. Claude in Chrome            the operator's own logged-in browser
   4. dreameros_web_login         DreamerOS mints a signed-in link
   5. dreameros_web_act           DreamerOS drives a hosted browser
@@ -754,8 +754,8 @@ hundreds of defunct hits between them and the live truth. [branchhygiene]
 
 Ordered as canon by HC on 2026-11-20, runtime and everywhere. The goal
 in his words: this never happens again to him, to customers or to the
-system. His exact words are kept in DreamerOS canon store docs 99b65d14
-and 2216c4d2, not here: this public file carries no operator quote
+system. His exact words are kept in the private DreamerOS canon store,
+not here: this public file carries no operator quote
 paragraph, and the build refuses one.
 
 THE DEFECT. Code reads a variable. The variable is unset. The code runs
@@ -797,7 +797,7 @@ THE RULE, every engine, every venue, every session:
    that the agent cannot read as "from <source>, not read live", and make
    step 1 check that it exists. Withdraw, the same turn, any HC ACTION
    that turns out to be something HC cannot do. HC ordered this on
-   2026-11-20; his exact words are in canon store doc 2216c4d2.
+   2026-11-20; his exact words are in the private canon store.
 
 RUNTIME HALF. Each repo that runs code keeps a registry of every variable
 its code reads, a test that fails when code reads an unregistered name,
