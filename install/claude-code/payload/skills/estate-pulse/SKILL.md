@@ -3,7 +3,7 @@
 The seven-source morning sweep proven 2026-08-11/12. Run when the operator
 says estate pulse, morning sweep, what changed overnight, or at any session
 start on estate work. The sweep interrogates the remote authority on each
-channel, never local clones. The estate is 17 repos, not 5. The highest-yield
+channel, never local clones. The estate is every repo the owner has, not only the first few. The highest-yield
 source is overnight crashes and new errors, not what did not break.
 
 Use when the operator asks: estate pulse, morning sweep, what changed
@@ -17,20 +17,20 @@ overnight, what is the current state, or any session start on estate work.
    author, (c) failed workflow runs in the last 24 hours with log link. Never
    enumerate from local clones. The remote is the estate state.
 
-2. SENTRY ORG. Query Sentry org dreamer-ai-holdings-llc, region
-   https://us.sentry.io. Retrieve unresolved issues sorted by freq descending.
+2. SENTRY ORG. Query the Sentry organization and region named in your
+   estate settings. Retrieve unresolved issues sorted by freq descending.
    Filter for firstSeen in the last 24 hours. This is historically the
    highest-yield defect source. Report the issue key, release if tagged,
    affected user count, and a one-line stack trace frame.
 
-3. RAILWAY GATEWAY CHAIN. Project 24761806-4bc1-481b-8a23-7158a319efb7,
-   service 3c7d7b14-ccc1-4026-904b-7806d5cdbd04. Retrieve the newest
+3. RAILWAY GATEWAY CHAIN. Use the Railway project and service IDs from your
+   estate settings (never hard-code them in this file). Retrieve the newest
    deployments. Find the most recent SUCCESS status. Read its commitHash.
    That is the live SHA. Status SKIPPED with reason "No changes to watched
    files" is correct for docs-only merges, not a defect.
 
-4. VERCEL PROJECT. Project prj_QyQqBwuNj0qmNFALbXKHUohvQGxG, team
-   team_EELn9y7BdrcUbh9JVWLncymg. Retrieve the newest production deployment.
+4. VERCEL PROJECT. Use the Vercel project and team IDs from your estate
+   settings. Retrieve the newest production deployment.
    Read its state and commitSha. A CANCELED newest deploy after a no-op merge
    is normal.
 

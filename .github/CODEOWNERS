@@ -1,0 +1,11 @@
+# Review owners. GitHub asks these owners to review changes to the paths below
+# only when branch protection requires code owner review. That setting is
+# made in the repository settings, not in this file.
+* @gbude-sudo
+/bootpack/SOURCE-dreameros-boot-canon.md @gbude-sudo
+/bootpack/known-good-rule-count.txt @gbude-sudo
+/scripts/public_surface_baseline.json @gbude-sudo
+/.github/workflows/ @gbude-sudo
+/release/ @gbude-sudo
+/plugin.json @gbude-sudo
+/mcp.json @gbude-sudo
