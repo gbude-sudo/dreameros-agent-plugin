@@ -143,7 +143,7 @@ jobs:
           path: rebuilt-carriers.patch
           if-no-files-found: warn
 
-  # Cursor installer tests: about 6 of the 8.5 minutes on 2026-09-16. They run
+  # Cursor installer tests: most of the total run time. They run
   # in their own job, in parallel, and on a pull request only when a file they
   # cover changed. Pushes to main always run them.
   cursor-tests:

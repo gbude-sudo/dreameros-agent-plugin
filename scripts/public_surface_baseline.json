@@ -81,8 +81,7 @@
    "vendor_model_name": 2
   },
   "gates/gate_estate_drift.py": {
-   "dated_finding_story": 1,
-   "owner_local_store": 2
+   "owner_local_store": 1
   },
   "governance/decisions/DIAMOND_DIRECTIVE_DECISIONS_DRAFT_v0_1_0.json": {
    "owner_local_path": 3,

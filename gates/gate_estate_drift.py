@@ -1,11 +1,9 @@
 """Estate drift gate. A Stop hook that runs the standing check the operator
 should never have had to ask for.
 
-WHY THIS EXISTS. In one long session the operator had to retype the same
-standing instruction many times: check the local record, git and DreamerOS,
-and keep as much work local as possible. He was not repeating himself for
-emphasis. He was reinstalling a standing instruction by hand, because the
-session kept dropping it, and each retype cost him a turn.
+WHY THIS EXISTS. A standing instruction that a person must retype again and
+again is one the session keeps dropping: check the local record, git and
+DreamerOS, and keep as much work local as possible. Each retype costs a turn.
 
 An instruction said once is a request. An instruction said many times is a
 thing the assistant cannot be trusted to remember, and the fix for that is not
@@ -23,7 +21,7 @@ reported but does not hold, because a branch behind its remote loses nothing
 and holding on it would make the gate obnoxious enough to be removed. Being
 removed is the only way a gate truly fails.
 
-COST. Measured 2026-09-12: the no-network sweep of six repositories takes about
+COST. The no-network sweep of six repositories takes about
 1.0 seconds, and one network fetch about 1.35 seconds. Fetches are throttled to
 once every ten minutes through a marker file, so the common case stays near a
 second and the hook fits comfortably inside a Stop budget.
@@ -102,7 +100,7 @@ def main() -> int:
                                if ln[:2].strip() and not ln.startswith("??")])
                 dirty.append((r, n, tracked))
 
-            # Offline_Repo is local by design and has no remote. Comparing it
+            # The local record folder is local by design and has no remote. Comparing it
             # against a cloud main it was never meant to have would report a
             # permanent false drift, and a gate that cries wolf gets removed.
             local = git(r, "rev-parse", "--short", "main")
@@ -142,7 +140,7 @@ def main() -> int:
                     + "\n\nTracked edits are uncommitted. Commit them by explicit "
                       "path, or say plainly in the reply that they are being left "
                       "and why. Do not end a turn leaving edited files unsaved: "
-                      "that is the thing he keeps asking about."
+                      "that is a standing request."
                 ),
                 "systemMessage": "Hold on - there are uncommitted edits. Saving them before this turn ends.",
             }))
