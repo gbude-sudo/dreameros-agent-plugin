@@ -364,7 +364,7 @@
         "FEB6F5DA1A470FE8E41CA48F616903C036A4E47683D89BC4E7F4F2FEBA07E8E4:R7"
       ],
       "resolution": "Proposed: ratify the reviewed target mapping for 176 non-conflict historical groups without deleting their source rows.",
-      "source_ref": "draft:C:/Users/PC/Documents/DreamerOS/Offline_Repo/audits/DREAMEROS_HC_DECISION_LEDGER_APPROVAL_PROMPT_v0_1_0.md",
+      "source_ref": "draft:DREAMEROS_HC_DECISION_LEDGER_APPROVAL_PROMPT_v0_1_0.md",
       "status": "pending_human_conductor"
     },
     {
@@ -387,7 +387,7 @@
         "O:L0889-L0893:EA96367741BD": "Require separate clean-context adversarial review for consequential claims, architecture, security, canon, spend, public claims, and irreversible work. Routine low-risk claims need current deterministic verification but not a separate agent. Preserve the older universal threshold as history."
       },
       "resolution": "Pending Human Conductor decision on all three named conflicts.",
-      "source_ref": "draft:C:/Users/PC/Documents/DreamerOS/Offline_Repo/audits/DREAMEROS_HC_DECISION_LEDGER_APPROVAL_PROMPT_v0_1_0.md",
+      "source_ref": "draft:DREAMEROS_HC_DECISION_LEDGER_APPROVAL_PROMPT_v0_1_0.md",
       "status": "pending_human_conductor"
     }
   ],
@@ -432,10 +432,10 @@
     "historical_clause_count": 178,
     "historical_group_count": 178,
     "known_conflict_count": 3,
-    "path": "C:/Users/PC/Documents/DreamerOS/Offline_Repo/audits/DREAMEROS_DIRECTIVE_CLAUSE_MAP_v0_1_0.json",
+    "path": "DREAMEROS_DIRECTIVE_CLAUSE_MAP_v0_1_0.json",
     "sha256": "3F84185434A91778D0A8D5EB06D078F6419804CD5C30C5FF414E52EFF6DBA02C"
   },
   "status": "draft_pending_human_conductor",
-  "thread_id": "01a0027f-62d3-7901-8348-b24bc75245f3",
+  "thread_id": "diamond-decisions-0.1.0",
   "writes": []
 }
