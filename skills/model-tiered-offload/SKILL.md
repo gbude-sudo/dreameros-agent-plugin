@@ -34,4 +34,4 @@ A customer-owned Kimi connection is the member's own DreamWeaver connection. Nev
 
 ## Provider-specific work
 
-Read [Kimi, Fireworks, and Claude routing](references/kimi-fireworks-claude.md) when the task uses those providers, estimates cost, designs cache or fallback behavior, or turns routing evidence into a product moat.
+Read [Kimi, Fireworks, and Claude routing](references/kimi-fireworks-claude.md) when the task uses those providers, estimates cost, designs cache or fallback behavior, or turns routing evidence into a product claim.
