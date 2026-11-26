@@ -145,27 +145,14 @@
   "install/claude-code/payload/hooks/open-loop-surface.sh": {
    "internal_repo_name": 2
   },
-  "install/claude-code/payload/hooks/operator-standing-orders.sh": {
-   "memory_or_anchor_id": 5,
-   "vendor_model_name": 1
-  },
   "install/claude-code/payload/skills/external-mcp-client-onboard/SKILL.md": {
    "gateway_source_path": 1
-  },
-  "install/claude-code/payload/skills/model-tiered-offload/SKILL.md": {
-   "vendor_model_name": 6
-  },
-  "install/claude-code/payload/skills/model-tiered-offload/references/kimi-fireworks-claude.md": {
-   "vendor_model_name": 13
   },
   "install/claude-code/tests/policy_setup_test.py": {
    "vendor_model_name": 2
   },
   "install/claude-code/tests/settings-merge.tests.ps1": {
    "owner_local_path": 2
-  },
-  "install/claude-code/tests/skill-tree-install.tests.ps1": {
-   "vendor_model_name": 4
   },
   "install/codex/dreameros-global-setup.ps1": {
    "vendor_model_name": 1
@@ -231,7 +218,7 @@
    "owner_dated_attribution": 1
   },
   "scripts/validate.py": {
-   "vendor_model_name": 9
+   "vendor_model_name": 5
   },
   "skills/dreameros-boot/SKILL.md": {
    "dated_finding_story": 2,
@@ -240,12 +227,6 @@
    "owner_local_store": 7,
    "owner_quote_marker": 2,
    "vendor_model_name": 2
-  },
-  "skills/model-tiered-offload/SKILL.md": {
-   "vendor_model_name": 6
-  },
-  "skills/model-tiered-offload/references/kimi-fireworks-claude.md": {
-   "vendor_model_name": 13
   }
  },
  "patterns": [

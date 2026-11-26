@@ -30,8 +30,8 @@ Requested route is intent. Served route is evidence. If the response omits a fie
 
 ## Keep customer and platform credentials separate
 
-A customer-owned Kimi connection is the member's own DreamWeaver connection. Never let failure of a customer-owned Kimi credential fall back to a DreamerOS platform key. A BYO call must remain customer-key-only, fail closed, and identify its key origin in the receipt.
+A customer-owned provider connection is the member's own DreamWeaver connection. Never let failure of a customer-owned credential fall back to a DreamerOS platform key. A BYO call must remain customer-key-only, fail closed, and identify its key origin in the receipt.
 
 ## Provider-specific work
 
-Read [Kimi, Fireworks, and Claude routing](references/kimi-fireworks-claude.md) when the task uses those providers, estimates cost, designs cache or fallback behavior, or turns routing evidence into a product claim.
+Read [Provider routing and receipts](references/provider-routing.md) when the task uses a model provider, estimates cost, designs cache or fallback behavior, or reports which route served a request.
