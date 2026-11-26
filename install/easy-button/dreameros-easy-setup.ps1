@@ -12,7 +12,7 @@
 #   estate script prints SKIP on a missing file, this one creates it.
 #
 # WHAT IT WRITES, per tool, all shapes taken from vendor docs or measured
-# on a live install on 2026-08-26 (see install/easy-button/README.md for
+# on a live install (see install/easy-button/README.md for
 # the source table):
 #   Claude Code   ~/.claude/CLAUDE.md          block merge, created if absent
 #   Codex CLI     ~/.codex/AGENTS.md           block merge, created if absent
@@ -102,8 +102,8 @@ function Note([string]$Tool, [string]$Target, [string]$Action) {
 function New-Dir([string]$p) { if (-not (Test-Path $p)) { New-Item -ItemType Directory -Path $p -Force | Out-Null } }
 
 function Write-Utf8NoBom([string]$Path, [string]$Text) {
-    # A UTF-8 BOM made a real settings.json unparseable to JSON.parse on
-    # 2026-08-26 with thirteen hooks behind it. Never write one.
+    # A UTF-8 BOM made a real settings.json unparseable to JSON.parse with
+    # many hooks behind it. Never write one.
     New-Dir (Split-Path -Parent $Path)
     $enc = New-Object System.Text.UTF8Encoding($false)
     [System.IO.File]::WriteAllText($Path, $Text, $enc)

@@ -5,7 +5,7 @@ description: Detect and clear GitHub auto-merge PRs stuck at mergeStateStatus BE
 
 # pr-unstick-behind
 
-The lesson from 2026-08-13, seen seven or more times in one day. A PR with
+The lesson, seen seven or more times in one day. A PR with
 auto-merge armed and checks green still never merges when a sibling merges
 first. The sibling moves main. The PR falls to mergeStateStatus BEHIND.
 GitHub does not update it for you. It waits forever.

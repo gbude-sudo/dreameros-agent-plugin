@@ -5,7 +5,7 @@ description: Classify every local branch and stash as LANDED, REAL-UNLANDED, or 
 
 # estate-branch-triage
 
-The lesson from 2026-08-13, proved twice in one day. A branch that looks
+The lesson, proved twice in one day. A branch that looks
 unmerged against local main can be fully landed on origin/main. A stale
 local main produced false REAL-UNLANDED verdicts. Those verdicts nearly
 caused duplicate merges and false strategy corrections.

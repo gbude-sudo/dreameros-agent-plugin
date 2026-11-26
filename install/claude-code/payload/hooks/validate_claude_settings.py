@@ -2,7 +2,7 @@
 """Validate Claude Code settings files before they can silently disable themselves.
 
 WHY THIS EXISTS
-2026-09-16. `fallbackModel` was written as a string in ~/.claude/settings.json.
+`fallbackModel` was once written as a string in ~/.claude/settings.json.
 The schema requires an array. Claude Code then skipped the WHOLE user settings
 file with no visible error in the Desktop app: every hook, the deny list and
 the env block were gone for about two weeks. Only a wrong-typed top-level

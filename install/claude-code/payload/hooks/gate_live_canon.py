@@ -3,8 +3,8 @@
 boot canon matches it. Runs itself; the model does not choose to run it.
 
 WHY THIS EXISTS
-2026-09-16. HC asked that every Claude Code session boot its canon from
-DreamerOS as the live source, not from a stale local copy. Measured that day:
+Every Claude Code session should boot its canon from
+DreamerOS as the live source, not from a stale local copy. Measured:
 the existing SessionStart hooks (gate_session_boot.py and the repo's
 dreameros-session-start.sh) only inject text TELLING the model to call
 dreameros_session_package. Nothing made the call. A session after /compact

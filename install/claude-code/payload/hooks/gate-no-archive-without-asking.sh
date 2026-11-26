@@ -5,7 +5,7 @@
 # still not built hours later: "doesn't archive without asking - losing remote
 # session / PC access."
 #
-# An audit on 2026-08-10 found ZERO gating for it. No mention of "archive" in
+# An audit found ZERO gating for it. No mention of "archive" in
 # CLAUDE.md, in any hook, in any agent, or in either settings file. The deny
 # list held 17 entries and none touched session management, while
 # mcp__ccd_session_mgmt__archive_session sat live and reachable.

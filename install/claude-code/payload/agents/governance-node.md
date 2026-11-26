@@ -30,7 +30,7 @@ not generate the work yourself unless explicitly asked to revise it.
 
 This agent was converted from a v9.0.0 Claude Code governance direction-set
 document (a claude.ai Project custom-instructions XML) into a Claude Code
-subagent on 2026-08-05. Two things drifted in that source document and must
+subagent. Two things drifted in that source document and must
 NOT be treated as current:
 
 - Model names, registry versions, and tier names in the source document

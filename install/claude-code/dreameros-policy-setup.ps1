@@ -4,7 +4,7 @@
   managed settings file.
 
 .DESCRIPTION
-  Why: on 2026-09-16 a single wrong-typed value made Claude Code skip the whole
+  Why: a single wrong-typed value made Claude Code skip the whole
   user settings file (~/.claude/settings.json). Every hook, the deny list and
   the env block were off, with no visible error in the Desktop app. Managed
   settings load above every user and project file, apply to the terminal, the
@@ -183,7 +183,7 @@ if ($LASTEXITCODE -ne 0) {
 # sandbox accounts had write access). Only SYSTEM and Administrators may
 # write; Users may read and run the hooks.
 #
-# How, and why in this order (2026-09-16 lesson): set the explicit grants on
+# How, and why in this order (lesson learned): set the explicit grants on
 # the DIRECTORY only, then /reset the children so every file inherits them.
 # The first version ran /inheritance:r /grant:r (OI)(CI) with /T: on files the
 # (OI)(CI) grants do not apply, so every file was left with NO access entries
@@ -224,7 +224,7 @@ if ($defaultTarget -or $LockForTest) {
 }
 
 # .NET hash: Get-FileHash is missing when Windows PowerShell 5.1 is started
-# from PowerShell 7 (module path mismatch, seen on GitHub runners 2026-09-16).
+# from PowerShell 7 (module path mismatch, seen on GitHub runners).
 $sha = [System.Security.Cryptography.SHA256]::Create()
 try {
     $bytes = [IO.File]::ReadAllBytes($ManagedFile)

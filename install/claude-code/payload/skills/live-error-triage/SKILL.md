@@ -5,7 +5,7 @@ description: Triage a production error from Sentry or logs down to a minimal cit
 
 # live-error-triage
 
-The lesson from 2026-08-13. A production NameError came from a function
+The lesson. A production NameError came from a function
 that imported two sibling modules locally but not connection_store. A
 file-level grep said "imported". Only reading the function scope showed
 the gap. And the same log window held two more defects the primary error
@@ -48,7 +48,7 @@ Cite the Sentry issue id in the commit message.
 ## Step 5: sweep the window for secondary defects
 
 While the log window is open, read it in full for defects the primary
-error hides. The 2026-08-13 window yielded two:
+error hides. That window yielded two:
 
 - An auto-remember 422, a contract drift failing 100 percent of calls
   silently. No traceback, just a status code repeating.

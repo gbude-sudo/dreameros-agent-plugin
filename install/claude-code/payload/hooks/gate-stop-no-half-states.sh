@@ -56,7 +56,7 @@ for repo in "${REPOS[@]}"; do
 
   # Unstaged and untracked work in a PRIMARY checkout.
   #
-  # An audit on 2026-08-10 caught this gate returning exit 0 "clean" while
+  # An audit caught this gate returning exit 0 "clean" while
   # three files sat modified in dreameros-app-frontend. It only ever looked at
   # `diff --cached`, and the worktree loop below deliberately skips primary
   # checkouts, so ordinary unstaged work was invisible to it.
@@ -69,8 +69,8 @@ for repo in "${REPOS[@]}"; do
   # SURFACE this, and let the turn end.
   # awk, not `grep -c ... || echo 0`: on a clean repo grep -c prints 0 AND
   # exits 1, so the || fired too and dirty became the two-line string "0\n0",
-  # which blew up the -gt test below. Found by the revived open-loop-auditor
-  # on 2026-08-10. awk always prints exactly one number and exits 0.
+  # which blew up the -gt test below. Found by the revived open-loop-auditor.
+  # awk always prints exactly one number and exits 0.
   dirty=$(git -C "$repo" status --porcelain --untracked-files=normal 2>/dev/null | awk '!/^[MADRC] /{n++} END{print n+0}')
   if [ "${dirty:-0}" -gt 0 ]; then
     WIP="${WIP}\\n  ${dirty} uncommitted file(s) in ${name} on branch $(git -C "$repo" rev-parse --abbrev-ref HEAD 2>/dev/null) - left alone, not blocked"
@@ -79,7 +79,7 @@ done
 
 # Every linked worktree of every repo, wherever it lives on disk.
 #
-# This replaced a loop that read only $BRAID. On 2026-08-10 an audit found 29
+# This replaced a loop that read only $BRAID. An audit found many
 # uncommitted files sitting in worktrees under C:/tmp - two of them holding the
 # entire Codex parity port - and this gate had reported clean for the whole
 # session, because it was watching one hardcoded directory that those worktrees

@@ -76,7 +76,7 @@ denied: force-push in every spelling, reset --hard, clean -fd, stash drop,
 stash clear, worktree prune, branch -D, rm -rf on / or ~, PowerShell recursive
 force delete, and reading .env / .pem / .key / .credentials.json.
 
-Two authoring traps, both lived on 2026-08-10 and both my own error:
+Two authoring traps, both lived and both my own error:
   1. Windows paths in permission rules must use the separator the prompt
      actually shows. A rule written with forward slashes did not match a
      path presented with backslashes, so it never fired. Write both forms.
@@ -89,7 +89,7 @@ re-reading the file you just wrote.
 
 # Local agent layer (global, loads in every repo)
 
-Promoted from the gateway repo 2026-08-10 so every session on this machine
+Promoted from the gateway repo so every session on this machine
 inherits them instead of each repo carrying its own drifting copy. Repo-level
 copies still override these by design; the global set is the floor, not a
 replacement.
