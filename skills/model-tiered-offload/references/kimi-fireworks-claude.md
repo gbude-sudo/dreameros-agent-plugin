@@ -53,9 +53,9 @@ Preserve these values when the runtime exposes them:
 
 Configuration, aliases, and requested values never substitute for the actual served values.
 
-## Moats that come from measured operation
+## Evidence worth keeping from measured operation
 
-The defensible asset is not access to a model. Providers can sell that to everyone. The moat is the accumulated, privacy-safe evidence that DreamerOS can use to improve selection without weakening intent or trust:
+Access to a model is not the lasting value. The lasting value is the privacy-safe evidence DreamerOS can use to improve selection without weakening intent or trust:
 
 - task-to-route outcomes measured against acceptance checks
 - cost, latency, cache, fallback, and quality recorded per actual served route
@@ -64,4 +64,4 @@ The defensible asset is not access to a model. Providers can sell that to everyo
 - portable receipts and handoffs that let every client resume from the same facts
 - failure data that improves routing before a customer repeats the same failure
 
-Each moat begins as a build target. It becomes a product claim only after the intended customer can reach it, use it, and inspect evidence from a real run.
+Each item begins as a build target. It becomes a product claim only after the intended customer can reach it, use it, and inspect evidence from a real run.
