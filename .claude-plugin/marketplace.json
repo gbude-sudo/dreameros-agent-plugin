@@ -1,6 +1,8 @@
 {
   "name": "dreameros",
-  "owner": { "name": "DreamerOS" },
+  "owner": {
+    "name": "DreamerOS"
+  },
   "metadata": {
     "description": "DreamerOS for coding agents: shared boot rules, intent verification, memory across sessions, claim checks, and one gateway with vendor-native adapters."
   },
@@ -9,6 +11,11 @@
       "name": "dreameros",
       "source": "./",
       "description": "DreamerOS starts agents with shared rules, verifies intent, carries memory across sessions, checks claims, and routes work through one gateway with vendor-native adapters."
+    },
+    {
+      "name": "dreameros-guard",
+      "source": "./directory/dreameros-guard",
+      "description": "Catches your AI saying done when it is not. Checks pushed, saved, added-file and tests-pass claims against real git and file state, on your machine."
     }
   ]
 }

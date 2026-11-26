@@ -1,0 +1,20 @@
+{
+  "name": "dreameros-guard",
+  "displayName": "DreamerOS Guard",
+  "version": "0.1.0",
+  "description": "Catches your AI saying done when it is not. When the assistant claims work is pushed, saved, added or tested, Guard reads the real state and holds the stop if the claim does not match. Runs on your machine. Nothing leaves it.",
+  "author": {
+    "name": "DreamerOS",
+    "url": "https://dreameros.app"
+  },
+  "homepage": "https://dreameros.app",
+  "privacyPolicyUrl": "https://dreameros.app/privacy",
+  "repository": "https://github.com/gbude-sudo/dreameros-agent-plugin",
+  "keywords": [
+    "verification",
+    "claims",
+    "git",
+    "hooks",
+    "receipts"
+  ]
+}
