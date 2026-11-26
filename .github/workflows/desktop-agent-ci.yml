@@ -15,6 +15,13 @@ on:
       - "skills/**"
       - "scripts/validate.py"
       - "scripts/test_private_quote_scan.py"
+      - "scripts/public_surface_gate.py"
+      - "scripts/test_public_surface_gate.py"
+      - "scripts/public_surface_baseline.json"
+      - ".claude-plugin/**"
+      - "directory/**"
+      - "governance/**"
+      - "shadow/**"
       - "gates/**"
       - "plugin.json"
       - "mcp.json"
@@ -42,6 +49,13 @@ on:
       - "skills/**"
       - "scripts/validate.py"
       - "scripts/test_private_quote_scan.py"
+      - "scripts/public_surface_gate.py"
+      - "scripts/test_public_surface_gate.py"
+      - "scripts/public_surface_baseline.json"
+      - ".claude-plugin/**"
+      - "directory/**"
+      - "governance/**"
+      - "shadow/**"
       - "gates/**"
       - "plugin.json"
       - "mcp.json"
@@ -64,6 +78,9 @@ jobs:
         with:
           python-version: "3.12"
       - run: python scripts/validate.py
+      - run: python scripts/public_surface_gate.py --self-test
+      - run: python scripts/public_surface_gate.py
+      - run: python -m unittest scripts.test_public_surface_gate -v
       - run: python -m unittest scripts.test_private_quote_scan -v
       - run: python install/claude-code/tests/policy_setup_test.py
       - run: python -m unittest gates.test_gateway_lockstep -v

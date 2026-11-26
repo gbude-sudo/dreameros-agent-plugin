@@ -1,0 +1,106 @@
+{
+ "files": {
+  "bootpack/SOURCE-dreameros-boot-canon.md": {
+   "memory_or_anchor_id": 2,
+   "owner_local_store": 7,
+   "owner_quote_marker": 2
+  },
+  "bootpack/out/claude/CLAUDE.md.block": {
+   "memory_or_anchor_id": 2,
+   "owner_local_store": 7,
+   "owner_quote_marker": 2
+  },
+  "bootpack/out/codex/AGENTS.md.block": {
+   "memory_or_anchor_id": 2,
+   "owner_local_store": 7,
+   "owner_quote_marker": 2
+  },
+  "bootpack/out/cursor/dreameros-boot-canon.mdc": {
+   "memory_or_anchor_id": 2,
+   "owner_local_store": 7,
+   "owner_quote_marker": 2
+  },
+  "bootpack/out/paste/PASTE-INTO-ANY-LLM.txt": {
+   "memory_or_anchor_id": 2,
+   "owner_local_store": 7,
+   "owner_quote_marker": 2
+  },
+  "bootpack/out/runtime/dreameros-boot-canon-stable-prefix.json": {
+   "memory_or_anchor_id": 2,
+   "owner_local_store": 7,
+   "owner_quote_marker": 2
+  },
+  "bootpack/out/skill/dreameros-boot/SKILL.md": {
+   "memory_or_anchor_id": 2,
+   "owner_local_store": 7,
+   "owner_quote_marker": 2
+  },
+  "bootpack/proposals/AUDIENCES_v0_1_0.md": {
+   "gateway_governance_path": 1,
+   "gateway_source_path": 2,
+   "memory_or_anchor_id": 1
+  },
+  "bootpack/proposals/BOOT_NEWNESS_2026_11_24_v0_1_0.md": {
+   "gateway_source_path": 1,
+   "owner_local_store": 1
+  },
+  "cursor/commands/dreameros-claude-review.md": {
+   "owner_local_store": 1
+  },
+  "cursor/hooks/dreameros_cursor_hook.py": {
+   "secret_private_key_block": 4
+  },
+  "cursor/rules/dreameros-boot-canon.mdc": {
+   "memory_or_anchor_id": 2,
+   "owner_local_store": 7,
+   "owner_quote_marker": 2
+  },
+  "gates/gate_estate_drift.py": {
+   "owner_local_store": 2
+  },
+  "governance/decisions/DIAMOND_DIRECTIVE_DECISIONS_DRAFT_v0_1_0.json": {
+   "owner_local_path": 3,
+   "owner_local_store": 3
+  },
+  "governance/decisions/DIAMOND_DIRECTIVE_DECISIONS_v0_1_0.json": {
+   "owner_chat_reference": 3
+  },
+  "install/claude-code/payload/agents/dreameros-operator.md": {
+   "gateway_governance_path": 2,
+   "gateway_source_path": 1
+  },
+  "install/claude-code/payload/agents/web-operator.md": {
+   "gateway_governance_path": 1
+  },
+  "install/claude-code/payload/hooks/gate-destructive-write.sh": {
+   "gateway_source_path": 1
+  },
+  "install/claude-code/payload/hooks/gate_no_parrot.py": {
+   "owner_quote_marker": 1
+  },
+  "install/claude-code/payload/hooks/operator-standing-orders.sh": {
+   "memory_or_anchor_id": 5
+  },
+  "install/claude-code/payload/skills/braid-coordination/SKILL.md": {
+   "gateway_governance_path": 1
+  },
+  "install/claude-code/payload/skills/external-mcp-client-onboard/SKILL.md": {
+   "gateway_source_path": 1
+  },
+  "install/claude-code/payload/skills/p37-truth-audit/SKILL.md": {
+   "gateway_source_path": 1
+  },
+  "install/claude-code/payload/skills/self-catch/SKILL.md": {
+   "gateway_governance_path": 1
+  },
+  "install/claude-code/tests/settings-merge.tests.ps1": {
+   "owner_local_path": 2
+  },
+  "skills/dreameros-boot/SKILL.md": {
+   "memory_or_anchor_id": 2,
+   "owner_local_store": 7,
+   "owner_quote_marker": 2
+  }
+ },
+ "version": 1
+}
