@@ -25,7 +25,7 @@ button is the promise that no customer repeats that.
 
 ## Source table for every shape it writes
 
-Measured 2026-08-26 on a live install or taken from the vendor doc named.
+Checked on a live install or taken from the vendor doc named.
 
 | Tool | Target | Shape source |
 |---|---|---|

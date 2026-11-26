@@ -1,17 +1,13 @@
 #!/bin/bash
 # Machine-wide SessionStart hook - operator standing orders (boot contract).
-# User-scope copy installed 2026-08-04 at the operator's request so EVERY
-# Claude Code session on this machine boots with the standing orders, not
-# just sessions in repos that carry the repo-scoped copy.
+# RETIRED: not registered by the installer, which removes any registration of
+# it. Kept as a reference for the optional user-scope form: a SessionStart hook
+# that boots every session on this machine with the standing orders.
 #
-# Dedup guard: when the current project ships its own copy of this hook
-# (dreameros-app-frontend does, at .claude/hooks/operator-standing-orders.sh),
-# this user-scope copy emits nothing so the orders are injected exactly once.
+# Dedup guard: when the current project ships its own copy of this hook, this
+# user-scope copy emits nothing so the orders are injected exactly once.
 #
-# Canonical source of truth: the repo-scoped copy in dreameros-app-frontend
-# (versioned, PR-reviewed). When editing the contract, edit the repo copy
-# first, then mirror here. Substrate procedural memories carry the same
-# orders as a third layer (tags: standing-practice, operator-directive).
+# Keep one versioned, reviewed source for the orders and mirror it here.
 
 set -euo pipefail
 

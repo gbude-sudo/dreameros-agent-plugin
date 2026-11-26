@@ -1,6 +1,6 @@
 # estate-pulse
 
-The seven-source morning sweep proven 2026-08-11/12. Run when the operator
+The seven-source morning sweep used for the morning check. Run when the operator
 says estate pulse, morning sweep, what changed overnight, or at any session
 start on estate work. The sweep interrogates the remote authority on each
 channel, never local clones. The estate is every repo the owner has, not only the first few. The highest-yield

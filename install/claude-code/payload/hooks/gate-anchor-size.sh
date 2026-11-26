@@ -2,7 +2,7 @@
 # PreToolUse GATE for dreameros_remember. Refuses an anchor that the substrate
 # will reject, before the call is spent.
 #
-# Built 2026-08-10 after three anchor writes in one session came back with
+# Built because anchor writes in one session came back with
 # "Memory content exceeds maximum size (10KB). Please shorten and try again."
 # Each rejection cost a full round trip and, worse, each one risked the anchor
 # never being written at all - which is how a session's findings evaporate.

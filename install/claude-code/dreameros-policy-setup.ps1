@@ -179,8 +179,8 @@ if ($LASTEXITCODE -ne 0) {
 }
 # 7. Lock the managed directory. C:\Program Files grants CREATOR OWNER full
 # control, so the account that ran this elevated installer otherwise owns the
-# policy and can edit it without elevation (measured 2026-09-16: the user and
-# CodexSandboxUsers had write access). Only SYSTEM and Administrators may
+# policy and can edit it without elevation (on a default install the user and
+# sandbox accounts had write access). Only SYSTEM and Administrators may
 # write; Users may read and run the hooks.
 #
 # How, and why in this order (2026-09-16 lesson): set the explicit grants on

@@ -60,9 +60,9 @@ for repo in "${REPOS[@]}"; do
   #
   # Do NOT use `%(upstream)` for this. An unset upstream is a DIFFERENT
   # question from "never pushed" - a branch can carry a configured upstream
-  # that does not exist on the remote, and most here do. Measured 2026-08-10:
-  # the upstream test reported 4 for this repo where the real answer was 80,
-  # a 20x undercount that would have read as reassuring. Compare the actual
+  # that does not exist on the remote, and most here do. In practice the
+  # upstream test reported a count many times too low,
+  # an undercount that would have read as reassuring. Compare the actual
   # ref namespaces instead.
   NEVER=$(
     { timeout 5 git -C "$repo" for-each-ref --format='L %(refname:short)' refs/heads 2>/dev/null

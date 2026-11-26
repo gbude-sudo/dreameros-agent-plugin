@@ -1,8 +1,8 @@
 #!/bin/bash
 # Stop GATE. Verifies CLAIMS against reality before a turn can end.
 #
-# Built 2026-08-10 after this thread made the same class of error three times
-# in one session. Each time the artifact existed and the capability did not:
+# Built after one session made the same class of error three times.
+# Each time the artifact existed and the capability did not:
 #
 #   1. "The worktrees were rescued as rescue/* branches." The branches existed
 #      and pointed at commits already on main. They held ZERO commits. Every

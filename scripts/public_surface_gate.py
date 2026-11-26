@@ -79,6 +79,10 @@ PATTERNS = {
         lambda: "HC, " + "2026-01-02",
     ),
     "dated_origin_story": (r"\bBorn 20\d\d-\d\d-\d\d\b", lambda: "Born " + "2026-01-02"),
+    "dated_finding_story": (
+        r"(?i)\b(built|found|measured|proven|lived|caught)[ ]+(on[ ]+|in[ ]+)?20\d\d-\d\d-\d\d",
+        lambda: "Built " + "2026-01-02",
+    ),
     "internal_repo_name": (
         r"\b(dreameros-(hc-command-center|light-proxy|mobile)|intentfidelityprotocol-site)\b",
         lambda: "dreameros-" + "light-proxy",
