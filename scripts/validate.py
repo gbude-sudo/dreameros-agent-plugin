@@ -294,7 +294,7 @@ def check_skills() -> None:
 def check_model_tiered_offload_mirror() -> None:
     source = ROOT / "skills" / "model-tiered-offload"
     packaged = ROOT / "install" / "claude-code" / "payload" / "skills" / "model-tiered-offload"
-    expected = {"SKILL.md", "references/kimi-fireworks-claude.md"}
+    expected = {"SKILL.md", "references/provider-routing.md"}
 
     for label, root in (("canonical", source), ("Claude package", packaged)):
         if not root.is_dir():
@@ -327,7 +327,7 @@ def check_model_tiered_offload_mirror() -> None:
     except (OSError, UnicodeDecodeError) as exc:
         fail(f"model-tiered-offload canonical entrypoint: unreadable ({exc})")
         return
-    if "references/kimi-fireworks-claude.md" not in entrypoint:
+    if "references/provider-routing.md" not in entrypoint:
         fail("model-tiered-offload canonical entrypoint: provider reference is not discoverable")
 
 

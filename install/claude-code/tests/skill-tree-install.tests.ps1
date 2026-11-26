@@ -56,7 +56,7 @@ try {
         Assert-True ((Get-FileHash -Algorithm SHA256 -LiteralPath $destination).Hash -ceq (Get-FileHash -Algorithm SHA256 -LiteralPath $source.FullName).Hash) "$relative differs from payload"
     }
 
-    $referenceRelative = 'model-tiered-offload\references\kimi-fireworks-claude.md'
+    $referenceRelative = 'model-tiered-offload\references\provider-routing.md'
     $referenceDestination = Join-Path (Join-Path $ClaudeHome 'skills') $referenceRelative
     $ownerCanary = "LOCAL OWNER CONTENT`n"
     [IO.File]::WriteAllText($referenceDestination, $ownerCanary, (New-Object Text.UTF8Encoding($false)))
@@ -68,7 +68,7 @@ try {
     Assert-True ($withForce.ExitCode -eq 0) "force rerun failed: $($withForce.Text)"
     $payloadReference = Join-Path $payloadSkills $referenceRelative
     Assert-True ((Get-FileHash -Algorithm SHA256 -LiteralPath $referenceDestination).Hash -ceq (Get-FileHash -Algorithm SHA256 -LiteralPath $payloadReference).Hash) 'force install did not restore packaged reference'
-    $backups = @(Get-ChildItem -LiteralPath (Join-Path $ClaudeHome 'backups') -Recurse -File | Where-Object { $_.Name -eq 'kimi-fireworks-claude.md' })
+    $backups = @(Get-ChildItem -LiteralPath (Join-Path $ClaudeHome 'backups') -Recurse -File | Where-Object { $_.Name -eq 'provider-routing.md' })
     Assert-True ($backups.Count -eq 1) 'changed nested skill reference was not backed up'
     Assert-True ([IO.File]::ReadAllText($backups[0].FullName) -ceq $ownerCanary) 'nested skill reference backup lost owner bytes'
 
