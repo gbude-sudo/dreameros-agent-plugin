@@ -72,7 +72,31 @@ PATTERNS = {
         r"(?i)HC verbatim|operator typed this sentence|his exact words",
         lambda: "HC " + "verbatim",
     ),
+    "incident_commit_ref": (r"(?i)\bcommit [0-9a-f]{7,40}\b", lambda: "commit " + "abc1234"),
+    "incident_pr_ref": (r"(?i)\b(PR|pull request) #?\d{3,5}\b", lambda: "PR " + "#1234"),
+    "owner_dated_attribution": (
+        r"\b(HC|operator|Human Conductor)[ ,(]+(canon[ ,]+)?(ordered[ ,]+)?20\d\d-\d\d-\d\d",
+        lambda: "HC, " + "2026-01-02",
+    ),
+    "dated_origin_story": (r"\bBorn 20\d\d-\d\d-\d\d\b", lambda: "Born " + "2026-01-02"),
+    "internal_repo_name": (
+        r"\b(dreameros-(hc-command-center|light-proxy|mobile)|intentfidelityprotocol-site)\b",
+        lambda: "dreameros-" + "light-proxy",
+    ),
+    "vendor_model_name": (
+        r"(?i)\b(kimi|moonshot|fireworks|deepseek|qwen|zhipu|glm-?\d|gpt-5\.\d|claude-(opus|sonnet|haiku)-\d)",
+        lambda: "kimi-" + "k2",
+    ),
 }
+
+# The pattern names the baseline file knew before it began to record its own list.
+ORIGINAL_PATTERN_NAMES = (
+    "secret_member_key", "secret_api_key", "secret_github_token", "secret_cloud_key",
+    "secret_private_key_block", "secret_jwt", "secret_bearer_literal", "secret_assignment",
+    "infra_project_id", "infra_team_id", "owner_local_path", "owner_local_store",
+    "gateway_source_path", "gateway_governance_path", "memory_or_anchor_id",
+    "owner_chat_reference", "owner_quote_marker",
+)
 
 CLEAN_TEXT = (
     "DreamerOS connects your tools to one account. See https://dreameros.app/privacy "
@@ -102,12 +126,17 @@ def self_test():
     return problems
 
 
-def compare(current, baseline):
-    """current, baseline: {path: {pattern: count}}. Return (violations, shrunk)."""
+def compare(current, baseline, only=None):
+    """current, baseline: {path: {pattern: count}}. Return (violations, shrunk).
+
+    only: when given, a set of pattern names. Other patterns are not checked.
+    """
     violations, shrunk = [], []
     for path, counts in current.items():
         base = baseline.get(path, {})
         for name, n in counts.items():
+            if only is not None and name not in only:
+                continue
             allowed = base.get(name, 0)
             if n > allowed:
                 violations.append("%s: %s has %d, baseline allows %d" % (path, name, n, allowed))
@@ -147,15 +176,19 @@ def scan_repo():
 
 
 def load_baseline():
+    """Return (files, known_patterns). Version 1 baselines carry no pattern list."""
     with open(os.path.join(ROOT, BASELINE_PATH), "r", encoding="utf-8") as handle:
         data = json.load(handle)
-    if data.get("version") != 1 or not isinstance(data.get("files"), dict):
+    if data.get("version") not in (1, 2) or not isinstance(data.get("files"), dict):
         raise ValueError("baseline has an unknown shape")
-    return data["files"]
+    known = data.get("patterns") if data.get("version") == 2 else list(ORIGINAL_PATTERN_NAMES)
+    if not isinstance(known, list):
+        raise ValueError("baseline pattern list has an unknown shape")
+    return data["files"], set(known)
 
 
 def write_baseline(files):
-    body = {"version": 1, "files": dict(sorted(files.items()))}
+    body = {"version": 2, "patterns": sorted(PATTERNS), "files": dict(sorted(files.items()))}
     with open(os.path.join(ROOT, BASELINE_PATH), "w", encoding="utf-8", newline="\n") as handle:
         json.dump(body, handle, indent=1, sort_keys=True)
         handle.write("\n")
@@ -177,10 +210,11 @@ def main(argv):
         return 2
     if "--update-baseline" in argv:
         try:
-            old = load_baseline()
+            old, known = load_baseline()
         except (OSError, ValueError):
-            old = {}
-        violations, _ = compare(current, old)
+            old, known = {}, set(PATTERNS)
+        # A pattern the baseline has never seen may start above zero. Known ones may only fall.
+        violations, _ = compare(current, old, only=known)
         if violations and old:
             print("REFUSED: the baseline can only go down. These rose:")
             for line in violations:
@@ -190,7 +224,7 @@ def main(argv):
         print("BASELINE WRITTEN: %d files" % len(current))
         return 0
     try:
-        baseline = load_baseline()
+        baseline, _known = load_baseline()
     except (OSError, ValueError) as exc:
         print("PUBLIC SURFACE GATE COULD NOT RUN: baseline unreadable (%s)" % type(exc).__name__)
         return 2
