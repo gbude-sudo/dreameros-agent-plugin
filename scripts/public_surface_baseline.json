@@ -62,13 +62,6 @@
   "gates/gate_estate_drift.py": {
    "owner_local_store": 1
   },
-  "governance/decisions/DIAMOND_DIRECTIVE_DECISIONS_DRAFT_v0_1_0.json": {
-   "owner_local_path": 3,
-   "owner_local_store": 3
-  },
-  "governance/decisions/DIAMOND_DIRECTIVE_DECISIONS_v0_1_0.json": {
-   "owner_chat_reference": 3
-  },
   "install/claude-code/payload/agents/canon-citer.md": {
    "vendor_model_name": 1
   },
