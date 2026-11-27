@@ -71,6 +71,26 @@
         ]
       },
       {
+        "matcher": "Bash|Grep|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "__DREAMEROS_PYTHON_COMMAND__ \"__DREAMEROS_CLAUDE_HOME__/hooks/gate_main_thread_offload.py\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "__DREAMEROS_PYTHON_COMMAND__ \"__DREAMEROS_CLAUDE_HOME__/hooks/gate_dispatch_names_model.py\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
         "matcher": "Write",
         "hooks": [
           {
@@ -117,6 +137,11 @@
             "type": "command",
             "command": "__DREAMEROS_PYTHON_COMMAND__ \"__DREAMEROS_CLAUDE_HOME__/hooks/gate_prompt_submit.py\"",
             "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "__DREAMEROS_PYTHON_COMMAND__ \"__DREAMEROS_CLAUDE_HOME__/hooks/gate_main_thread_offload.py\"",
+            "timeout": 10
           },
           {
             "type": "command",
