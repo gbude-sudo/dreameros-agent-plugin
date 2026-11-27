@@ -6,6 +6,7 @@ release of the plugin yet, so entries are dated, not numbered.
 
 ## Unreleased
 
+- Add `gate_dispatch_names_model.py`, a Claude Code PreToolUse gate for R7a. It denies an Agent or Task call that names no model, except a fork.
 - Add `gate_main_thread_offload.py`, a Claude Code PreToolUse gate for R7. It denies the fourth mechanical Bash, Grep or Glob call per user turn in the main thread.
 - README: say what this repository is for.
 - Boot pack: raise the rule-count floor from 38 to 44, the number the build counts today.

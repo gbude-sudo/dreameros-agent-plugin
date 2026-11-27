@@ -81,6 +81,16 @@
         ]
       },
       {
+        "matcher": "Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "__DREAMEROS_PYTHON_COMMAND__ \"__DREAMEROS_CLAUDE_HOME__/hooks/gate_dispatch_names_model.py\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
         "matcher": "Write",
         "hooks": [
           {
