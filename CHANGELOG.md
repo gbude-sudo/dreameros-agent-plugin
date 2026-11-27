@@ -6,6 +6,7 @@ release of the plugin yet, so entries are dated, not numbered.
 
 ## Unreleased
 
+- Add `gate_main_thread_offload.py`, a Claude Code PreToolUse gate for R7. It denies the fourth mechanical Bash, Grep or Glob call per user turn in the main thread.
 - README: say what this repository is for.
 - Boot pack: raise the rule-count floor from 38 to 44, the number the build counts today.
 - CI: run on changes to `.claude-plugin`, `directory`, `governance` and `shadow`.
