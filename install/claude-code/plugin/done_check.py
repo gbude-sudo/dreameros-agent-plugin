@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""DreamerOS Guard: check "done" claims against real state.
+"""DreamerOS done check: check "done" claims against real state.
 
 Claude Code runs this when the assistant is about to stop. It reads the last
 assistant message and looks for claims it can check on this machine:
@@ -169,7 +169,7 @@ def check(payload):
 
 
 def log_path():
-    base = os.environ.get("CLAUDE_PLUGIN_DATA") or os.path.join(os.path.expanduser("~"), ".dreameros-guard")
+    base = os.environ.get("CLAUDE_PLUGIN_DATA") or os.path.join(os.path.expanduser("~"), ".dreameros", "done-check")
     return os.path.join(base, "caught.jsonl")
 
 
@@ -201,7 +201,7 @@ def main():
         if repeat:
             return 0  # block once per turn; never loop
         reason = (
-            "Guard found %d gap(s) between what you said and what is real:\n- %s\n"
+            "DreamerOS found %d gap(s) between what you said and what is real:\n- %s\n"
             "Fix each one, or tell the user plainly that it is left and why. "
             "Do not end with 'done' while a gap is open."
             % (len(gaps), "\n- ".join(text for _, text in gaps))

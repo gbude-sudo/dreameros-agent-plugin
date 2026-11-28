@@ -6,6 +6,7 @@ release of the plugin yet, so entries are dated, not numbered.
 
 ## Unreleased
 
+- The done check is now part of the DreamerOS plugin for Claude Code, not a separate plugin. When the assistant says work is pushed, saved, added or tested, it reads the real git and file state and stops the turn once if the claim does not match. Code moved from `directory/dreameros-guard` to `install/claude-code/plugin`, with its 16 tests. The separate `dreameros-guard` marketplace entry is removed. Plugin version 0.5.4.
 - Add `gate_dispatch_names_model.py`, a Claude Code PreToolUse gate for R7a. It denies an Agent or Task call that names no model, except a fork.
 - Add `gate_main_thread_offload.py`, a Claude Code PreToolUse gate for R7. It denies the fourth mechanical Bash, Grep or Glob call per user turn in the main thread.
 - README: say what this repository is for.

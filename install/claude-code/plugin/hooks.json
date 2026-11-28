@@ -1,0 +1,16 @@
+{
+  "description": "DreamerOS done check (Claude Code): check the assistant's done claims against real git and file state before the turn ends.",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/install/claude-code/plugin/done_check.py\"",
+            "timeout": 20
+          }
+        ]
+      }
+    ]
+  }
+}
