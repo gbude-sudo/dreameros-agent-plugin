@@ -51,7 +51,7 @@ for repo in "${REPOS[@]}"; do
   staged=$(git -C "$repo" diff --cached --name-only 2>/dev/null | wc -l | tr -d ' ')
   if [ "${staged:-0}" -gt 0 ]; then
     PROBLEMS="${PROBLEMS}\\n  ${staged} STAGED but uncommitted file(s) in ${name} on branch $(git -C "$repo" rev-parse --abbrev-ref HEAD 2>/dev/null)"
-    SIG="${SIG}|${name}:staged:${staged}"
+    SIG="${SIG}|${name}:staged"
   fi
 
   # Unstaged and untracked work in a PRIMARY checkout.
@@ -99,7 +99,7 @@ for repo in "${REPOS[@]}"; do
     n=$(git -C "$w" status --porcelain 2>/dev/null | wc -l | tr -d ' ')
     if [ "${n:-0}" -gt 0 ]; then
       PROBLEMS="${PROBLEMS}\\n  ${n} uncommitted file(s) in worktree $(basename "$w") on branch $(git -C "$w" rev-parse --abbrev-ref HEAD 2>/dev/null) at ${w}"
-      SIG="${SIG}|wt:$(basename "$w"):${n}"
+      SIG="${SIG}|wt:$(basename "$w")"
     fi
   done <<< "$(git -C "$repo" worktree list --porcelain 2>/dev/null | sed -n 's/^worktree //p')"
 done
@@ -116,11 +116,33 @@ if [ -z "$PROBLEMS" ]; then
   exit 0
 fi
 
-# Loop guard: identical state already blocked once. Do not deadlock.
+# Loop guard, three states, kept in $SESSION_MARK. Load bearing.
+#
+# A Stop hook that blocks unconditionally makes the session unusable, so the
+# same state must never block twice. An earlier version erased its own memory
+# right after the one allow. The next reply then blocked again, so one dirty
+# worktree cost one extra model turn on every reply. Measured on the operator's
+# PC: 69 dirty Codex worktrees, a block on every reply.
+#
+#   new state      (mark differs)  -> BLOCK once, remember it
+#   same, 1st time (mark == SIG)   -> ALLOW, tell the operator in full once
+#   same, later    (mark == SIG|ack) -> ALLOW, one short line, no block
+#
+# The state is the SET of half-states (names, not file counts), so work that
+# keeps changing inside a known dirty worktree does not re-block. A NEW dirty
+# worktree or a new staged repo is a new state and blocks once. When
+# everything is clean the mark is removed, so a later half-state blocks again.
+# Nothing is narrowed by owner or by folder: git cannot say which session made
+# a worktree, and a narrow scan once hid the Codex parity port.
 PREV=$(cat "$SESSION_MARK" 2>/dev/null || echo "")
+if [ "$PREV" = "${SIG}|ack" ]; then
+  COUNT=$(printf '%s' "$SIG" | tr -cd '|' | wc -c | tr -d ' ')
+  printf '{"systemMessage":"Half-states unchanged since the last notice (%s open). Not blocked. They still need the operator."}\n' "$COUNT"
+  exit 0
+fi
 if [ "$PREV" = "$SIG" ]; then
-  rm -f "$SESSION_MARK" 2>/dev/null
-  printf '{"systemMessage":"GATE ESCALATION: the same half-state was blocked once and is still unresolved, so this turn is being allowed to end rather than deadlocking. UNRESOLVED:%s\\n\\nThis needs the operator. Nothing was lost - the files are exactly where they were - but they are staged or uncommitted and no future session will know to look."}\n' "$PROBLEMS"
+  printf '%s' "${SIG}|ack" > "$SESSION_MARK" 2>/dev/null
+  printf '{"systemMessage":"GATE ESCALATION: the same half-state was blocked once and is still unresolved, so this turn is being allowed to end rather than deadlocking. UNRESOLVED:%s\\n\\nThis needs the operator. Nothing was lost - the files are exactly where they were - but they are staged or uncommitted and no future session will know to look. This full notice shows once; later replies show one short line until the state changes."}\n' "$PROBLEMS"
   exit 0
 fi
 
