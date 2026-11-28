@@ -1427,6 +1427,7 @@ def check_hydration_preconditions() -> None:
         ROOT / "skills" / "dreameros-life-of-intent" / "SKILL.md",
         ROOT / "skills" / "dreameros-verified-answers" / "SKILL.md",
         ROOT / "skills" / "dreameros-verified-routing" / "SKILL.md",
+        ROOT / "skills" / "defend-the-dream" / "SKILL.md",
     )
     marker = "DREAMEROS-BOOT-PRECONDITION v1.1.0"
     required_order = (
