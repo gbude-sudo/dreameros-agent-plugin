@@ -458,7 +458,7 @@ one rung only when the rung below cannot answer, and say why in one line.
                        rung can answer. Name the tool and its cost unit
                        before the call.
 
-MEASURED 2026-11-27 and 2026-11-28 in one session: two small-model lanes of
+WHY, FROM ONE SESSION: two small-model lanes of
 4 to 5 commands each printed about 228 and 227 thousand tokens; two help pages
 cost about 11 paid web credits; a remote-control hop was set up while the
 operator sat at the device. Each skipped a lower rung that would have answered.
