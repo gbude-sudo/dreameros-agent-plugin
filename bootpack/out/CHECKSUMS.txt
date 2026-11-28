@@ -1,22 +1,22 @@
 DreamerOS Boot Pack v2.7.0
 source sha256 2b7ca60c30678bfff0f990754434a108ea6628d8e3bfa7e1d41677ca03727cf9  SOURCE-dreameros-boot-canon.md
 generated outputs:
-  c1ec6077419b8171af4110ac8ba2d0e0b9db4821c13e7b2bf64d97c54ace9f57  /claude/CLAUDE.md.block
-  89a2d2aa1b15a42f988c5d071ebe490d3d53546677c0cc657cb7c7525f324d33  /codex/AGENTS.md.block
-  7715339064fa288b0a6b487cb2e266e183aea8399c4b7da813374e3805e112e1  /cursor/dreameros-boot-canon.mdc
-  6b107c009150e39d60dd6620fb7771813dc4182b048dac0b1793239e07c667bf  /project/DREAMEROS_BOOT_CANON_POINTER.md.block
-  b1c91167c9ea43dc37a192e73925a342eba215f6b6cceedabfd8edd265d6c69a  /cursor/dreameros-project-pointer.mdc
-  b0c6b2875fb907b405f10bb42e3379a00634ad6a52f9bcc9628e7e9a2e6887df  /cursor/dreameros-global-plugin-pointer.mdc
-  30646461e8e289831bd813e3188bbd3ac8b1f6950a9c493aeeb9b61b43f6b3c0  /cursor/answer-from-measurement.adapter.mdc
-  9e69dd15941387d1e7191bec51cc591636e18b9ee98065a53d81ab770ae7401a  /cursor/canon-equals-live.adapter.mdc
-  edd9ad9d4dac6cdb5af3d3f5d1371147d3d5f9c5cd5fdbd214d88021f6675e45  /cursor/dreameros-cold-start.adapter.mdc
-  338dd9d5660e57ddf33c48d71e53d50dedd6f8bf08807c7bf74afc7806a1efd0  /cursor/dreameros-first.adapter.mdc
-  760cc5b3725d30e0ebc6e1b18d64420b9f997ee5f4af5373ec694302111775ba  /claude/dreameros-session-start.sh
-  f133d9d5507b0d38f37c36e8831ad409db969cbfea8f69e8f2c7ef59ba896e3b  /project/DREAMEROS_CENTRAL_BOOT_GENERATOR_POINTER.ps1.block
-  6e435334f6661a4acb7dccce3dc4bd17370c62dd581c9a12936919126254a53c  /project-oauth/claude.mcp.json
-  8c1744a83137ca920936a968da160ccea282823b7e7a2ecdff63f7f6653bdf87  /project-oauth/cursor.mcp.json
-  44bafafdb604f2ae5dd29c858c1564cea748ce3962ebffd35e3c08b46f99bf8b  /project-oauth/codex.config.toml
-  a189ed2ad49b3b24e513795318b706ac659358ae9feeb029f70771e1a896def8  /skill/dreameros-boot/SKILL.md
-  5414c66f97e2dbf7aee8ec120ff6a759f6de29b5d41b8ab5c29316f81188e58b  /paste/PASTE-INTO-ANY-LLM.txt
-  2d21814b51af30b9fafe8f006e387d1f282f8b57734c632355b320cc2bae5ef3  /runtime/dreameros-boot-canon-stable-prefix.json
-  6cfc4b2b6d7fe5fb7a59776956dc14a29facad18501193b93630e06f777dd45f  /manifest/dreameros-boot-canon.json
+  c1ec6077419b8171af4110ac8ba2d0e0b9db4821c13e7b2bf64d97c54ace9f57  claude\CLAUDE.md.block
+  89a2d2aa1b15a42f988c5d071ebe490d3d53546677c0cc657cb7c7525f324d33  codex\AGENTS.md.block
+  7715339064fa288b0a6b487cb2e266e183aea8399c4b7da813374e3805e112e1  cursor\dreameros-boot-canon.mdc
+  6b107c009150e39d60dd6620fb7771813dc4182b048dac0b1793239e07c667bf  project\DREAMEROS_BOOT_CANON_POINTER.md.block
+  b1c91167c9ea43dc37a192e73925a342eba215f6b6cceedabfd8edd265d6c69a  cursor\dreameros-project-pointer.mdc
+  b0c6b2875fb907b405f10bb42e3379a00634ad6a52f9bcc9628e7e9a2e6887df  cursor\dreameros-global-plugin-pointer.mdc
+  30646461e8e289831bd813e3188bbd3ac8b1f6950a9c493aeeb9b61b43f6b3c0  cursor\answer-from-measurement.adapter.mdc
+  9e69dd15941387d1e7191bec51cc591636e18b9ee98065a53d81ab770ae7401a  cursor\canon-equals-live.adapter.mdc
+  edd9ad9d4dac6cdb5af3d3f5d1371147d3d5f9c5cd5fdbd214d88021f6675e45  cursor\dreameros-cold-start.adapter.mdc
+  338dd9d5660e57ddf33c48d71e53d50dedd6f8bf08807c7bf74afc7806a1efd0  cursor\dreameros-first.adapter.mdc
+  760cc5b3725d30e0ebc6e1b18d64420b9f997ee5f4af5373ec694302111775ba  claude\dreameros-session-start.sh
+  f133d9d5507b0d38f37c36e8831ad409db969cbfea8f69e8f2c7ef59ba896e3b  project\DREAMEROS_CENTRAL_BOOT_GENERATOR_POINTER.ps1.block
+  6e435334f6661a4acb7dccce3dc4bd17370c62dd581c9a12936919126254a53c  project-oauth\claude.mcp.json
+  8c1744a83137ca920936a968da160ccea282823b7e7a2ecdff63f7f6653bdf87  project-oauth\cursor.mcp.json
+  44bafafdb604f2ae5dd29c858c1564cea748ce3962ebffd35e3c08b46f99bf8b  project-oauth\codex.config.toml
+  a189ed2ad49b3b24e513795318b706ac659358ae9feeb029f70771e1a896def8  skill\dreameros-boot\SKILL.md
+  5414c66f97e2dbf7aee8ec120ff6a759f6de29b5d41b8ab5c29316f81188e58b  paste\PASTE-INTO-ANY-LLM.txt
+  2d21814b51af30b9fafe8f006e387d1f282f8b57734c632355b320cc2bae5ef3  runtime\dreameros-boot-canon-stable-prefix.json
+  6cfc4b2b6d7fe5fb7a59776956dc14a29facad18501193b93630e06f777dd45f  manifest\dreameros-boot-canon.json
