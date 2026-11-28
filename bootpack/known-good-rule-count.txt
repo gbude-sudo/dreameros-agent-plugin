@@ -17,4 +17,6 @@
 # measured 2026-11-26: the build's own counting rule (## Rn and ### Rna headings)
 # finds 44 in v2.6.3. The floor is raised from 38 to 44 so that losing a rule
 # fails the build. This is a deliberate, separate change.
-44
+# 2026-11-28: v2.7.0 adds R30 (cost ladder). The build's counting
+# rule finds 45. The floor is raised from 44 to 45 on purpose.
+45

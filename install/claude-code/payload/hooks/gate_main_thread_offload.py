@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Runtime half of boot canon R7: mechanical work runs on a small-model subagent.
+"""Runtime half of boot canon R7 and R30: few mechanical calls in the main thread.
 
 PreToolUse gate for Bash, Grep and Glob. It only acts in the MAIN thread (a
 subagent hook payload carries agent_id; the main thread does not). It counts
 mechanical calls per user turn. The fourth mechanical call in one turn is
-denied with a message that tells the model to dispatch a Haiku subagent.
+denied with a message that tells the model to batch the rest into one call
+(boot canon R30 rung 1), and to use a Haiku subagent only for a large batch.
 
 The same file is registered a second time under UserPromptSubmit. That event
 resets the counter, so the count is per user turn.
@@ -29,8 +30,9 @@ import tempfile
 
 LIMIT = 3
 DENY_MESSAGE = (
-    "R7: mechanical work runs on a Haiku subagent. "
-    "Dispatch it with the Agent tool and model haiku."
+    "R30 then R7: put the remaining mechanical commands into ONE batched "
+    "script in ONE call. Use a Haiku subagent only for a large batch of "
+    "independent items, and name the model."
 )
 
 READ_TOOLS = {"Grep", "Glob"}

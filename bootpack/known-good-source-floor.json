@@ -1,6 +1,6 @@
 {
-  "minimum_version": "2.6.3",
-  "semantic_sha256": "e3ae990150f1b4cf62bb7f43eb9ca0fc4c1e5bcc58841296ec8162a9ee5f69e6",
+  "minimum_version": "2.7.0",
+  "semantic_sha256": "2b7ca60c30678bfff0f990754434a108ea6628d8e3bfa7e1d41677ca03727cf9",
   "measured_from": "Public-safe source draft. Review required before use as an approved source floor.",
   "required_clauses": [
     "## LAYER 0 - AUTHORITY. SETTLE THIS BEFORE ANYTHING ELSE.",
@@ -19,6 +19,7 @@
     "## R28 - READ EVERY VENUE IN FULL BEFORE AND AFTER EACH CHANGE",
     "Read the local offload before any work: the fixed-path session ledger",
     "This rule applies permanently in every venue and every session.",
-    "Branch and stash hygiene applies permanently in every session."
+    "Branch and stash hygiene applies permanently in every session.",
+    "## R30 - COST LADDER: LOCAL AND FREE FIRST, PAID AND REMOTE LAST"
   ]
 }
