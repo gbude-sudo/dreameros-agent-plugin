@@ -85,6 +85,7 @@ dreameros/
     first-principles-decomposition/  rebuild a problem from basic facts
     model-tiered-offload/        route work to models by verification risk
     session-intent-audit/        find instructions a session dropped
+    defend-the-dream/            check live facts before answering (text served by the gateway)
 ```
 
 ## Shared vendor boot pack
