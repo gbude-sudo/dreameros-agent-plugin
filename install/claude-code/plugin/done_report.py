@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Print what Guard caught in the last 7 days, from the local log."""
+"""Print what the DreamerOS done check caught in the last 7 days, from the local log."""
 
 import json
 import os
@@ -8,7 +8,7 @@ import time
 
 
 def log_path():
-    base = os.environ.get("CLAUDE_PLUGIN_DATA") or os.path.join(os.path.expanduser("~"), ".dreameros-guard")
+    base = os.environ.get("CLAUDE_PLUGIN_DATA") or os.path.join(os.path.expanduser("~"), ".dreameros", "done-check")
     return os.path.join(base, "caught.jsonl")
 
 
@@ -40,10 +40,10 @@ def report(path=None, now=None, days=7):
                 for code in entry.get("codes", []):
                     counts[code] = counts.get(code, 0) + 1
     except OSError:
-        return "Guard has no log yet. Nothing was caught, or Guard has not run."
+        return "The done check has no log yet. Nothing was caught, or it has not run."
     if not total:
-        return "Guard caught nothing in the last %d days." % days
-    lines = ["Guard caught %d stop(s) with a gap in the last %d days:" % (total, days)]
+        return "The done check caught nothing in the last %d days." % days
+    lines = ["The done check caught %d stop(s) with a gap in the last %d days:" % (total, days)]
     for code, n in sorted(counts.items(), key=lambda kv: -kv[1]):
         lines.append("- %d x %s" % (n, LABELS.get(code, code)))
     return "\n".join(lines)

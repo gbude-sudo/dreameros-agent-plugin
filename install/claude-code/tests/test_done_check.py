@@ -7,10 +7,10 @@ import time
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-HOOKS = os.path.join(os.path.dirname(HERE), "hooks")
-GUARD = os.path.join(HOOKS, "done_guard.py")
+HOOKS = os.path.join(os.path.dirname(HERE), "plugin")
+GUARD = os.path.join(HOOKS, "done_check.py")
 sys.path.insert(0, HOOKS)
-import guard_report  # noqa: E402
+import done_report as guard_report  # noqa: E402
 
 GIT_ENV = {
     "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.invalid",

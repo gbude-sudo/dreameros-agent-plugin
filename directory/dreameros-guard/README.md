@@ -1,3 +1,8 @@
+> Moved. The done check is now part of the DreamerOS plugin itself, so a
+> member installs one plugin. In Claude Code it loads from
+> `install/claude-code/plugin`. Install `dreameros@dreameros`. This folder
+> keeps the original text below for history.
+
 # DreamerOS Guard
 
 Catches your AI saying "done" when it is not.
