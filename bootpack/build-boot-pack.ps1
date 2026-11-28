@@ -548,7 +548,11 @@ function Get-ClaudeSessionStartRegistration([string]$SettingsPath) {
             if ($hook.command) { $commands += [string]$hook.command }
         }
     }
-    $bootstrap = @($commands | Where-Object { $_ -match '(?i)dreameros-session-start\.sh' })
+    # The global setup installer treats gate_session_boot.py as the combined
+    # boot and removes dreameros-session-start.sh when it is present
+    # (Remove-RetiredLifecycleHooks). Either one is the bootstrap; exactly one
+    # must be registered.
+    $bootstrap = @($commands | Where-Object { $_ -match '(?i)(?:dreameros-session-start\.sh|gate_session_boot\.py)' })
     $competing = @($commands | Where-Object { $_ -match '(?i)(?:operator-standing-orders|dreameros-agent-stack-session-start|dreameros_state|dreameros_recall)' })
     return [pscustomobject]@{ ParseOk = $true; BootstrapCount = $bootstrap.Count; CompetingCount = $competing.Count }
 }

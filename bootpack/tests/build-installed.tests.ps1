@@ -244,6 +244,14 @@ $savedSettings = [IO.File]::ReadAllText((Join-Path $FakeHome '.claude\settings.j
 [IO.File]::WriteAllText((Join-Path $FakeHome '.claude\settings.json'), '{}', (New-Object System.Text.UTF8Encoding($false)))
 $missingRegistration = Invoke-InstalledVerify
 Assert-True ($missingRegistration.ExitCode -ne 0 -and $missingRegistration.Text -match 'Claude SessionStart registration') 'missing Claude registration did not fail'
+$combinedOnly = @{ hooks = @{ SessionStart = @(@{ hooks = @(@{ type = 'command'; command = 'python "C:/fake/.claude/hooks/gate_session_boot.py"' }) }) } }
+[IO.File]::WriteAllText((Join-Path $FakeHome '.claude\settings.json'), ($combinedOnly | ConvertTo-Json -Depth 8), (New-Object System.Text.UTF8Encoding($false)))
+$combinedRun = Invoke-InstalledVerify
+Assert-True ($combinedRun.ExitCode -eq 0) "combined session boot (gate_session_boot.py) registration did not pass: $($combinedRun.Text)"
+$twoBoots = @{ hooks = @{ SessionStart = @(@{ hooks = @(@{ type = 'command'; command = 'python "C:/fake/.claude/hooks/gate_session_boot.py"' }, @{ type = 'command'; command = 'bash "C:/fake/.claude/hooks/dreameros-session-start.sh"' }) }) } }
+[IO.File]::WriteAllText((Join-Path $FakeHome '.claude\settings.json'), ($twoBoots | ConvertTo-Json -Depth 8), (New-Object System.Text.UTF8Encoding($false)))
+$twoRun = Invoke-InstalledVerify
+Assert-True ($twoRun.ExitCode -ne 0 -and $twoRun.Text -match 'Claude SessionStart registration') 'two bootstrap registrations did not fail'
 [IO.File]::WriteAllText((Join-Path $FakeHome '.claude\settings.json'), $savedSettings, (New-Object System.Text.UTF8Encoding($false)))
 
 [IO.File]::AppendAllText((Join-Path $FakeHome '.codex\skills\dreameros-boot\SKILL.md'), "`ndrift")
